@@ -1,0 +1,137 @@
+{
+  "agent": "planner",
+  "trigger": "wave_1_coa_generation",
+  "timestamp_s": 36,
+  "coas": [
+    {
+      "coa_id": "coa-w1-a",
+      "rank": 1,
+      "title": "Option A — Fighter Intercept from Northern Vanguard",
+      "summary": "Scramble two fighters from Base North to intercept trk-h01 on the western approach, and two fighters from Highridge to cover trk-h02 on the eastern axis. UAV trk-h03 monitored only.",
+      "actions": [
+        {
+          "asset_id": "ftr-n1",
+          "action_type": "intercept",
+          "target_track_ids": ["trk-h01"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "ftr-n2",
+          "action_type": "escort",
+          "target_track_ids": ["trk-h01"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "ftr-h1",
+          "action_type": "intercept",
+          "target_track_ids": ["trk-h02"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "ftr-h2",
+          "action_type": "escort",
+          "target_track_ids": ["trk-h02"],
+          "defended_zone_id": "zone-arktholm"
+        }
+      ],
+      "protected_objectives": ["city-arktholm", "base-highridge"],
+      "readiness_cost_pct": 30.8,
+      "reserve_posture": "9 aircraft remain: 2 at Base North, 1 at Highridge, 2 at Southern Redoubt (standby), 2 at Spear Point (alert). Both SAM batteries available. UAVs available for recon.",
+      "estimated_outcome": "High probability of intercepting both fighter tracks before they reach the Arktholm zone. Strong reserve maintained for follow-on threats.",
+      "risk_level": "medium",
+      "assumptions": [
+        "trk-h01 and trk-h02 maintain current heading and speed",
+        "No additional hostile tracks emerge in the next 60 seconds",
+        "Base North and Highridge runways remain operational",
+        "Fighter response time ~5 minutes to engagement envelope"
+      ],
+      "rationale": "This is the balanced approach. By scrambling pairs from two different bases, we cover both threat axes without over-committing from any single base. Reserve at Southern Redoubt and Spear Point remains intact for a potential second wave. The main risk is that committing 4 fighters to 2 tracks leaves less margin if the tracks are a feint."
+    },
+    {
+      "coa_id": "coa-w1-b",
+      "rank": 2,
+      "title": "Option B — SAM Engagement + Minimal Fighter Cover",
+      "summary": "Activate Firewatch SAM battery to cover the Arktholm approach. Scramble one fighter pair from Highridge as backup. Preserve all Northern Vanguard assets as reserve.",
+      "actions": [
+        {
+          "asset_id": "sam-fw",
+          "action_type": "area_deny",
+          "target_track_ids": ["trk-h01"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "ftr-h1",
+          "action_type": "intercept",
+          "target_track_ids": ["trk-h02"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "ftr-h2",
+          "action_type": "escort",
+          "target_track_ids": ["trk-h02"],
+          "defended_zone_id": "zone-arktholm"
+        }
+      ],
+      "protected_objectives": ["city-arktholm"],
+      "readiness_cost_pct": 17.2,
+      "reserve_posture": "11 aircraft remain: all 4 at Base North, 1 at Highridge, 2 UAVs, 2 at Southern Redoubt, 2 at Spear Point. SAM-Eastern available. Firewatch expends 2-4 missiles.",
+      "estimated_outcome": "SAM can engage trk-h01 if it enters the Firewatch coverage radius. Fighters cover the eastern axis. Lowest force commitment but relies on SAM effectiveness against a fast-mover at medium altitude.",
+      "risk_level": "medium",
+      "assumptions": [
+        "trk-h01 enters Firewatch SAM coverage envelope",
+        "SAM engagement probability adequate against medium-altitude fast mover",
+        "trk-h02 does not deviate to an uncovered approach"
+      ],
+      "rationale": "Prioritizes force preservation. The SAM battery handles the primary threat while only 2 fighters are committed. This leaves the largest reserve for a potential second wave. The risk is that SAM engagement against a maneuvering fighter is less certain than a fighter intercept, and trk-h02's eastern approach is only covered by one fighter pair."
+    },
+    {
+      "coa_id": "coa-w1-c",
+      "rank": 3,
+      "title": "Option C — Combined Response with Recon Screen",
+      "summary": "Fighter pair from Base North intercepts trk-h01. SAM Firewatch provides layered coverage. Fighter from Highridge covers trk-h02. Deploy one UAV forward for early warning on potential follow-on threats.",
+      "actions": [
+        {
+          "asset_id": "ftr-n1",
+          "action_type": "intercept",
+          "target_track_ids": ["trk-h01"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "ftr-n2",
+          "action_type": "escort",
+          "target_track_ids": ["trk-h01"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "sam-fw",
+          "action_type": "area_deny",
+          "target_track_ids": ["trk-h01", "trk-h05"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "ftr-h1",
+          "action_type": "intercept",
+          "target_track_ids": ["trk-h02"],
+          "defended_zone_id": "zone-arktholm"
+        },
+        {
+          "asset_id": "uav-h1",
+          "action_type": "recon",
+          "target_track_ids": [],
+          "defended_zone_id": null
+        }
+      ],
+      "protected_objectives": ["city-arktholm", "zone-valbrek"],
+      "readiness_cost_pct": 26.7,
+      "reserve_posture": "8 aircraft remain: 2 at Base North, 2 at Highridge (1 fighter + 1 UAV), 2 at Southern Redoubt, 2 at Spear Point. SAM-Eastern available.",
+      "estimated_outcome": "Layered response — fighters and SAM both covering the primary axis. Provides depth: if fighters miss, SAM is fallback. UAV forward screen improves early warning for wave 2. Moderate commitment.",
+      "risk_level": "low",
+      "assumptions": [
+        "trk-h01 enters both fighter and SAM engagement envelopes",
+        "UAV can reach forward position in time to detect follow-on tracks",
+        "Single fighter adequate for trk-h02 given SAM backup potential"
+      ],
+      "rationale": "Combines the strengths of options A and B: fighters provide high-probability intercept on the primary threat, SAM provides depth and fallback, and the forward UAV addresses the key unknown — whether a second wave is coming. The trade-off is committing a UAV and reducing Highridge's local reserve to one fighter. Ranked third because it splits fighter effort across two bases and relies on a single aircraft for the eastern axis."
+    }
+  ]
+}

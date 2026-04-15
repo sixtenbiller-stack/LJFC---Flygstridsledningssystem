@@ -1,0 +1,112 @@
+{
+  "agent": "simulator",
+  "trigger": "simulate_coa",
+  "coa_id": "coa-w1-a",
+  "timestamp_s": 50,
+  "simulation_result": {
+    "run_id": "sim-001",
+    "source_state_timestamp_s": 36,
+    "coa_id": "coa-w1-a",
+    "seed": 42,
+    "duration_s": 120,
+    "outcome_score": 0.84,
+    "threats_intercepted": 2,
+    "threats_missed": 0,
+    "threats_monitored": 1,
+    "zone_breaches": 0,
+    "asset_losses": 0,
+    "missiles_expended": {
+      "air_to_air": 4,
+      "sam_missile": 0
+    },
+    "readiness_remaining_pct": 69.2,
+    "recovery_time_min": 25,
+    "timeline": [
+      {
+        "t_s": 0,
+        "event": "SIMULATION_START",
+        "detail": "Scenario state frozen at t=36s. COA A applied: ftr-n1/n2 scramble toward trk-h01, ftr-h1/h2 scramble toward trk-h02."
+      },
+      {
+        "t_s": 15,
+        "event": "ASSET_AIRBORNE",
+        "detail": "ftr-n1 and ftr-n2 airborne from Base North. Heading to intercept trk-h01."
+      },
+      {
+        "t_s": 18,
+        "event": "ASSET_AIRBORNE",
+        "detail": "ftr-h1 and ftr-h2 airborne from Highridge. Heading to intercept trk-h02."
+      },
+      {
+        "t_s": 45,
+        "event": "ENGAGEMENT_INITIATED",
+        "detail": "ftr-n1 achieves weapons lock on trk-h01 at (220, 495). Range 35 km. Firing."
+      },
+      {
+        "t_s": 48,
+        "event": "ENGAGEMENT_RESULT",
+        "detail": "trk-h01 intercepted. Kill confirmed. ftr-n1 expends 2 air-to-air missiles."
+      },
+      {
+        "t_s": 55,
+        "event": "ENGAGEMENT_INITIATED",
+        "detail": "ftr-h1 achieves weapons lock on trk-h02 at (315, 450). Range 30 km. Firing."
+      },
+      {
+        "t_s": 58,
+        "event": "ENGAGEMENT_RESULT",
+        "detail": "trk-h02 intercepted. Kill confirmed. ftr-h1 expends 2 air-to-air missiles."
+      },
+      {
+        "t_s": 65,
+        "event": "TRACK_STATUS",
+        "detail": "trk-h03 (UAV) continues slow approach. No engagement ordered. Monitoring."
+      },
+      {
+        "t_s": 80,
+        "event": "ASSET_RETURNING",
+        "detail": "ftr-n1 and ftr-n2 returning to Base North. Estimated landing t=95s. Recovery and rearm: 25 minutes."
+      },
+      {
+        "t_s": 85,
+        "event": "ASSET_RETURNING",
+        "detail": "ftr-h1 and ftr-h2 returning to Highridge. Estimated landing t=100s. Recovery and rearm: 25 minutes."
+      },
+      {
+        "t_s": 120,
+        "event": "SIMULATION_END",
+        "detail": "All high-priority threats neutralized. No zone breaches. 4 fighters in recovery. 9 assets available (2 North, 1 Highridge, 2 UAV, 2 South standby, 2 Spear QRA). Both SAM batteries unused and fully loaded."
+      }
+    ],
+    "post_engagement_readiness": {
+      "base-north": {
+        "ready": 2,
+        "recovering": 2,
+        "recovery_complete_min": 25
+      },
+      "base-highridge": {
+        "ready": 1,
+        "recovering": 2,
+        "uav_available": 2,
+        "recovery_complete_min": 25
+      },
+      "base-south": {
+        "standby": 2,
+        "activation_time_min": 15
+      },
+      "base-spear": {
+        "alert": 2,
+        "ready_immediately": true
+      },
+      "sam-firewatch": {
+        "missiles_remaining": 12,
+        "status": "active"
+      },
+      "sam-eastern": {
+        "missiles_remaining": 8,
+        "status": "active"
+      }
+    }
+  },
+  "narration": "Simulation complete. Option A successfully intercepted both fighter tracks before they reached the Arktholm defence zone. ftr-n1 engaged trk-h01 at 220 km east, 495 km north — well outside the zone boundary. ftr-h1 engaged trk-h02 shortly after. No zone breaches, no asset losses. Four fighters are now in recovery and will need 25 minutes before they're available again. That leaves us with 9 assets including the QRA pair at Spear Point and both SAM batteries fully loaded. The key vulnerability: if a second wave arrives in the next 25 minutes, we're operating at 69% readiness with our two most experienced pairs unavailable."
+}

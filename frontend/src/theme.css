@@ -1,0 +1,134 @@
+:root {
+  /* App shell — keep neon identity */
+  --bg-primary: #050806;
+  --bg-secondary: #0B110D;
+  --surface: #0A0F0A;
+  --surface-hover: #0F160F;
+  --border: #1C3A22;
+  --border-bright: #2A4F2A;
+
+  --neon-green: #39FF14;
+  --green-dim: #1ED760;
+  --green-bright: #7CFFB2;
+  --green-muted: #0D4F1C;
+
+  --amber: #FFC857;
+  --amber-dim: #B8923E;
+  --red: #FF5A5F;
+  --red-dim: #A63B3E;
+
+  --text: #E0E0E0;
+  --text-dim: #9AA79C;
+  --text-bright: #FFFFFF;
+  --text-muted: #6B7A6D;
+
+  /* Map base — darker, less saturated */
+  --map-bg: #060908;
+  --map-grid: rgba(32, 92, 45, 0.18);
+  --map-land: #112016;
+  --map-terrain-alt: #18281C;
+  --map-water: #09110D;
+
+  /* Semantic layers — distinct hues */
+  --friendly: #7CFFB2;
+  --friendly-secondary: #5BE39A;
+  --defended-zone: #4CFFB5;
+  --selected: #F1FF7A;
+  --warning: #FFC857;
+  --hostile-medium: #FF9A3D;
+  --hostile-critical: #FF5A5F;
+  --neutral-label: #B7C4B8;
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --glow-green: 0 0 8px rgba(57, 255, 20, 0.3);
+  --glow-green-strong: 0 0 16px rgba(57, 255, 20, 0.5);
+  --glow-amber: 0 0 8px rgba(255, 200, 87, 0.3);
+  --glow-red: 0 0 8px rgba(255, 90, 95, 0.3);
+  --glow-selected: 0 0 10px rgba(241, 255, 122, 0.4);
+
+  --radius: 4px;
+  --radius-lg: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+body {
+  background-image:
+    linear-gradient(rgba(57, 255, 20, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 255, 20, 0.01) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-bright);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--green-muted);
+}
+
+button {
+  font-family: var(--font-mono);
+  cursor: pointer;
+  border: 1px solid var(--border-bright);
+  background: var(--surface);
+  color: var(--neon-green);
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all 0.15s ease;
+}
+button:hover {
+  background: var(--surface-hover);
+  border-color: var(--neon-green);
+  box-shadow: var(--glow-green);
+}
+button:active {
+  transform: scale(0.97);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+button.primary {
+  background: rgba(57, 255, 20, 0.1);
+  border-color: var(--neon-green);
+}
+button.danger {
+  color: var(--red);
+  border-color: var(--red-dim);
+}
+button.danger:hover {
+  border-color: var(--red);
+  box-shadow: var(--glow-red);
+}
+button.warning {
+  color: var(--amber);
+  border-color: var(--amber-dim);
+}

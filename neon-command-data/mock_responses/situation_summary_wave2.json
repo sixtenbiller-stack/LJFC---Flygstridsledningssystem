@@ -1,0 +1,96 @@
+{
+  "agent": "situation",
+  "trigger": "wave_2_assessment",
+  "timestamp_s": 115,
+  "situation_summary": {
+    "total_hostile_tracks": 8,
+    "high_priority_count": 3,
+    "medium_priority_count": 3,
+    "low_priority_count": 2,
+    "primary_threat_axis": "Multi-axis attack. Cruise missiles approaching from NW (Valbrek corridor) and central (Arktholm direct). High-altitude fighter on central axis. UAV swarm from NE. Decoy on western flank.",
+    "estimated_closest_eta_s": 85,
+    "most_threatened_zone": "zone-arktholm",
+    "track_breakdown": [
+      {
+        "track_id": "trk-h01",
+        "class_label": "fighter-type",
+        "threat_score": 0.82,
+        "priority": "high",
+        "eta_to_zone_s": 30,
+        "heading_toward": "zone-arktholm",
+        "notes": "Original wave-1 track. Now close to zone. If not intercepted, imminent breach."
+      },
+      {
+        "track_id": "trk-h07",
+        "class_label": "fighter-type",
+        "threat_score": 0.85,
+        "priority": "high",
+        "eta_to_zone_s": 85,
+        "heading_toward": "zone-arktholm",
+        "notes": "New wave-2 fighter. High altitude, central axis, high confidence. Likely strike lead."
+      },
+      {
+        "track_id": "trk-h05",
+        "class_label": "cruise-type",
+        "threat_score": 0.78,
+        "priority": "high",
+        "eta_to_zone_s": 95,
+        "heading_toward": "zone-arktholm",
+        "notes": "Cruise missile on direct heading to Arktholm. Low altitude complicates intercept."
+      },
+      {
+        "track_id": "trk-h04",
+        "class_label": "cruise-type",
+        "threat_score": 0.72,
+        "priority": "medium",
+        "eta_to_zone_s": 120,
+        "heading_toward": "zone-valbrek",
+        "notes": "Cruise missile heading toward Valbrek industrial zone. Very low altitude."
+      },
+      {
+        "track_id": "trk-h02",
+        "class_label": "fighter-type",
+        "threat_score": 0.61,
+        "priority": "medium",
+        "eta_to_zone_s": 50,
+        "heading_toward": "zone-arktholm",
+        "notes": "Original wave-1 fighter. Approaching zone. Needs engagement decision."
+      },
+      {
+        "track_id": "trk-h06",
+        "class_label": "uav-swarm",
+        "threat_score": 0.48,
+        "priority": "medium",
+        "eta_to_zone_s": 150,
+        "heading_toward": "zone-nordvik",
+        "notes": "UAV swarm on eastern approach. May threaten Nordvik or act as saturation element."
+      },
+      {
+        "track_id": "trk-h03",
+        "class_label": "uav-type",
+        "threat_score": 0.28,
+        "priority": "low",
+        "eta_to_zone_s": null,
+        "heading_toward": "unknown",
+        "notes": "Original UAV. Still slow, low confidence. Deprioritized."
+      },
+      {
+        "track_id": "trk-h08",
+        "class_label": "decoy-suspected",
+        "threat_score": 0.18,
+        "priority": "low",
+        "eta_to_zone_s": null,
+        "heading_toward": "unknown",
+        "notes": "Suspected decoy on western flank. Low confidence. Do not allocate high-value assets."
+      }
+    ],
+    "anomalies": [
+      "Attack pattern suggests coordinated multi-domain operation: fighters for air superiority, cruise missiles for ground targets, UAV swarm for saturation, decoy for distraction.",
+      "Resources committed to wave 1 are now unavailable. Total available force significantly reduced.",
+      "Cruise missiles at very low altitude may exploit radar shadows near Central Highlands."
+    ],
+    "confidence_assessment": "High confidence in overall threat picture. Multi-axis attack confirmed. Resource pressure is the critical factor — available force cannot cover all axes simultaneously. Prioritization is essential.",
+    "force_status_note": "Assets committed to wave 1 response are engaged and unavailable for reallocation. Reserve posture degraded."
+  },
+  "narration": "Second wave confirmed — five new tracks across three axes. A high-altitude fighter and a cruise missile are heading directly for Arktholm. Another cruise missile is targeting the Valbrek industrial zone at very low altitude. A UAV swarm is approaching from the east toward Nordvik. With assets committed to the first wave, our available force is significantly reduced. This is a multi-domain coordinated attack. Immediate re-planning is critical — we cannot cover all axes with remaining resources."
+}

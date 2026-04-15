@@ -1,0 +1,219 @@
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 12px;
+}
+.loading-title {
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 2.5vw, 32px);
+  color: var(--neon-green);
+  text-shadow: var(--glow-green-strong);
+  letter-spacing: 0.2em;
+}
+.loading-sub {
+  color: var(--text-dim);
+  font-size: clamp(13px, 1vw, 15px);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.app-layout {
+  display: grid;
+  grid-template-rows: 48px 1fr 118px;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 20;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-height: 48px;
+}
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.header-logo {
+  color: var(--neon-green);
+  font-size: clamp(15px, 1.1vw, 18px);
+  text-shadow: var(--glow-green);
+}
+.header-title {
+  font-family: var(--font-mono);
+  font-size: clamp(13px, 0.95vw, 16px);
+  font-weight: 700;
+  color: var(--neon-green);
+  letter-spacing: 0.12em;
+  text-shadow: var(--glow-green);
+}
+.header-sub {
+  font-size: clamp(11px, 0.8vw, 13px);
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+.header-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+.header-scenario {
+  font-family: var(--font-mono);
+  font-size: clamp(12px, 0.9vw, 15px);
+  color: var(--green-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-wave {
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 0.75vw, 12px);
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  background: rgba(57, 255, 20, 0.1);
+  border: 1px solid var(--green-dim);
+  color: var(--neon-green);
+  flex-shrink: 0;
+}
+.header-wave.wave-critical {
+  background: rgba(255, 90, 95, 0.1);
+  border-color: var(--red);
+  color: var(--red);
+  animation: pulse 1s infinite;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 55%;
+}
+.layout-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.layout-preset-btn {
+  padding: 4px 8px;
+  font-size: clamp(9px, 0.65vw, 11px);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.layout-preset-btn.active {
+  background: rgba(57, 255, 20, 0.12);
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+}
+.layout-reset-btn {
+  padding: 4px 8px;
+  font-size: clamp(9px, 0.65vw, 11px);
+  text-transform: none;
+  opacity: 0.85;
+}
+.header-state-id {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 0.65vw, 11px);
+  color: var(--text-dim);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-body {
+  display: grid;
+  grid-template-columns: 320px 6px 1fr 6px 420px;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+}
+
+.panel-rail {
+  border-right: 1px solid var(--border);
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  min-width: 0;
+}
+.right-rail.panel-rail {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+
+.col-resizer {
+  background: rgba(28, 58, 34, 0.5);
+  cursor: col-resize;
+  z-index: 5;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.col-resizer:hover {
+  background: rgba(57, 255, 20, 0.15);
+}
+
+.center-map {
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+}
+
+.bottom-bar {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+.bottom-bar.collapsed .tl-event-log {
+  display: none;
+}
+
+.timeline-size-controls {
+  position: absolute;
+  right: 8px;
+  top: 4px;
+  z-index: 6;
+  display: flex;
+  gap: 2px;
+}
+.timeline-size-controls button {
+  padding: 2px 6px;
+  font-size: 10px;
+  min-width: 22px;
+  opacity: 0.85;
+}
+.timeline-size-controls button.active {
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+}
+
+/* Sidebar typography scale */
+.panel-rail {
+  font-size: clamp(14px, 0.55vw + 0.65rem, 17px);
+  line-height: 1.45;
+}
