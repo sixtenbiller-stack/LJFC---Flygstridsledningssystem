@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import gemini_provider
-from models import FeedItem, ThreatScoreBreakdown
+from models import FeedItem, ThreatScoreBreakdown, ThreatGroup
 
 
 COOLDOWN_S = 4.0
@@ -36,6 +36,8 @@ class ChiefOfStaffService:
         self._last_coa_count: int = 0
         self._known_tracks: set[str] = set()
         self._high_threat_notified: set[str] = set()
+        self._known_groups: set[str] = set()
+        self._last_top_group_id: str | None = None
         self._counter: int = 0
 
     @property
@@ -52,6 +54,8 @@ class ChiefOfStaffService:
         self._last_coa_count = 0
         self._known_tracks.clear()
         self._high_threat_notified.clear()
+        self._known_groups.clear()
+        self._last_top_group_id = None
 
     def evaluate(
         self,
@@ -64,10 +68,12 @@ class ChiefOfStaffService:
         current_time_s: float,
         source_state_id: str,
         coa_count: int,
+        groups: list[ThreatGroup] | None = None,
     ) -> list[FeedItem]:
         """Evaluate current state and emit feed items on material changes."""
         now = time.monotonic()
         new_items: list[FeedItem] = []
+        groups = groups or []
 
         track_ids = {t.get("track_id", "") for t in tracks if t.get("side") == "hostile"}
         new_tracks = track_ids - self._known_tracks
@@ -154,6 +160,42 @@ class ChiefOfStaffService:
                 )
                 new_items.append(item)
             self._last_readiness_avg = avg_readiness
+
+        # Group-level notifications
+        if groups and now - self._last_update_time > COOLDOWN_S:
+            current_group_ids = {g.group_id for g in groups}
+            new_group_ids = current_group_ids - self._known_groups
+            if new_group_ids:
+                for g in groups:
+                    if g.group_id in new_group_ids:
+                        lane = g.recommended_lane.upper()
+                        item = self._make_item(
+                            source_state_id=source_state_id,
+                            category="group_formed",
+                            severity="warning" if g.recommended_lane == "fast" else "info",
+                            title=f"Group formed: {g.group_id} ({g.group_type.replace('_', ' ')})",
+                            body=g.short_narration,
+                            suggested_actions=[f"/group {g.group_id}", f"/responses {g.group_id}"],
+                            related_ids=[g.group_id] + g.member_track_ids[:3],
+                        )
+                        new_items.append(item)
+                self._known_groups = current_group_ids
+
+            if groups[0].group_id != self._last_top_group_id and self._last_top_group_id is not None:
+                top_g = groups[0]
+                item = self._make_item(
+                    source_state_id=source_state_id,
+                    category="group_priority_change",
+                    severity="warning",
+                    title=f"Top group changed: {top_g.group_id}",
+                    body=f"Most urgent group is now {top_g.group_id} ({top_g.group_type.replace('_', ' ')}). "
+                         f"Urgency {top_g.urgency_score:.0%}, {top_g.recommended_lane.upper()} lane.",
+                    suggested_actions=[f"/group {top_g.group_id}"],
+                    related_ids=[top_g.group_id],
+                )
+                new_items.append(item)
+            if groups:
+                self._last_top_group_id = groups[0].group_id
 
         if new_items:
             self._feed.extend(new_items)

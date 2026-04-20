@@ -13,6 +13,7 @@ interface Props {
   followTopThreat: boolean;
   onFollowTopThreatChange: (v: boolean) => void;
   topThreatTrackId: string | null;
+  highlightTrackIds?: string[];
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -55,6 +56,7 @@ const DEFAULT_LAYERS: MapLayerToggles = {
 export function TacticalMap({
   geography, tracks, assets, selectedTrack, onSelectTrack, coas,
   followTopThreat, onFollowTopThreatChange, topThreatTrackId,
+  highlightTrackIds = [],
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -280,14 +282,16 @@ export function TacticalMap({
             const [dx, dy] = headingArrow(t.heading_deg, 14);
             const threatClass = t.confidence >= 0.8 ? 'track-high' : t.confidence >= 0.6 ? 'track-medium' : 'track-low';
             const isTop = topThreatTrackId === t.track_id;
+            const isGrouped = highlightTrackIds.includes(t.track_id);
             return (
               <g
                 key={t.track_id}
                 ref={(el) => { trackGroupRefs.current[t.track_id] = el; }}
-                className={`hostile-track ${threatClass} ${isSelected ? 'track-selected' : ''} ${isTop ? 'track-top-threat' : ''}`}
+                className={`hostile-track ${threatClass} ${isSelected ? 'track-selected' : ''} ${isTop ? 'track-top-threat' : ''} ${isGrouped ? 'track-group-highlight' : ''}`}
                 onClick={(e) => { e.stopPropagation(); onSelectTrack(t.track_id); }}
                 style={{ cursor: 'pointer' }}
               >
+                {isGrouped && <circle cx={x} cy={y} r={12} className="track-group-ring" />}
                 <line x1={x} y1={y} x2={x + dx} y2={y + dy} className="track-heading" />
                 <circle cx={x} cy={y} r={isSelected ? 7 : 5} className="track-dot" />
                 {(showDetailLabels || isSelected || isTop) && (

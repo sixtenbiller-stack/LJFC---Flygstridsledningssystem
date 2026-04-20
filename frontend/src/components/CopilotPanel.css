@@ -759,6 +759,14 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+.copilot-group-summary {
+  border-top: 1px solid rgba(240, 136, 62, 0.2);
+  padding-top: 5px;
+}
+.copilot-group-summary .csk-highlight {
+  color: #f0883e;
+  font-weight: 600;
+}
 .copilot-sticky-cell {
   display: flex;
   flex-direction: column;

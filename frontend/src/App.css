@@ -99,6 +99,50 @@
   color: var(--red);
   animation: pulse 1s infinite;
 }
+.header-mode-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+.header-mode-badge.mode-replay {
+  background: rgba(57, 255, 20, 0.1);
+  border: 1px solid var(--green-dim);
+  color: var(--neon-green);
+}
+.header-mode-badge.mode-live {
+  background: rgba(248, 81, 73, 0.15);
+  border: 1px solid rgba(248, 81, 73, 0.6);
+  color: #f85149;
+  animation: pulse 2s infinite;
+}
+.header-origin-badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.header-origin-badge.origin-builtin {
+  background: rgba(110, 118, 129, 0.15);
+  border: 1px solid rgba(110, 118, 129, 0.3);
+  color: #8b949e;
+}
+.header-origin-badge.origin-generated {
+  background: rgba(188, 140, 255, 0.12);
+  border: 1px solid rgba(188, 140, 255, 0.4);
+  color: #bc8cff;
+}
+.header-origin-badge.origin-runtime_copy {
+  background: rgba(240, 136, 62, 0.12);
+  border: 1px solid rgba(240, 136, 62, 0.4);
+  color: #f0883e;
+}
 .header-right {
   display: flex;
   align-items: center;
@@ -216,4 +260,38 @@
 .panel-rail {
   font-size: clamp(14px, 0.55vw + 0.65rem, 17px);
   line-height: 1.45;
+}
+
+/* Left-panel view toggle (Tracks / Groups) */
+.left-view-toggle {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.lv-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font-family: var(--font-mono);
+  font-size: clamp(11px, 0.65vw + 0.3rem, 13px);
+  text-align: center;
+  letter-spacing: 0.08em;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-bottom 0.15s;
+  border-bottom: 2px solid transparent;
+}
+.lv-tab:hover { color: var(--text); }
+.lv-tab.active {
+  color: var(--neon-green);
+  border-bottom-color: var(--neon-green);
+}
+
+/* Decision Card container above copilot */
+.dc-container {
+  flex-shrink: 0;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  max-height: 50%;
+  overflow-y: auto;
 }

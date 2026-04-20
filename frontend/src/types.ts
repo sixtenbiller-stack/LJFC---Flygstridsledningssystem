@@ -88,6 +88,16 @@ export interface Track {
   predicted_path: PathPoint[];
   notes?: string;
   status: string;
+  corridor_id?: string;
+  group_seed_id?: string;
+  formation_hint?: string;
+  decoy_probability?: number;
+  signature_hint?: string;
+  payload_known?: boolean;
+  payload_type?: string;
+  rf_emitting?: boolean;
+  maneuver_pattern?: string;
+  source_disagreement?: boolean;
 }
 
 export interface Alert {
@@ -197,6 +207,64 @@ export interface ScenarioState {
   wave: number;
   coa_trigger_pending: boolean;
   events_log: EventLog[];
+  mode?: string;
+  runtime_mode?: string;
+  scenario_origin?: string;
+  scenario_meta?: Record<string, unknown>;
+  sensor_states?: Record<string, unknown>;
+}
+
+export interface ScenarioEntry {
+  scenario_id: string;
+  file_id: string;
+  source_file: string;
+  source_type: string;
+  title: string;
+  short_description: string;
+  duration_s?: number;
+  seed?: number;
+  template?: string;
+  track_count?: number;
+  group_count?: number;
+  extended_fields?: boolean;
+  recommended_mode: string;
+  jury_demo?: boolean;
+}
+
+export interface ScenarioSession {
+  scenario_id: string;
+  scenario_label: string;
+  source_file: string;
+  runtime_mode: string;
+  scenario_origin: string;
+  mode: string;
+  template_name?: string;
+  seed?: number;
+  runtime_session_id?: string;
+  source_parent_scenario?: string;
+  source_state_id: string;
+  duration_s: number;
+  current_time_s: number;
+  status: string;
+  is_playing: boolean;
+  speed_multiplier: number;
+  description: string;
+  recommended_demo?: string;
+  track_count: number;
+  group_count: number;
+  extended_schema_present: boolean;
+  loaded_at: string;
+  scenario_meta?: Record<string, unknown>;
+  wave: number;
+  last_mutation_count?: number;
+  last_mutation_summary?: Record<string, unknown>;
+  mutation_log?: Array<Record<string, unknown>>;
+}
+
+export interface TimelineMarker {
+  t_s: number;
+  type: string;
+  label: string;
 }
 
 export interface ExplanationData {
@@ -242,4 +310,94 @@ export interface CopilotStatusData {
   scenario_id: string;
   feed_count: number;
   session_commands: number;
+}
+
+// ── Threat Groups & Responses ──
+
+export interface UncertaintyFlag {
+  flag: string;
+  detail: string;
+  severity: string;
+}
+
+export interface SourceEvidence {
+  factor: string;
+  value: number;
+  detail: string;
+}
+
+export interface ThreatGroup {
+  group_id: string;
+  member_track_ids: string[];
+  group_type: string;
+  coordination_score: number;
+  confidence: number;
+  rationale: string[];
+  short_narration: string;
+  most_at_risk_object_id?: string;
+  urgency_score: number;
+  time_to_zone_s?: number;
+  leak_through_risk: number;
+  saturation_pressure: number;
+  uncertainty_flags: UncertaintyFlag[];
+  recommended_lane: string;
+  source_state_id: string;
+  top_response_ids: string[];
+  evidence: SourceEvidence[];
+  inaction_consequence: string;
+}
+
+export interface ResponseOption {
+  response_id: string;
+  group_id: string;
+  rank: number;
+  response_family: string;
+  title: string;
+  summary: string;
+  intended_effect: string;
+  expected_effectiveness: number;
+  time_to_effect_s: number;
+  reversibility: string;
+  collateral_proxy: string;
+  blue_force_interference: string;
+  readiness_cost_pct: number;
+  cost_exchange_proxy: string;
+  operator_workload: string;
+  authority_required: string;
+  policy_gates: string[];
+  rationale: string[];
+  assumptions: string[];
+  confidence: number;
+  source_state_id: string;
+  linked_coa_id?: string;
+  scoring_factors: Record<string, number>;
+}
+
+export interface DecisionCard {
+  card_id: string;
+  group_id: string;
+  group: ThreatGroup;
+  recommended_response: ResponseOption;
+  alternatives: ResponseOption[];
+  authority_status: string;
+  reserve_impact_summary: string;
+  data_trust_level: string;
+  source_state_id: string;
+  timestamp: string;
+}
+
+export interface AfterActionRecord {
+  record_id: string;
+  timestamp: string;
+  group_id: string;
+  group_snapshot: Record<string, unknown>;
+  response_chosen: string;
+  response_family: string;
+  operator_action: string;
+  override_reason: string;
+  simulation_run: boolean;
+  simulation_outcome?: number;
+  readiness_after: number;
+  source_state_id: string;
+  wave: number;
 }

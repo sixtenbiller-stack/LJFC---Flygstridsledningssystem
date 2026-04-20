@@ -47,6 +47,46 @@ class PriorityBand(str, Enum):
     CRITICAL = "critical"
 
 
+class ThreatGroupType(str, Enum):
+    UNKNOWN = "unknown"
+    SINGLE_INBOUND = "single_inbound"
+    COORDINATED_PROBE = "coordinated_probe"
+    PROBABLE_SWARM = "probable_swarm"
+    MIXED_RAID_WITH_DECOYS = "mixed_raid_with_decoys"
+    SECOND_WAVE_PRESSURE = "second_wave_pressure"
+    RECON_OR_DECOY_SCREEN = "recon_or_decoy_screen"
+
+
+class WorkflowLane(str, Enum):
+    FAST = "fast"
+    SLOW = "slow"
+
+
+class ResponseFamily(str, Enum):
+    OBSERVE_VERIFY = "observe_verify"
+    PROTECT_POSTURE = "protect_posture"
+    REPOSITION_COVERAGE = "reposition_coverage"
+    NON_KINETIC_DISRUPT = "non_kinetic_disrupt_synthetic"
+    ACTIVE_DEFENSE = "active_defense_synthetic"
+    MIXED_RESPONSE = "mixed_response_synthetic"
+    HOLD_RESERVE = "hold_reserve_and_monitor"
+    RECOVER_REASSESS = "recover_reassess"
+    ESCALATE_COMMAND = "escalate_command_review"
+
+
+class AuthorityStatus(str, Enum):
+    AVAILABLE_NOW = "available_now"
+    NEEDS_CONFIRMATION = "needs_confirmation"
+    NOT_AVAILABLE = "not_available"
+    POLICY_BLOCKED = "policy_blocked"
+
+
+class DataTrustLevel(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
 # ── Geography ──
 
 class Point(BaseModel):
@@ -151,6 +191,17 @@ class Track(BaseModel):
     predicted_path: list[PathPoint] = []
     notes: str | None = None
     status: str = "active"  # active, intercepted, lost
+    # Extended group-aware fields (optional — absent in legacy scenarios)
+    corridor_id: str | None = None
+    group_seed_id: str | None = None
+    formation_hint: str | None = None
+    decoy_probability: float | None = None
+    signature_hint: str | None = None
+    payload_known: bool | None = None
+    payload_type: str | None = None
+    rf_emitting: bool | None = None
+    maneuver_pattern: str | None = None
+    source_disagreement: bool | None = None
 
 
 # ── Alerts ──
@@ -243,6 +294,96 @@ class AuditRecord(BaseModel):
     wave: int = 1
 
 
+# ── Threat Groups ──
+
+class UncertaintyFlag(BaseModel):
+    flag: str
+    detail: str
+    severity: str = "medium"  # low, medium, high
+
+
+class SourceEvidence(BaseModel):
+    factor: str
+    value: float
+    detail: str
+
+
+class ThreatGroup(BaseModel):
+    group_id: str
+    member_track_ids: list[str]
+    group_type: str = "unknown"
+    coordination_score: float = 0.0
+    confidence: float = 0.5
+    rationale: list[str] = []
+    short_narration: str = ""
+    most_at_risk_object_id: str | None = None
+    urgency_score: float = 0.0
+    time_to_zone_s: float | None = None
+    leak_through_risk: float = 0.0
+    saturation_pressure: float = 0.0
+    uncertainty_flags: list[UncertaintyFlag] = []
+    recommended_lane: str = "slow"
+    source_state_id: str = ""
+    top_response_ids: list[str] = []
+    evidence: list[SourceEvidence] = []
+    inaction_consequence: str = ""
+
+
+class ResponseOption(BaseModel):
+    response_id: str
+    group_id: str
+    rank: int = 0
+    response_family: str
+    title: str
+    summary: str
+    intended_effect: str = ""
+    expected_effectiveness: float = 0.0
+    time_to_effect_s: float = 60.0
+    reversibility: str = "medium"
+    collateral_proxy: str = "none"
+    blue_force_interference: str = "none"
+    readiness_cost_pct: float = 0.0
+    cost_exchange_proxy: str = "favorable"
+    operator_workload: str = "low"
+    authority_required: str = "available_now"
+    policy_gates: list[str] = []
+    rationale: list[str] = []
+    assumptions: list[str] = []
+    confidence: float = 0.5
+    source_state_id: str = ""
+    linked_coa_id: str | None = None
+    scoring_factors: dict[str, float] = {}
+
+
+class DecisionCardSnapshot(BaseModel):
+    card_id: str
+    group_id: str
+    group: ThreatGroup
+    recommended_response: ResponseOption
+    alternatives: list[ResponseOption] = []
+    authority_status: str = "available_now"
+    reserve_impact_summary: str = ""
+    data_trust_level: str = "medium"
+    source_state_id: str = ""
+    timestamp: str = ""
+
+
+class AfterActionRecord(BaseModel):
+    record_id: str
+    timestamp: str
+    group_id: str
+    group_snapshot: dict[str, Any] = {}
+    response_chosen: str = ""
+    response_family: str = ""
+    operator_action: str = ""  # approve, defer, override
+    override_reason: str = ""
+    simulation_run: bool = False
+    simulation_outcome: float | None = None
+    readiness_after: float = 100.0
+    source_state_id: str = ""
+    wave: int = 1
+
+
 # ── Scenario Events ──
 
 class ScenarioEvent(BaseModel):
@@ -296,6 +437,9 @@ class ScenarioState(BaseModel):
     wave: int
     coa_trigger_pending: bool = False
     events_log: list[dict[str, Any]] = []
+    mode: str = "replay"  # replay | live
+    scenario_meta: dict[str, Any] = {}
+    sensor_states: dict[str, Any] = {}
 
 
 # ── Copilot Feed & Commands ──

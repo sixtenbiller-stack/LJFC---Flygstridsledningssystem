@@ -37,6 +37,8 @@ class ScenarioEngine:
         self._coa_trigger_pending: bool = False
         self._approved_coas: list[str] = []
         self._committed_assets: set[str] = set()
+        self._sensor_states: dict[str, dict] = {}
+        self._scenario_meta: dict = {}
 
         self._tick_task: asyncio.Task | None = None
 
@@ -56,12 +58,28 @@ class ScenarioEngine:
         t = int(self.current_time_s)
         return f"snap-{self._scenario_id}-t{t}"
 
+    @property
+    def sensor_states(self) -> dict[str, dict]:
+        return dict(self._sensor_states)
+
+    @property
+    def scenario_meta(self) -> dict:
+        return dict(self._scenario_meta)
+
     def load(self, scenario_id: str = "scenario-alpha") -> None:
-        self._scenario_id = scenario_id
         raw = load_scenario(scenario_id)
-        self._scenario_name = raw["meta"].get("name", scenario_id)
-        self._duration_s = raw["meta"].get("duration_s", 240)
-        self._events = load_scenario_events(scenario_id)
+        self._load_from_raw(scenario_id, raw)
+
+    def load_from_data(self, scenario_id: str, raw: dict) -> None:
+        """Load from an already-parsed dict (generated / runtime scenarios)."""
+        self._load_from_raw(scenario_id, raw)
+
+    def _load_from_raw(self, scenario_id: str, raw: dict) -> None:
+        self._scenario_id = scenario_id
+        self._scenario_meta = raw.get("meta", {})
+        self._scenario_name = self._scenario_meta.get("name", scenario_id)
+        self._duration_s = self._scenario_meta.get("duration_s", 240)
+        self._events = [ScenarioEvent(**e) for e in raw["events"]]
         self.geography = load_geography()
 
         initial_assets = load_assets()
@@ -77,6 +95,7 @@ class ScenarioEngine:
         self._coa_trigger_pending = False
         self._approved_coas = []
         self._committed_assets = set()
+        self._sensor_states = {}
         self.is_playing = False
         self.speed_multiplier = 1.0
         self._last_tick = time.monotonic()
@@ -154,6 +173,16 @@ class ScenarioEngine:
                 detected_by=data.get("detected_by", []),
                 predicted_path=predicted,
                 notes=data.get("notes"),
+                corridor_id=data.get("corridor_id"),
+                group_seed_id=data.get("group_seed_id"),
+                formation_hint=data.get("formation_hint"),
+                decoy_probability=data.get("decoy_probability"),
+                signature_hint=data.get("signature_hint"),
+                payload_known=data.get("payload_known"),
+                payload_type=data.get("payload_type"),
+                rf_emitting=data.get("rf_emitting"),
+                maneuver_pattern=data.get("maneuver_pattern"),
+                source_disagreement=data.get("source_disagreement"),
             )
             self.tracks[track.track_id] = track
             if ev.t_s >= 90 and self._wave < 2:
@@ -193,6 +222,23 @@ class ScenarioEngine:
             self._coa_trigger_pending = True
             if self._wave < 1:
                 self._wave = 1
+
+        elif etype == "GROUP_FORMED":
+            pass  # groups tracked via track metadata + ThreatGroupEngine
+
+        elif etype == "SENSOR_DEGRADED":
+            sid = data.get("sensor_id")
+            severity = data.get("severity", "degraded")
+            self._sensor_states[sid] = {
+                "status": severity,
+                "range_multiplier": data.get("detection_range_multiplier", 0.5),
+                "since_t_s": ev.t_s,
+            }
+
+        elif etype == "TRACK_LOST":
+            tid = data.get("track_id")
+            if tid and tid in self.tracks:
+                self.tracks[tid].status = "lost"
 
         elif etype == "CONSTRAINT_CHANGED":
             if self._committed_assets:
@@ -241,6 +287,8 @@ class ScenarioEngine:
             wave=self._wave,
             coa_trigger_pending=self._coa_trigger_pending,
             events_log=self.events_log[-50:],
+            scenario_meta=self._scenario_meta,
+            sensor_states=self._sensor_states,
         )
 
     async def start_ticker(self, interval: float = 0.1) -> None:

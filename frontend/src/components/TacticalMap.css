@@ -189,6 +189,22 @@
   stroke-width: 1.5;
 }
 
+.track-group-ring {
+  fill: none;
+  stroke: rgba(57, 255, 20, 0.35);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  animation: groupPulse 2s ease-in-out infinite;
+}
+@keyframes groupPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.hostile-track.track-group-highlight .track-dot {
+  stroke: rgba(57, 255, 20, 0.5);
+  stroke-width: 1.2;
+}
+
 /* Dimming non-selected when a track is focused */
 .tactical-map-svg.has-selection .hostile-track:not(.track-selected) {
   opacity: 0.55;

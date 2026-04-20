@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import type {
   ScenarioState, CourseOfAction, ExplanationData, SimulationResult,
-  AuditRecord, FeedItem, CopilotResponse, ThreatAlert,
+  AuditRecord, FeedItem, CopilotResponse, ThreatAlert, ThreatGroup,
+  DecisionCard as DecisionCardType,
 } from '../types';
 import { ALL_COMMANDS, type CommandDef } from '../copilotCommands';
 import './CopilotPanel.css';
@@ -16,9 +17,13 @@ interface Props {
   loading: string;
   feedItems: FeedItem[];
   copilotStatus: { provider: string; model: string } | null;
-  /** Sorted threat alerts (highest priority first) */
   alerts: ThreatAlert[];
   selectedTrack: string | null;
+  groups?: ThreatGroup[];
+  selectedGroup?: string | null;
+  decisionCard?: DecisionCardType | null;
+  scenarioMode?: string;
+  scenarioOrigin?: string;
   onGenerateCoas: () => void;
   onExplain: (coaId: string) => void;
   onSimulate: (coaId: string) => void;
@@ -77,6 +82,7 @@ type View = 'feed' | 'plans' | 'compare' | 'explain' | 'simulate' | 'audit';
 export function CopilotPanel({
   state, coas, coaWave, explanation, simResult, decisions, loading,
   feedItems, copilotStatus, alerts, selectedTrack,
+  groups = [], selectedGroup, decisionCard, scenarioMode, scenarioOrigin,
   onGenerateCoas, onExplain, onSimulate, onApprove, onSendCommand,
 }: Props) {
   const [view, setView] = useState<View>('feed');
@@ -281,12 +287,27 @@ export function CopilotPanel({
             <span className="csk-value">{state.scenario_name}</span>
           </div>
           <div className="copilot-sticky-cell">
-            <span className="csk-label">State ID</span>
+            <span className="csk-label">{scenarioMode ? scenarioMode.toUpperCase() : 'REPLAY'} · {scenarioOrigin ? scenarioOrigin.toUpperCase().replace('_', ' ') : 'BUILTIN'}</span>
             <span className="csk-value csk-mono" title={state.source_state_id}>
               {state.source_state_id.length > 18 ? `${state.source_state_id.slice(0, 18)}…` : state.source_state_id}
             </span>
           </div>
         </div>
+        {groups.length > 0 && (() => {
+          const topG = groups.find(g => g.group_id === selectedGroup) || groups[0];
+          return (
+            <div className="copilot-sticky-row copilot-group-summary">
+              <div className="copilot-sticky-cell">
+                <span className="csk-label">Top group</span>
+                <span className="csk-value csk-highlight">{topG.group_type || topG.group_id}</span>
+              </div>
+              <div className="copilot-sticky-cell">
+                <span className="csk-label">{topG.recommended_lane || 'FAST'}</span>
+                <span className="csk-value">{topG.member_track_ids.length} tracks · {Math.round((topG.confidence ?? 0) * 100)}%</span>
+              </div>
+            </div>
+          );
+        })()}
         <div className="copilot-sticky-row">
           <div className="copilot-sticky-cell">
             <span className="csk-label">Top threat</span>

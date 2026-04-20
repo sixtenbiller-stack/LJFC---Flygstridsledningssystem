@@ -65,4 +65,74 @@ export const api = {
     }),
 
   getCopilotStatus: () => request<any>('/copilot/status'),
+
+  // Threat Groups & Responses
+  getGroups: () => request<any[]>('/groups'),
+
+  getGroupResponses: (groupId: string) =>
+    request<any[]>(`/groups/${groupId}/responses`),
+
+  getDecisionCard: (groupId: string) =>
+    request<any>(`/groups/${groupId}/decision-card`),
+
+  approveGroupResponse: (groupId: string, responseId: string, action = 'approve', overrideReason = '') =>
+    request<any>(`/groups/${groupId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ response_id: responseId, action, override_reason: overrideReason }),
+    }),
+
+  getAfterAction: () => request<any[]>('/after-action'),
+
+  // Scenario Registry & Runtime
+  getScenarios: () => request<any>('/scenarios'),
+
+  getScenarioMode: () => request<any>('/scenario/mode'),
+
+  getSession: () => request<any>('/scenario/session'),
+
+  getMarkers: () => request<any[]>('/scenario/markers'),
+
+  jumpTo: (target: string) =>
+    request<any>('/scenario/jump', {
+      method: 'POST',
+      body: JSON.stringify({ target }),
+    }),
+
+  seekTo: (time_s: number) =>
+    request<any>('/scenario/seek', {
+      method: 'POST',
+      body: JSON.stringify({ time_s }),
+    }),
+
+  generateScenario: (template: string, seed?: number, duration_s?: number) =>
+    request<any>('/scenario/generate', {
+      method: 'POST',
+      body: JSON.stringify({ template, seed, duration_s }),
+    }),
+
+  startLiveSession: (fileId: string, seed?: number) =>
+    request<any>('/scenario/live/start', {
+      method: 'POST',
+      body: JSON.stringify({ file_id: fileId, seed }),
+    }),
+
+  liveControl: (action: string, speed?: number) =>
+    request<any>('/scenario/live/control', {
+      method: 'POST',
+      body: JSON.stringify({ action, speed, value: speed }),
+    }),
+
+  liveTick: (dtS = 5) =>
+    request<any>('/scenario/live/tick', {
+      method: 'POST',
+      body: JSON.stringify({ dt_s: dtS }),
+    }),
+
+  liveInject: (type: string, params?: Record<string, unknown>) =>
+    request<any>('/scenario/live/inject', {
+      method: 'POST',
+      body: JSON.stringify({ type, params }),
+    }),
+
+  getLiveState: () => request<any>('/scenario/live/state'),
 };

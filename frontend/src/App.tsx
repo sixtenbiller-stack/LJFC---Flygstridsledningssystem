@@ -4,11 +4,15 @@ import { usePolling } from './hooks/usePolling';
 import type {
   ScenarioState, ThreatAlert, CourseOfAction, SimulationResult,
   ExplanationData, AuditRecord, Geography, FeedItem, CopilotResponse,
-  CopilotStatusData,
+  CopilotStatusData, ThreatGroup, DecisionCard as DecisionCardType,
+  ScenarioSession, TimelineMarker,
 } from './types';
 import { TacticalMap } from './components/TacticalMap';
 import { AlertQueue } from './components/AlertQueue';
+import { GroupQueue } from './components/GroupQueue';
 import { CopilotPanel } from './components/CopilotPanel';
+import { DecisionCard } from './components/DecisionCard';
+import { ScenarioLab } from './components/ScenarioLab';
 import { Timeline } from './components/Timeline';
 import {
   loadLayout,
@@ -38,6 +42,14 @@ export default function App() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [copilotStatus, setCopilotStatus] = useState<CopilotStatusData | null>(null);
   const [followTopThreat, setFollowTopThreat] = useState(false);
+  const [groups, setGroups] = useState<ThreatGroup[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [decisionCard, setDecisionCard] = useState<DecisionCardType | null>(null);
+  const [leftView, setLeftView] = useState<'tracks' | 'groups'>('tracks');
+  const [runtimeMode, setRuntimeMode] = useState<string>('replay');
+  const [scenarioOrigin, setScenarioOrigin] = useState<string>('builtin');
+  const [session, setSession] = useState<ScenarioSession | null>(null);
+  const [markers, setMarkers] = useState<TimelineMarker[]>([]);
   const [layoutPreset, setLayoutPreset] = useState<LayoutPresetId>('balanced');
   const [leftPx, setLeftPx] = useState(320);
   const [rightPx, setRightPx] = useState(420);
@@ -57,9 +69,34 @@ export default function App() {
       setGeo(result.geography);
       geoLoaded.current = true;
     }
+    if (result.runtime_mode) setRuntimeMode(result.runtime_mode);
+    if (result.scenario_origin) setScenarioOrigin(result.scenario_origin);
     return result;
   }, []);
   const fetchAlerts = useCallback(() => api.getAlerts(), []);
+
+  const prevGroupCount = useRef(0);
+  const fetchGroups = useCallback(async () => {
+    try {
+      const g: ThreatGroup[] = await api.getGroups();
+      setGroups(g);
+      if (g.length > 0 && leftView === 'tracks') {
+        setLeftView('groups');
+      }
+      if (g.length > 0 && prevGroupCount.current === 0) {
+        const topGroup = g[0];
+        setSelectedGroup(topGroup.group_id);
+        if (topGroup.member_track_ids.length > 0) {
+          setSelectedTrack(topGroup.member_track_ids[0]);
+        }
+        try {
+          const card: DecisionCardType = await api.getDecisionCard(topGroup.group_id);
+          if (!('error' in card)) setDecisionCard(card);
+        } catch { /* skip */ }
+      }
+      prevGroupCount.current = g.length;
+    } catch { /* skip */ }
+  }, [leftView]);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -105,9 +142,47 @@ export default function App() {
   }, [fetchFeed]);
 
   useEffect(() => {
+    const interval = setInterval(fetchGroups, 1500);
+    return () => clearInterval(interval);
+  }, [fetchGroups]);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const s: ScenarioSession = await api.getSession();
+      setSession(s);
+      setRuntimeMode(s.runtime_mode || 'replay');
+      setScenarioOrigin(s.scenario_origin || 'builtin');
+    } catch { /* skip */ }
+    try {
+      const m: TimelineMarker[] = await api.getMarkers();
+      setMarkers(m);
+    } catch { /* skip */ }
+  }, []);
+
+  const handleScenarioLoaded = useCallback(async () => {
+    setCoas([]);
+    setExplanation(null);
+    setSimResult(null);
+    setDecisions([]);
+    setCoaWave(0);
+    setFeedItems([]);
+    lastFeedId.current = undefined;
+    geoLoaded.current = false;
+    setFollowTopThreat(false);
+    setGroups([]);
+    setSelectedGroup(null);
+    setDecisionCard(null);
+    setLeftView('tracks');
+    prevGroupCount.current = 0;
+    await refreshSession();
+    api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
+  }, [refreshSession]);
+
+  useEffect(() => {
     api.loadScenario('scenario-alpha').then(() => setLoaded(true));
     api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
-  }, []);
+    refreshSession();
+  }, [refreshSession]);
 
   const initLayout = useCallback(() => {
     const w = bodyRef.current?.clientWidth ?? (typeof window !== 'undefined' ? window.innerWidth : 1400);
@@ -262,6 +337,50 @@ export default function App() {
     setSelectedTrack(trackId);
   };
 
+  const handleGroupClick = async (groupId: string) => {
+    setSelectedGroup(groupId);
+    try {
+      const card: DecisionCardType = await api.getDecisionCard(groupId);
+      if (!('error' in card)) {
+        setDecisionCard(card);
+        const g = groups.find(g => g.group_id === groupId);
+        if (g && g.member_track_ids.length > 0) {
+          setSelectedTrack(g.member_track_ids[0]);
+        }
+      }
+    } catch { /* skip */ }
+  };
+
+  const handleGroupApprove = async (groupId: string, responseId: string) => {
+    setLoading('group-approve');
+    try {
+      await api.approveGroupResponse(groupId, responseId, 'approve');
+    } finally {
+      setLoading('');
+    }
+  };
+
+  const handleGroupDefer = async (groupId: string) => {
+    try {
+      await api.approveGroupResponse(groupId, '', 'defer');
+    } catch { /* skip */ }
+  };
+
+  const handleGroupOverride = async (groupId: string, responseId: string, reason: string) => {
+    setLoading('group-approve');
+    try {
+      await api.approveGroupResponse(groupId, responseId, 'override', reason);
+    } finally {
+      setLoading('');
+    }
+  };
+
+  const handleJump = async (target: string) => {
+    try {
+      await api.jumpTo(target);
+    } catch { /* skip */ }
+  };
+
   const handleReset = async () => {
     await api.control('reset');
     setCoas([]);
@@ -273,6 +392,12 @@ export default function App() {
     lastFeedId.current = undefined;
     geoLoaded.current = false;
     setFollowTopThreat(false);
+    setGroups([]);
+    setSelectedGroup(null);
+    setDecisionCard(null);
+    setLeftView('tracks');
+    prevGroupCount.current = 0;
+    await refreshSession();
   };
 
   useEffect(() => {
@@ -334,6 +459,8 @@ export default function App() {
         </div>
         <div className="header-center">
           <span className="header-scenario">{state.scenario_name || 'No Scenario'}</span>
+          <span className={`header-mode-badge mode-${runtimeMode}`}>{runtimeMode.toUpperCase()}</span>
+          <span className={`header-origin-badge origin-${scenarioOrigin}`}>{scenarioOrigin.toUpperCase().replace('_', ' ')}</span>
           {state.wave > 0 && (
             <span className={`header-wave ${state.wave >= 2 ? 'wave-critical' : ''}`}>
               WAVE {state.wave}
@@ -368,12 +495,44 @@ export default function App() {
         }}
       >
         <aside className="left-rail panel-rail">
-          <AlertQueue
-            alerts={alerts || []}
-            sortedAlerts={sortedAlerts}
-            selectedTrack={selectedTrack}
-            onAlertClick={handleAlertClick}
+          <ScenarioLab
+            currentScenarioId={state.scenario_id}
+            currentMode={runtimeMode}
+            currentOrigin={scenarioOrigin}
+            isPlaying={state.is_playing}
+            session={session}
+            onScenarioLoaded={handleScenarioLoaded}
           />
+          <div className="left-view-toggle">
+            <button
+              type="button"
+              className={`lv-tab ${leftView === 'tracks' ? 'active' : ''}`}
+              onClick={() => setLeftView('tracks')}
+            >
+              TRACKS
+            </button>
+            <button
+              type="button"
+              className={`lv-tab ${leftView === 'groups' ? 'active' : ''}`}
+              onClick={() => setLeftView('groups')}
+            >
+              GROUPS{groups.length > 0 ? ` (${groups.length})` : ''}
+            </button>
+          </div>
+          {leftView === 'tracks' ? (
+            <AlertQueue
+              alerts={alerts || []}
+              sortedAlerts={sortedAlerts}
+              selectedTrack={selectedTrack}
+              onAlertClick={handleAlertClick}
+            />
+          ) : (
+            <GroupQueue
+              groups={groups}
+              selectedGroup={selectedGroup}
+              onGroupClick={handleGroupClick}
+            />
+          )}
         </aside>
 
         <div
@@ -395,6 +554,7 @@ export default function App() {
             followTopThreat={followTopThreat}
             onFollowTopThreatChange={setFollowTopThreat}
             topThreatTrackId={topThreatTrackId}
+            highlightTrackIds={selectedGroup ? (groups.find(g => g.group_id === selectedGroup)?.member_track_ids ?? []) : []}
           />
         </main>
 
@@ -407,6 +567,19 @@ export default function App() {
         />
 
         <aside className="right-rail panel-rail">
+          {decisionCard && selectedGroup && (
+            <div className="dc-container">
+              <DecisionCard
+                card={decisionCard}
+                onApprove={handleGroupApprove}
+                onDefer={handleGroupDefer}
+                onOverride={handleGroupOverride}
+                onGenerateCoas={handleGenerateCoas}
+                onSimulate={handleSimulate}
+                loading={loading}
+              />
+            </div>
+          )}
           <CopilotPanel
             state={state}
             coas={coas}
@@ -419,6 +592,11 @@ export default function App() {
             copilotStatus={copilotStatus}
             alerts={sortedAlerts}
             selectedTrack={selectedTrack}
+            groups={groups}
+            selectedGroup={selectedGroup}
+            decisionCard={decisionCard}
+            scenarioMode={runtimeMode}
+            scenarioOrigin={scenarioOrigin}
             onGenerateCoas={handleGenerateCoas}
             onExplain={handleExplain}
             onSimulate={handleSimulate}
@@ -437,12 +615,17 @@ export default function App() {
         </div>
         <Timeline
           currentTime={state.current_time_s}
+          duration={session?.duration_s ?? 240}
           isPlaying={state.is_playing}
           speed={state.speed_multiplier}
           eventsLog={state.events_log}
           coaTriggerPending={state.coa_trigger_pending}
           onControl={handleControl}
           onReset={handleReset}
+          onJump={handleJump}
+          onSeek={(t: number) => api.seekTo(t)}
+          markers={markers}
+          mode={runtimeMode}
           compact={bottomMode === 'compact' || timelineCollapsed}
         />
       </footer>

@@ -3,10 +3,12 @@
 export type CommandCategory =
   | 'Situation'
   | 'Threats'
+  | 'Groups'
+  | 'Responses'
   | 'Planning'
   | 'Compare / Explain'
   | 'Simulation'
-  | 'Policy / Constraints'
+  | 'Authority / Policy'
   | 'Focus / Navigation'
   | 'Decision / Audit'
   | 'Help';
@@ -18,28 +20,73 @@ export interface CommandDef {
 }
 
 export const ALL_COMMANDS: CommandDef[] = [
+  // Situation
   { cmd: '/brief', label: 'Commander brief', category: 'Situation' },
   { cmd: '/summary', label: 'Situation summary', category: 'Situation' },
   { cmd: '/what-changed', label: 'What changed', category: 'Situation' },
-  { cmd: '/top-threats', label: 'Top threats', category: 'Threats' },
   { cmd: '/show-readiness', label: 'Readiness', category: 'Situation' },
+
+  // Threats (per-track)
+  { cmd: '/top-threats', label: 'Top threats', category: 'Threats' },
+  { cmd: '/most-dangerous', label: 'Most dangerous track', category: 'Threats' },
   { cmd: '/focus trk-h01', label: 'Focus track', category: 'Threats' },
-  { cmd: '/most-dangerous', label: 'Most dangerous', category: 'Threats' },
+
+  // Groups
+  { cmd: '/groups', label: 'List threat groups', category: 'Groups' },
+  { cmd: '/group top', label: 'Top group detail', category: 'Groups' },
+  { cmd: '/most-dangerous-group', label: 'Most dangerous group', category: 'Groups' },
+  { cmd: '/assess top', label: 'Assess top group', category: 'Groups' },
+  { cmd: '/why-group top', label: 'Why this classification?', category: 'Groups' },
+  { cmd: '/uncertainty top', label: 'Uncertainty flags', category: 'Groups' },
+
+  // Responses
+  { cmd: '/responses top', label: 'Response options', category: 'Responses' },
+  { cmd: '/why-response top', label: 'Why top response?', category: 'Responses' },
+  { cmd: '/compare-responses top', label: 'Compare responses', category: 'Responses' },
+
+  // Planning
   { cmd: '/generate-coas', label: 'Generate COAs', category: 'Planning' },
+  { cmd: '/generate-detailed-coas top', label: 'Detailed COAs for group', category: 'Planning' },
   { cmd: '/recommend', label: 'Recommend', category: 'Planning' },
   { cmd: '/replan', label: 'Re-plan', category: 'Planning' },
-  { cmd: '/compare top2', label: 'Compare top 2', category: 'Compare / Explain' },
-  { cmd: '/why top', label: 'Why top plan', category: 'Compare / Explain' },
-  { cmd: '/simulate top', label: 'Simulate top', category: 'Simulation' },
-  { cmd: '/simulate coa-1', label: 'Simulate COA', category: 'Simulation' },
-  { cmd: '/policy protect_capital_first', label: 'Policy', category: 'Policy / Constraints' },
-  { cmd: '/reserve 2', label: 'Reserve pairs', category: 'Policy / Constraints' },
+
+  // Compare / Explain
+  { cmd: '/compare top2', label: 'Compare top 2 COAs', category: 'Compare / Explain' },
+  { cmd: '/why top', label: 'Why top plan?', category: 'Compare / Explain' },
+
+  // Simulation
+  { cmd: '/simulate top', label: 'Simulate top COA', category: 'Simulation' },
+  { cmd: '/simulate-response top', label: 'Simulate top response', category: 'Simulation' },
+
+  // Authority / Policy
+  { cmd: '/authority top', label: 'Authority check', category: 'Authority / Policy' },
+  { cmd: '/policy protect_capital_first', label: 'Policy', category: 'Authority / Policy' },
+  { cmd: '/reserve 2', label: 'Reserve pairs', category: 'Authority / Policy' },
+
+  // Scenario / Mode
+  { cmd: '/scenario', label: 'Active scenario info', category: 'Situation' },
+  { cmd: '/mode', label: 'Current mode', category: 'Situation' },
+  { cmd: '/live-status', label: 'Live session status', category: 'Situation' },
+  { cmd: '/mutations', label: 'Live mutation log', category: 'Situation' },
+
+  // Focus / Navigation
+  { cmd: '/jump first-contact', label: 'Jump first contact', category: 'Focus / Navigation' },
+  { cmd: '/jump first-group', label: 'Jump first group', category: 'Focus / Navigation' },
+  { cmd: '/jump first-decision', label: 'Jump first decision', category: 'Focus / Navigation' },
+  { cmd: '/jump second-wave', label: 'Jump second wave', category: 'Focus / Navigation' },
   { cmd: '/focus arktholm', label: 'Focus Arktholm', category: 'Focus / Navigation' },
   { cmd: '/fit-theater', label: 'Fit map', category: 'Focus / Navigation' },
   { cmd: '/follow top-threat', label: 'Follow threat', category: 'Focus / Navigation' },
-  { cmd: '/approve coa-1', label: 'Approve (use button)', category: 'Decision / Audit' },
+
+  // Decision / Audit
+  { cmd: '/approve top', label: 'Approve (use button)', category: 'Decision / Audit' },
+  { cmd: '/defer top', label: 'Defer decision', category: 'Decision / Audit' },
+  { cmd: '/override top', label: 'Override with reason', category: 'Decision / Audit' },
   { cmd: '/decision-log', label: 'Decision log', category: 'Decision / Audit' },
+  { cmd: '/after-action', label: 'After-action log', category: 'Decision / Audit' },
   { cmd: '/state-id', label: 'Snapshot ID', category: 'Decision / Audit' },
+
+  // Help
   { cmd: '/help', label: 'Help', category: 'Help' },
   { cmd: '/commands', label: 'All commands', category: 'Help' },
 ];
