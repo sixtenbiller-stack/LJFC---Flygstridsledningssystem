@@ -1,6 +1,6 @@
 import math
 from typing import Dict, Any
-from .base import PlaceableBase
+from placeables.base import PlaceableBase
 
 class Template(PlaceableBase):
     """
