@@ -25,6 +25,7 @@ def load_geography() -> Geography:
         features=[GeoFeature(**f) for f in raw["features"]],
         terrain=[TerrainFeature(**t) for t in raw["terrain"]],
         defended_zones=[DefendedZone(**z) for z in raw["defended_zones"]],
+        map_background=raw.get("map_background")
     )
 
 

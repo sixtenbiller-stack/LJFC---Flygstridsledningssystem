@@ -216,9 +216,9 @@ export function TacticalMap({
             </filter>
           </defs>
 
-          {mapBackground && (
+          {(mapBackground || geography.map_background) && (
             <image
-              href={mapBackground}
+              href={mapBackground || geography.map_background}
               x={PADDING}
               y={PADDING}
               width={VIEW_W - 2 * PADDING}

@@ -139,6 +139,7 @@ class Geography(BaseModel):
     features: list[GeoFeature]
     terrain: list[TerrainFeature]
     defended_zones: list[DefendedZone]
+    map_background: str | None = None
 
 
 # ── Assets ──
@@ -490,7 +491,7 @@ class PlaceableConfig(BaseModel):
 class ScenarioModel(BaseModel):
     scenario_id: str
     name: str
-    map_background: str
+    map_background: str | None = None
     placeables: List[PlaceableConfig] = Field(default_factory=list)
     events: List[Dict[str, Any]] = Field(default_factory=list)
     meta: Dict[str, Any] = Field(default_factory=dict)

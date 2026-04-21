@@ -81,6 +81,10 @@ class ScenarioEngine:
         self._duration_s = self._scenario_meta.get("duration_s", 240)
         self._events = [ScenarioEvent(**e) for e in raw["events"]]
         self.geography = load_geography()
+        if raw.get("map_background"):
+            self.geography.map_background = raw["map_background"]
+        elif self._scenario_meta.get("map_background"):
+            self.geography.map_background = self._scenario_meta["map_background"]
 
         initial_assets = load_assets()
         self._initial_assets = initial_assets

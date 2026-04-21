@@ -135,8 +135,8 @@ PLACEABLES_DIR = Path(__file__).resolve().parent / "placeables"
 
 app = FastAPI(title="NEON COMMAND", version="0.5.0", lifespan=lifespan)
 
-app.mount("/api/maps", StaticFiles(directory=str(MAPS_DIR)), name="maps")
-app.mount("/api/placeables/icons", StaticFiles(directory=str(PLACEABLES_DIR)), name="placeable-icons")
+app.mount("/maps", StaticFiles(directory=str(MAPS_DIR)), name="maps")
+app.mount("/placeables/icons", StaticFiles(directory=str(PLACEABLES_DIR)), name="placeable-icons")
 
 app.add_middleware(
     CORSMiddleware,
@@ -279,11 +279,11 @@ async def list_placeable_templates():
             icon_path = p.with_suffix(".png")
             results.append({
                 "type": p.stem,
-                "icon_url": f"/api/placeables/icons/{icon_path.name}" if icon_path.exists() else None
+                "icon_url": f"/placeables/icons/{icon_path.name}" if icon_path.exists() else None
             })
     return {"placeables": results}
 
-@app.post("/api/map-editor/save")
+@app.post("/map-editor/save")
 async def save_scenario(scenario: ScenarioModel):
     custom_dir = Path(__file__).resolve().parent.parent / "neon-command-data" / "custom"
     custom_dir.mkdir(parents=True, exist_ok=True)
@@ -292,7 +292,7 @@ async def save_scenario(scenario: ScenarioModel):
         f.write(scenario.json(indent=2))
     return {"status": "success", "file_id": scenario.scenario_id}
 
-@app.post("/api/map-editor/upload-map")
+@app.post("/map-editor/upload-map")
 async def upload_map(file: UploadFile = File(...)):
     if not file.filename:
         return {"error": "No filename"}
@@ -301,7 +301,7 @@ async def upload_map(file: UploadFile = File(...)):
         f.write(await file.read())
     return {"url": f"/api/maps/{file.filename}"}
 
-@app.get("/api/map-editor/load/{file_id}")
+@app.get("/map-editor/load/{file_id}")
 async def load_scenario_for_editor(file_id: str):
     try:
         return load_scenario_raw(file_id)
