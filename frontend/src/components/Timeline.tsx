@@ -74,33 +74,6 @@ export function Timeline({
           <span className="tl-time-value">{formatTime(currentTime)}</span>
           <span className="tl-time-label">/ {formatTime(dur)}</span>
         </div>
-
-        <div className="tl-progress-bar" ref={progressBarRef} onClick={handleProgressClick}
-             style={{ cursor: onSeek ? 'pointer' : 'default' }}>
-          <div className="tl-progress-fill" style={{ width: `${progress}%` }} />
-          <div className="tl-progress-marker" style={{ left: `${Math.min(progress, 100)}%` }} />
-          {markers.map((m) => {
-            const pct = Math.min(100, (m.t_s / dur) * 100);
-            return (
-              <div
-                key={`${m.type}-${m.t_s}`}
-                className={`tl-marker tl-marker-${m.type}`}
-                style={{ left: `${pct}%`, borderColor: MARKER_COLORS[m.type] || '#79c0ff' }}
-                title={`${m.label} (${formatTime(m.t_s)})`}
-                onMouseEnter={() => setHoveredMarker(`${m.type}-${m.t_s}`)}
-                onMouseLeave={() => setHoveredMarker(null)}
-                onClick={() => onJump?.(m.type === 'second_wave' ? 'second_wave' :
-                  m.type === 'first_contact' ? 'first_contact' :
-                  m.type === 'first_group' ? 'first_group' :
-                  m.type === 'first_decision' ? 'first_decision' : 'first_contact')}
-              >
-                {hoveredMarker === `${m.type}-${m.t_s}` && (
-                  <span className="tl-marker-tooltip">{m.label}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
