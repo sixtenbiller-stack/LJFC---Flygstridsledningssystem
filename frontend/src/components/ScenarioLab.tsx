@@ -306,6 +306,7 @@ export function ScenarioLab({
             <div className='slab-section'>
               <label className='slab-label'>Asset Palette (Click to Select)</label>
               <div className='slab-asset-palette'>
+                {placeableTemplates.length === 0 && <p style={{fontSize: 10, color: '#f85149'}}>No placeable templates found.</p>}
                 {placeableTemplates.map(t => (
                   <button key={t.type} className={'slab-asset-btn ' + (selectedTemplate === t.type ? 'active' : '')} onClick={() => setSelectedTemplate(t.type)}>
                     {t.type.toUpperCase()}

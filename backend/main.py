@@ -268,7 +268,7 @@ def list_scenarios() -> dict[str, Any]:
         "templates": AVAILABLE_TEMPLATES,
     }
 
-@app.get("/api/map-editor/placeables")
+@app.get("/map-editor/placeables")
 async def list_placeable_templates():
     placeables_dir = Path(__file__).resolve().parent / "placeables"
     results = []

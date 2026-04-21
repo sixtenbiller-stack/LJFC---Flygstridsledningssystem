@@ -191,8 +191,10 @@ export function TacticalMap({
               const svgX = e.clientX - rect.left;
               const svgY = e.clientY - rect.top;
               // Reverse projection
-              const kmX = BOUNDS.xMin + ((svgX - PADDING) / (VIEW_W - 2 * PADDING)) * (BOUNDS.xMax - BOUNDS.xMin);
-              const kmY = BOUNDS.yMax - ((svgY - PADDING) / (VIEW_H - 2 * PADDING)) * (BOUNDS.yMax - BOUNDS.yMin);
+    const [kmX, kmY] = [
+                BOUNDS.xMin + ((svgX - PADDING) / (VIEW_W - 2 * PADDING)) * (BOUNDS.xMax - BOUNDS.xMin),
+                BOUNDS.yMax - ((svgY - PADDING) / (VIEW_H - 2 * PADDING)) * (BOUNDS.yMax - BOUNDS.yMin),
+              ];
               onMapClick(kmX, kmY);
             } else {
               onSelectTrack(null);
