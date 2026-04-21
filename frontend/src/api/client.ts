@@ -104,12 +104,6 @@ export const api = {
       body: JSON.stringify({ time_s }),
     }),
 
-  generateScenario: (template: string, seed?: number, duration_s?: number) =>
-    request<any>('/scenario/generate', {
-      method: 'POST',
-      body: JSON.stringify({ template, seed, duration_s }),
-    }),
-
   startLiveSession: (fileId: string, seed?: number) =>
     request<any>('/scenario/live/start', {
       method: 'POST',

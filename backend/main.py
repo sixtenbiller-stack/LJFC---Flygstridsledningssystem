@@ -39,7 +39,7 @@ from data_loader import load_planning_guardrails
 from simulation_controller import SimulationController
 
 from scenario_registry import discover as discover_scenarios, load_scenario_raw
-from scenario_runtime import generate_scenario, LiveSession, AVAILABLE_TEMPLATES
+from scenario_runtime import LiveSession, AVAILABLE_TEMPLATES
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("neon.main")
@@ -388,17 +388,6 @@ def control_scenario(req: ScenarioControlRequest) -> dict[str, Any]:
     elif req.action == "speed" and req.speed is not None:
         engine.set_speed(req.speed)
     return {"status": "ok", "is_playing": engine.is_playing, "speed": engine.speed_multiplier}
-
-
-@app.post("/scenario/generate")
-def generate_scenario_endpoint(body: dict[str, Any]) -> dict[str, Any]:
-    template = body.get("template", "swarm_pressure")
-    seed = body.get("seed")
-    duration = body.get("duration_s", 300)
-    output_name = body.get("output_name")
-    result = generate_scenario(template=template, seed=seed,
-                               duration_s=duration, output_name=output_name)
-    return {"status": "generated", **result}
 
 
 @app.post("/scenario/live/start")

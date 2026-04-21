@@ -18,19 +18,6 @@ interface Props {
   onReset: () => void;
 }
 
-const TEMPLATES = [
-  { id: 'swarm_pressure', label: 'Swarm Pressure' },
-  { id: 'multi_axis_raid', label: 'Multi-Axis Raid' },
-  { id: 'escalating_probe', label: 'Escalating Probe' },
-  { id: 'random', label: 'Random' },
-];
-
-const ORIGIN_LABELS: Record<string, string> = {
-  builtin: 'Builtin',
-  generated: 'Generated',
-  runtime_copy: 'Runtime Copy',
-};
-
 const SPEEDS = [1, 2, 4, 8];
 
 export function ScenarioLab({
@@ -41,10 +28,6 @@ export function ScenarioLab({
   const [scenarios, setScenarios] = useState<ScenarioEntry[]>([]);
   const [selectedFileId, setSelectedFileId] = useState('');
   const [mode, setMode] = useState<'replay' | 'live'>('replay');
-  const [genTemplate, setGenTemplate] = useState('swarm_pressure');
-  const [genSeed, setGenSeed] = useState('');
-  const [genDuration, setGenDuration] = useState('300');
-  const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
 
   // Editor State
@@ -97,37 +80,6 @@ export function ScenarioLab({
       flash('Live session: ' + selectedFileId);
     }
     onScenarioLoaded();
-  };
-
-  const handleGenerate = async () => {
-    setGenerating(true);
-    try {
-      const seed = genSeed ? parseInt(genSeed) : undefined;
-      const dur = parseInt(genDuration) || 300;
-      const res = await api.generateScenario(genTemplate, seed, dur);
-      flash('Generated: ' + res.file_id);
-      await fetchScenarios();
-      setSelectedFileId(res.file_id);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const handleGenerateAndLoad = async () => {
-    setGenerating(true);
-    try {
-      const seed = genSeed ? parseInt(genSeed) : undefined;
-      const dur = parseInt(genDuration) || 300;
-      const res = await api.generateScenario(genTemplate, seed, dur);
-      const sid = res.file_id.replace(/_/g, '-');
-      await api.loadScenario(sid);
-      flash('Generated & loaded: ' + res.file_id);
-      await fetchScenarios();
-      setSelectedFileId(res.file_id);
-      onScenarioLoaded();
-    } finally {
-      setGenerating(false);
-    }
   };
 
   // Editor Handlers
@@ -208,7 +160,7 @@ export function ScenarioLab({
           <div className='slab-header'>
             <span className='slab-title'>⚗ SCENARIO LAB</span>
             <span className={'slab-badge slab-badge-mode mode-' + currentMode}>{currentMode.toUpperCase()}</span>
-            <span className={'slab-badge slab-badge-origin origin-' + currentOrigin}>{ORIGIN_LABELS[currentOrigin] || currentOrigin.toUpperCase()}</span>
+            <span className={'slab-badge slab-badge-origin origin-' + currentOrigin}>{currentOrigin.toUpperCase()}</span>
           </div>
 
           <div className='slab-section'>
@@ -243,17 +195,6 @@ export function ScenarioLab({
                 <option key={s.file_id} value={s.file_id}>{s.title}{s.jury_demo ? ' ★' : ''}</option>
               ))}
             </select>
-          </div>
-
-          <div className='slab-section' style={{marginTop: 12}}>
-            <label className='slab-label'>Scenario Generator</label>
-            <div className='slab-gen-row'>
-              <select className='slab-select' value={genTemplate} onChange={e => setGenTemplate(e.target.value)}>
-                {TEMPLATES.map(t => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
-                ))}
-              </select>
-            </div>
           </div>
         </div>
       ) : (

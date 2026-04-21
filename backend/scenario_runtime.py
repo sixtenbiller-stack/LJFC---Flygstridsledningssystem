@@ -2,7 +2,6 @@
 Scenario Runtime — bridges generator/mutator into the NEON COMMAND backend.
 
 Provides:
-  - generate_scenario(): create scenario from template + seed, save to generated/
   - LiveSession: wraps ScenarioMutator for live-mode operation
 """
 from __future__ import annotations
@@ -17,43 +16,12 @@ from typing import Any
 ENGINE_DIR = Path(__file__).resolve().parent.parent / "neon-command-engine"
 sys.path.insert(0, str(ENGINE_DIR))
 
-from scenario_generator import ScenarioGenerator, SCENARIO_TEMPLATES  # noqa: E402
+from scenario_generator import SCENARIO_TEMPLATES  # noqa: E402
 from scenario_mutator import ScenarioMutator  # noqa: E402
 
-from scenario_registry import GENERATED_DIR, RUNTIME_DIR, load_scenario_raw  # noqa: E402
+from scenario_registry import RUNTIME_DIR, load_scenario_raw  # noqa: E402
 
 AVAILABLE_TEMPLATES = list(SCENARIO_TEMPLATES.keys()) + ["random"]
-
-
-def generate_scenario(
-    template: str = "swarm_pressure",
-    seed: int | None = None,
-    duration_s: int = 300,
-    output_name: str | None = None,
-) -> dict[str, Any]:
-    """Generate a scenario and write to generated/ dir. Returns metadata."""
-    gen = ScenarioGenerator(seed=seed)
-
-    if template == "random":
-        scenario = gen.generate_random(duration_s=duration_s)
-    else:
-        scenario = gen.generate(template)
-
-    data = scenario.to_dict()
-    file_id = output_name or f"scenario_{template}_{gen.seed}"
-    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = GENERATED_DIR / f"{file_id}.json"
-    with open(out_path, "w") as f:
-        json.dump(data, f, indent=2, default=str)
-
-    return {
-        "file_id": file_id,
-        "path": str(out_path),
-        "seed": gen.seed,
-        "template": template,
-        "duration_s": data["meta"].get("duration_s", duration_s),
-        "total_events": len(data["events"]),
-    }
 
 
 class LiveSession:
