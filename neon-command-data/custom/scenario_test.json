@@ -1,0 +1,36 @@
+{
+  "scenario_id": "test",
+  "name": "New Custom Scenario",
+  "map_background": "/api/maps/PXL_20260416_113533194.jpg",
+  "placeables": [
+    {
+      "id": "p-1776780362686",
+      "type": "arthur_radar",
+      "x_km": 224.79065824168245,
+      "y_km": 428.4819838288424,
+      "properties": {
+        "range_km": 100
+      }
+    },
+    {
+      "id": "p-1776780363494",
+      "type": "arthur_radar",
+      "x_km": 153.6174781284651,
+      "y_km": 388.4969285272461,
+      "properties": {
+        "range_km": 100
+      }
+    },
+    {
+      "id": "p-1776780364034",
+      "type": "arthur_radar",
+      "x_km": 265.5752895425149,
+      "y_km": 370.5036536415278,
+      "properties": {
+        "range_km": 100
+      }
+    }
+  ],
+  "events": [],
+  "meta": {}
+}
