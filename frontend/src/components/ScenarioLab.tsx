@@ -42,6 +42,7 @@ export function ScenarioLab({
   const [placeableTemplates, setTemplates] = useState<PlaceableTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [selectedPlaceableId, setSelectedPlaceableId] = useState<string | null>(null);
+  const [editorTool, setEditorTool] = useState<'select' | 'place'>('select');
 
   const fetchScenarios = useCallback(async () => {
     try {
@@ -85,7 +86,12 @@ export function ScenarioLab({
 
   // Editor Handlers
   const handleMapClick = (x: number, y: number) => {
-    if (activeTab !== 'editor' || !selectedTemplate) return;
+    if (activeTab !== 'editor') return;
+    if (editorTool === 'select') {
+       setSelectedPlaceableId(null);
+       return;
+    }
+    if (!selectedTemplate) return;
     const newPlaceable: Placeable = {
       id: 'p-' + Date.now(),
       type: selectedTemplate,
@@ -212,6 +218,24 @@ export function ScenarioLab({
         <div className='slab-editor-view'>
           <div className='slab-editor-sidebar'>
             <div className='slab-section'>
+              <label className='slab-label'>Editor Tools</label>
+              <div className='slab-mode-toggle'>
+                <button 
+                  className={'slab-mode-btn ' + (editorTool === 'select' ? 'active' : '')} 
+                  onClick={() => setEditorTool('select')}
+                >
+                  SELECTION
+                </button>
+                <button 
+                  className={'slab-mode-btn ' + (editorTool === 'place' ? 'active' : '')} 
+                  onClick={() => setEditorTool('place')}
+                >
+                  PLACEMENT
+                </button>
+              </div>
+            </div>
+
+            <div className='slab-section'>
               <label className='slab-label'>Scenario Info</label>
               <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
                 <input className='slab-input' value={editorScenario.scenario_id} onChange={e => setEditorScenario({...editorScenario, scenario_id: e.target.value})} placeholder='Scenario ID (e.g. proto_1)' />
@@ -294,6 +318,7 @@ export function ScenarioLab({
               selectedPlaceableId={selectedPlaceableId}
               onSelectPlaceable={setSelectedPlaceableId}
               selectedTemplate={selectedTemplate}
+              activeTool={editorTool}
             />
           </div>
         </div>

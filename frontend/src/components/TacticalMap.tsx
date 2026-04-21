@@ -22,6 +22,7 @@ interface Props {
   selectedPlaceableId?: string | null;
   onSelectPlaceable?: (id: string | null) => void;
   selectedTemplate?: string | null;
+  activeTool?: 'select' | 'place';
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -80,6 +81,7 @@ export function TacticalMap({
   selectedPlaceableId,
   onSelectPlaceable,
   selectedTemplate,
+  activeTool = 'select',
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -235,7 +237,7 @@ export function TacticalMap({
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           className={`tactical-map-svg${selectedTrack ? ' has-selection' : ''}`}
           onClick={(e) => {
-            if (onMapClick) {
+            if (onMapClick && activeTool === 'place') {
               const rect = (e.currentTarget as any).getBoundingClientRect();
               const svgX = ((e.clientX - rect.left) / rect.width) * VIEW_W;
               const svgY = ((e.clientY - rect.top) / rect.height) * VIEW_H;
@@ -245,7 +247,7 @@ export function TacticalMap({
                 BOUNDS.yMax - ((svgY - PADDING) / (VIEW_H - 2 * PADDING)) * (BOUNDS.yMax - BOUNDS.yMin),
               ];
               onMapClick(kmX, kmY);
-            } else {
+            } else if (activeTool === 'select') {
               onSelectTrack(null);
               onSelectPlaceable?.(null);
             }
@@ -339,7 +341,7 @@ export function TacticalMap({
           })}
 
           {/* Preview for placement */}
-          {editorMode && !selectedPlaceableId && (
+          {editorMode && activeTool === 'place' && (
             <g transform={`translate(${mousePos.x}, ${mousePos.y})`} className="placement-preview" style={{pointerEvents: 'none'}}>
               <circle r={radiusToSvg(selectedTemplate === 'arthur_radar' ? 100 : 50)} className="preview-range" strokeDasharray="4 2" />
               <text textAnchor="middle" dy=".3em" style={{fontSize: 10, fill: 'var(--neon-cyan)', opacity: 0.8}}>➕</text>
@@ -357,14 +359,14 @@ export function TacticalMap({
                 className={`map-placeable ${isSelected ? 'selected' : ''}`}
                 transform={`translate(${x}, ${y})`}
                 onClick={(e) => {
-                  if (editorMode) {
+                  if (editorMode && activeTool === 'select') {
                     e.stopPropagation();
                     onSelectPlaceable?.(isSelected ? null : p.id);
                   }
                 }}
-                style={{ cursor: editorMode ? 'pointer' : 'default' }}
+                style={{ cursor: editorMode && activeTool === 'select' ? 'pointer' : 'default' }}
               >
-                {isSelected && <circle r={radiusToSvg(p.properties.range_km || 100)} className="placeable-range-ring" />}
+                <circle r={radiusToSvg(p.properties.range_km || 100)} className={`placeable-range-ring ${isSelected ? 'selected' : ''}`} />
                 {iconUrl ? (
                   <image href={iconUrl} x="-8" y="-8" width="16" height="16" />
                 ) : (
