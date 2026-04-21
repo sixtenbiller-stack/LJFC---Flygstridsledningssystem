@@ -1,0 +1,148 @@
+{
+  "agent": "simulator",
+  "trigger": "simulate_coa",
+  "coa_id": "coa-w2-a",
+  "timestamp_s": 135,
+  "simulation_result": {
+    "run_id": "sim-002",
+    "source_state_timestamp_s": 126,
+    "coa_id": "coa-w2-a",
+    "seed": 42,
+    "duration_s": 120,
+    "outcome_score": 0.76,
+    "threats_intercepted": 4,
+    "threats_missed": 1,
+    "threats_monitored": 3,
+    "zone_breaches": 0,
+    "asset_losses": 0,
+    "missiles_expended": {
+      "air_to_air": 3,
+      "sam_missile": 6
+    },
+    "readiness_remaining_pct": 52.0,
+    "recovery_time_min": 30,
+    "timeline": [
+      {
+        "t_s": 0,
+        "event": "SIMULATION_START",
+        "detail": "State frozen at t=126s. COA W2-A applied. SAM batteries activating engagement tracks. ftr-n3/n4 scrambling for trk-h07."
+      },
+      {
+        "t_s": 10,
+        "event": "SAM_ENGAGEMENT",
+        "detail": "Firewatch SAM locks trk-h05 (cruise-type, heading to Arktholm). Firing 2 missiles."
+      },
+      {
+        "t_s": 14,
+        "event": "ENGAGEMENT_RESULT",
+        "detail": "trk-h05 intercepted by Firewatch SAM. Kill confirmed. Missiles remaining: 10."
+      },
+      {
+        "t_s": 20,
+        "event": "ASSET_AIRBORNE",
+        "detail": "ftr-n3 and ftr-n4 airborne from Base North. Heading to intercept trk-h07."
+      },
+      {
+        "t_s": 25,
+        "event": "SAM_ENGAGEMENT",
+        "detail": "Firewatch SAM locks trk-h04 (cruise-type, heading to Valbrek). At edge of coverage. Firing 2 missiles."
+      },
+      {
+        "t_s": 30,
+        "event": "ENGAGEMENT_RESULT",
+        "detail": "trk-h04 intercepted by Firewatch SAM. Kill confirmed. Very low altitude engagement was marginal. Missiles remaining: 8."
+      },
+      {
+        "t_s": 35,
+        "event": "SAM_ENGAGEMENT",
+        "detail": "Eastern Ridge SAM locks trk-h06 (UAV swarm). Firing 2 missiles at lead elements."
+      },
+      {
+        "t_s": 38,
+        "event": "ENGAGEMENT_RESULT",
+        "detail": "trk-h06 partially degraded. 2 of estimated 4-6 UAVs destroyed. Swarm continues at reduced effectiveness. Missiles remaining: 6."
+      },
+      {
+        "t_s": 50,
+        "event": "ENGAGEMENT_INITIATED",
+        "detail": "ftr-n3 achieves weapons lock on trk-h07 at (280, 480). High-altitude engagement. Firing."
+      },
+      {
+        "t_s": 54,
+        "event": "ENGAGEMENT_RESULT",
+        "detail": "trk-h07 intercepted. Kill confirmed. ftr-n3 expends 2 air-to-air missiles."
+      },
+      {
+        "t_s": 60,
+        "event": "RECON_UPDATE",
+        "detail": "uav-h1 confirms trk-h08 is electronic decoy. No kinetic threat. Reclassified."
+      },
+      {
+        "t_s": 70,
+        "event": "TRACK_STATUS",
+        "detail": "trk-h06 (degraded UAV swarm) continues toward Nordvik. Eastern SAM preparing second salvo."
+      },
+      {
+        "t_s": 75,
+        "event": "SAM_ENGAGEMENT",
+        "detail": "Eastern Ridge SAM fires 2 more missiles at trk-h06 remnants."
+      },
+      {
+        "t_s": 78,
+        "event": "ENGAGEMENT_RESULT",
+        "detail": "trk-h06 swarm neutralized. Remaining UAVs destroyed or scattered. Missiles remaining: 4."
+      },
+      {
+        "t_s": 90,
+        "event": "ASSET_RETURNING",
+        "detail": "ftr-n3, ftr-n4 returning to Base North. ETA 10 min. Recovery and rearm: 25 min."
+      },
+      {
+        "t_s": 100,
+        "event": "TRACK_STATUS",
+        "detail": "trk-h03 (original UAV, wave 1) still tracking slowly. No engagement. trk-h08 confirmed decoy, disregarded."
+      },
+      {
+        "t_s": 120,
+        "event": "SIMULATION_END",
+        "detail": "Wave 2 threats neutralized. 4 high-value tracks intercepted (trk-h04, h05, h06, h07). trk-h03 still monitored. trk-h08 was decoy. No zone breaches. Strategic reserve (Spear Point QRA) intact."
+      }
+    ],
+    "post_engagement_readiness": {
+      "base-north": {
+        "ready": 0,
+        "recovering": 4,
+        "wave1_recovery_complete_min": 5,
+        "wave2_recovery_complete_min": 25
+      },
+      "base-highridge": {
+        "ready": 0,
+        "recovering": 2,
+        "uav_available": 1,
+        "uav_deployed": 1,
+        "recovery_complete_min": 20
+      },
+      "base-south": {
+        "standby": 2,
+        "activation_time_min": 15,
+        "notes": "Can activate now to rebuild reserve"
+      },
+      "base-spear": {
+        "alert": 2,
+        "ready_immediately": true,
+        "notes": "STRATEGIC RESERVE INTACT — key outcome of this plan"
+      },
+      "sam-firewatch": {
+        "missiles_remaining": 8,
+        "status": "active",
+        "notes": "Expended 4 missiles. 67% capacity remaining."
+      },
+      "sam-eastern": {
+        "missiles_remaining": 4,
+        "status": "active",
+        "notes": "Expended 4 missiles. 50% capacity remaining."
+      }
+    }
+  },
+  "narration": "The layered defence plan held. SAM batteries proved effective against the cruise missile threats — Firewatch intercepted both trk-h05 and trk-h04 before they reached their target zones. The Northern Vanguard fighter pair took down the high-altitude fighter trk-h07 on the central axis. Eastern Ridge SAM neutralized the UAV swarm in two salvos. The forward UAV confirmed trk-h08 was a decoy. Most importantly, the Spear Point QRA pair was never committed — our strategic reserve is intact. Total readiness is at 52%, with wave-1 fighters beginning to come back online in about 5 minutes. The main concern going forward: SAM ammunition is depleted by about a third, and if a sustained campaign continues, we'll need to consider resupply or redistribution."
+}

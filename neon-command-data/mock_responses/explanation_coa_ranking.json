@@ -1,0 +1,38 @@
+{
+  "agent": "explainer",
+  "trigger": "operator_question",
+  "timestamp_s": 42,
+  "question_received": "Why is Option A ranked first?",
+  "explanation": {
+    "primary_factors": [
+      {
+        "factor": "Intercept probability",
+        "detail": "Fighter-vs-fighter intercept has the highest engagement probability in this scenario. Both threat tracks are medium-altitude fast movers — this is the optimal engagement envelope for our fighter assets. SAM engagement (Option B) against a maneuvering fighter at medium altitude carries more uncertainty.",
+        "data_citation": "trk-h01: fighter-type, altitude medium, speed fast. trk-h02: fighter-type, altitude medium, speed fast. Historical engagement models favor fighter intercept for this profile."
+      },
+      {
+        "factor": "Dual-axis coverage",
+        "detail": "Option A is the only plan that puts dedicated fighter pairs on both threat axes simultaneously. trk-h01 approaches from the NW and trk-h02 from the NE — they require separate response vectors. Option B only puts fighters on the eastern axis and relies on SAM for the western. Option C splits to a single fighter on the eastern axis.",
+        "data_citation": "trk-h01 heading 200° from (188, 575). trk-h02 heading 190° from (310, 568). Angular separation ~25° as seen from Arktholm."
+      },
+      {
+        "factor": "Reserve balance",
+        "detail": "Option A commits 4 of 13 aircraft (30.8%), leaving 9 in reserve including the QRA pair at Spear Point and both standby aircraft at Southern Redoubt. This is a meaningful commitment but preserves over two-thirds of the force for follow-on threats.",
+        "data_citation": "Total force: 11 fighters + 2 UAVs. Option A commits: ftr-n1, ftr-n2, ftr-h1, ftr-h2. Remaining: ftr-n3, ftr-n4, ftr-h3, uav-h1, uav-h2, ftr-s1, ftr-s2, ftr-sp1, ftr-sp2."
+      },
+      {
+        "factor": "Response time adequacy",
+        "detail": "Base North fighters can reach the trk-h01 engagement envelope in approximately 4-5 minutes. Highridge fighters can reach trk-h02 in approximately 3-4 minutes. Both are within the available response window before zone breach.",
+        "data_citation": "trk-h01 ETA to zone-arktholm: ~90s. Base North to intercept point: ~50 km, ~4 min at fighter speed. Margin: adequate."
+      }
+    ],
+    "trade_off_summary": "Option A trades the maximum force preservation of Option B for higher intercept confidence on both axes. It trades the layered depth of Option C for dedicated fighter pairs on each threat. The core judgment is that with only two confirmed threats, high-probability intercept on both is more valuable than layered fallback on one.",
+    "uncertainty_notes": [
+      "If a second wave arrives within 3 minutes, the 4 committed aircraft will not be available for reallocation. This is the primary risk.",
+      "trk-h03 (UAV, low confidence) is unaddressed in all three options. If it is a forward observer for a follow-on wave, detection of that wave may be delayed.",
+      "If either threat track maneuvers aggressively, the engagement may take longer than modeled, delaying asset recovery."
+    ],
+    "recommendation_confidence": "high"
+  },
+  "narration": "Option A is ranked first because it puts dedicated fighter pairs on both threat axes, giving the highest intercept probability against two fast-moving fighter-type tracks. The dual-pair approach covers both the northwestern and northeastern approaches to Arktholm without relying on SAM engagement against maneuvering targets. It commits 4 of 13 aircraft — meaningful but manageable, leaving 9 in reserve including the QRA pair at Spear Point. The main risk is that if a second wave arrives quickly, those 4 aircraft will be engaged and unavailable. Option B preserves more force but accepts lower engagement confidence on the western axis. Option C adds depth with SAM layering but puts only a single fighter on the eastern threat."
+}

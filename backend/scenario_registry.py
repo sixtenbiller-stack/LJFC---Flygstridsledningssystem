@@ -6,11 +6,31 @@ from pathlib import Path
 from typing import Any
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "neon-command-data"
+GENERATED_DIR = DATA_DIR / "generated"
 RUNTIME_DIR = DATA_DIR / "runtime"
 CUSTOM_DIR = DATA_DIR / "custom"
 
 
-SCENARIO_LABELS: dict[str, dict[str, Any]] = {}
+SCENARIO_LABELS: dict[str, dict[str, Any]] = {
+    "scenario_alpha": {
+        "title": "Two-Wave Pressure Test",
+        "short": "Legacy baseline scenario with two-wave probe.",
+        "recommended_mode": "replay",
+        "jury_demo": False,
+    },
+    "scenario_swarm_beta": {
+        "title": "Swarm / Coordinated Threat Demo",
+        "short": "Drone swarm with recon probe, EW screen, and mixed raid.",
+        "recommended_mode": "live",
+        "jury_demo": True,
+    },
+    "scenario_raid_gamma": {
+        "title": "Multi-Corridor Mixed Raid",
+        "short": "Multi-axis raid with eastern swarm and perturbations.",
+        "recommended_mode": "live",
+        "jury_demo": True,
+    },
+}
 
 
 def _read_meta(path: Path) -> dict[str, Any]:
@@ -42,7 +62,11 @@ def discover() -> list[dict[str, Any]]:
     """Return metadata for all discoverable scenarios."""
     results: list[dict[str, Any]] = []
 
-    for scan_dir, source_type in [(DATA_DIR, "base"), (CUSTOM_DIR, "custom")]:
+    for scan_dir, source_type in [
+        (DATA_DIR, "base"),
+        (GENERATED_DIR, "generated"),
+        (CUSTOM_DIR, "custom"),
+    ]:
         if not scan_dir.exists():
             continue
         for p in sorted(scan_dir.glob("scenario_*.json")):
@@ -61,8 +85,8 @@ def discover() -> list[dict[str, Any]]:
 
 
 def load_scenario_raw(file_id: str) -> dict[str, Any]:
-    """Load a scenario JSON by file_id, checking base then custom dirs."""
-    for d in [DATA_DIR, CUSTOM_DIR]:
+    """Load a scenario JSON by file_id, checking base, generated, then custom."""
+    for d in [DATA_DIR, GENERATED_DIR, CUSTOM_DIR]:
         path = d / f"{file_id}.json"
         if path.exists():
             with open(path) as f:

@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "version": "1.0",
+    "description": "Event type taxonomy for NEON COMMAND scenario engine"
+  },
+  "event_types": [
+    { "type": "SCENARIO_START", "category": "lifecycle", "description": "Scenario begins" },
+    { "type": "SCENARIO_END", "category": "lifecycle", "description": "Scenario ends" },
+    { "type": "SENSOR_UPDATE", "category": "surveillance", "description": "Sensor data refresh" },
+    { "type": "TRACK_CREATED", "category": "surveillance", "description": "New track detected" },
+    { "type": "TRACK_UPDATED", "category": "surveillance", "description": "Track data updated" },
+    { "type": "TRACK_LOST", "category": "surveillance", "description": "Track lost from sensors" },
+    { "type": "ALERT_CREATED", "category": "threat", "description": "New threat alert" },
+    { "type": "COA_REQUESTED", "category": "planning", "description": "Operator requests COAs" },
+    { "type": "COA_GENERATED", "category": "planning", "description": "System generates COAs" },
+    { "type": "COA_APPROVED", "category": "decision", "description": "Operator approves a COA" },
+    { "type": "COA_TRIGGER", "category": "planning", "description": "System recommends COA generation" },
+    { "type": "SIM_RUN_STARTED", "category": "simulation", "description": "Simulation started" },
+    { "type": "SIM_RUN_COMPLETED", "category": "simulation", "description": "Simulation completed" },
+    { "type": "ASSET_STATUS_CHANGED", "category": "readiness", "description": "Asset status changed" },
+    { "type": "CONSTRAINT_CHANGED", "category": "readiness", "description": "Operational constraint changed" },
+    { "type": "AFTER_ACTION_REVIEW_CREATED", "category": "review", "description": "After-action review entry" }
+  ]
+}

@@ -37,14 +37,16 @@ import random
 import copy
 from pathlib import Path
 from typing import Optional
+from scenario_generator import (
+    ScenarioGenerator, TrackFactory, ThreatGroupTemplate,
+    DynamicInjector, ScenarioEvent, EventType, ThreatGroupType,
+    WorkflowLane, INGRESS_CORRIDORS, SENSORS, DEFENDED_ZONES,
+    SpeedClass, AltitudeBand, TrackClass
+)
 from dataclasses import asdict
 
-# Mocked constants previously in scenario_generator.py
-INGRESS_CORRIDORS = ["corridor-n", "corridor-ne", "corridor-nw", "corridor-e", "corridor-w"]
-SENSORS = {}
-DEFENDED_ZONES = {}
 
-class ScenarioMutator:
+class LiveState:
     """
     Maintains the current state of all tracks and assets for runtime mutation.
     This is the in-memory representation that gets serialized back to JSON.
@@ -137,6 +139,14 @@ class ScenarioMutator:
 class ScenarioMutator:
     """
     Mutates a scenario JSON file at runtime.
+
+    Loads a scenario, maintains live state, and can:
+    - Inject new threat groups
+    - Evolve track positions (tick)
+    - Degrade sensors
+    - Change asset readiness
+    - Reclassify tracks (decoy revealed, confidence change)
+    - Write updated state back to JSON
     """
 
     def __init__(self, scenario_path: str, seed: int = None):
@@ -146,6 +156,8 @@ class ScenarioMutator:
 
         self.seed = seed if seed is not None else random.randint(0, 2**32)
         self.rng = random.Random(self.seed)
+        self.factory = TrackFactory(self.rng)
+        self.injector = DynamicInjector(self.rng)
         self.state = LiveState()
 
         # Ingest all existing events up to current time
@@ -156,6 +168,75 @@ class ScenarioMutator:
         """Append an event to the scenario data and update live state."""
         self.scenario_data["events"].append(event)
         self.state.ingest_event(event)
+
+    # ----- Injection methods -----
+
+    def inject_swarm(self, t_s: int, corridor: str = "corridor-n",
+                     size: int = 12) -> list:
+        """Inject a new drone swarm into the running scenario."""
+        events = ThreatGroupTemplate.drone_swarm(
+            self.rng, self.factory, corridor, t_s, size=size)
+        for ev in events:
+            self._append_event(asdict(ev))
+
+        group_event = asdict(ScenarioEvent(
+            t_s + 5, EventType.GROUP_FORMED.value, {
+                "group_type": ThreatGroupType.PROBABLE_SWARM.value,
+                "corridor": corridor,
+                "track_count": len(events),
+                "recommended_lane": WorkflowLane.FAST.value,
+                "notes": f"INJECTED: New swarm detected. {size} tracks.",
+                "injected": True,
+            }))
+        self._append_event(group_event)
+        return [asdict(e) for e in events] + [group_event]
+
+    def inject_raid(self, t_s: int,
+                    corridors: list = None) -> list:
+        """Inject a mixed raid."""
+        if corridors is None:
+            corridors = ["corridor-nw", "corridor-n"]
+        events = ThreatGroupTemplate.mixed_raid(
+            self.rng, self.factory, corridors, t_s)
+        for ev in events:
+            self._append_event(asdict(ev))
+
+        group_event = asdict(ScenarioEvent(
+            t_s + 5, EventType.GROUP_FORMED.value, {
+                "group_type": ThreatGroupType.MIXED_RAID_WITH_DECOYS.value,
+                "corridors": corridors,
+                "track_count": len(events),
+                "recommended_lane": WorkflowLane.FAST.value,
+                "notes": "INJECTED: Mixed raid detected.",
+                "injected": True,
+            }))
+        self._append_event(group_event)
+        return [asdict(e) for e in events] + [group_event]
+
+    def inject_perturbation(self, t_s: int) -> dict:
+        """Inject a random perturbation."""
+        event = asdict(self.injector.random_perturbation(t_s))
+        event["data"]["injected"] = True
+        self._append_event(event)
+        return event
+
+    def degrade_sensor(self, t_s: int, sensor_id: str,
+                       severity: str = "partial") -> dict:
+        """Degrade a specific sensor."""
+        event = asdict(self.injector.sensor_degradation(t_s, sensor_id, severity))
+        event["data"]["injected"] = True
+        self._append_event(event)
+        return event
+
+    def reclassify_track(self, t_s: int, track_id: str,
+                         new_class: str, new_confidence: float,
+                         reason: str) -> dict:
+        """Reclassify a track — e.g. reveal a decoy, upgrade confidence."""
+        event = asdict(self.injector.track_reclassification(
+            t_s, track_id, new_class, new_confidence, reason))
+        event["data"]["injected"] = True
+        self._append_event(event)
+        return event
 
     # ----- Evolution methods -----
 
@@ -186,10 +267,28 @@ class ScenarioMutator:
             new_x = max(0, min(400, new_x))
             new_y = max(0, min(600, new_y))
 
+            # Check if track entered a defended zone (for alerting)
+            for zid, zone in DEFENDED_ZONES.items():
+                dist = math.sqrt((new_x - zone["x_km"])**2 + (new_y - zone["y_km"])**2)
+                if dist <= zone["radius_km"] and track.get("_zone_entered") != zid:
+                    track["_zone_entered"] = zid
+                    alert = {
+                        "t_s": new_t,
+                        "event_type": EventType.ALERT_CREATED.value,
+                        "data": {
+                            "alert_id": f"alert-breach-{tid}-{zid}",
+                            "priority": "critical",
+                            "tracks": [tid],
+                            "threatened_zone": zid,
+                            "message": f"Track {tid} has entered {zone.get('name', zid)} defence zone.",
+                        },
+                    }
+                    self._append_event(alert)
+
             # Update track in state
             update_event = {
                 "t_s": new_t,
-                "event_type": "TRACK_UPDATED",
+                "event_type": EventType.TRACK_UPDATED.value,
                 "data": {
                     "track_id": tid,
                     "updates": {
@@ -200,6 +299,34 @@ class ScenarioMutator:
                 },
             }
             self._append_event(update_event)
+
+        # Check sensor visibility changes
+        for tid, track in self.state.tracks.items():
+            if track.get("status") != "active":
+                continue
+            current_sensors = []
+            for sid, sensor in SENSORS.items():
+                effective_range = sensor["range_km"]
+                sensor_state = self.state.sensor_states.get(sid)
+                if sensor_state:
+                    effective_range *= sensor_state.get("range_multiplier", 1.0)
+                dist = math.sqrt((track["x_km"] - sensor["x_km"])**2 +
+                                 (track["y_km"] - sensor["y_km"])**2)
+                if dist <= effective_range:
+                    current_sensors.append(sid)
+            # If track lost all sensor coverage
+            if not current_sensors and track.get("detected_by"):
+                lost_event = {
+                    "t_s": new_t,
+                    "event_type": EventType.TRACK_LOST.value,
+                    "data": {
+                        "track_id": tid,
+                        "reason": "no_sensor_coverage",
+                        "last_known_x": track["x_km"],
+                        "last_known_y": track["y_km"],
+                    },
+                }
+                self._append_event(lost_event)
 
         self.state.current_t_s = new_t
 
@@ -237,8 +364,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="NEON COMMAND Scenario Mutator")
     parser.add_argument("scenario", help="Path to scenario JSON file")
     parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--inject-swarm", action="store_true",
+                        help="Inject a drone swarm at t=180s")
+    parser.add_argument("--inject-raid", action="store_true",
+                        help="Inject a mixed raid at t=150s")
     parser.add_argument("--tick", type=int, default=0,
                         help="Advance all tracks by N seconds")
+    parser.add_argument("--perturb", action="store_true",
+                        help="Inject a random perturbation")
     parser.add_argument("--export-state", default=None,
                         help="Export live state to this path")
     parser.add_argument("--output", default=None,
@@ -250,6 +383,18 @@ if __name__ == "__main__":
     print(f"  Current time: {mut.state.current_t_s}s")
     print(f"  Active tracks: {len(mut.state.get_active_tracks())}")
     print(f"  Groups: {len(mut.state.groups)}")
+
+    if args.inject_swarm:
+        evts = mut.inject_swarm(t_s=180, corridor="corridor-ne", size=10)
+        print(f"  Injected swarm: {len(evts)} events")
+
+    if args.inject_raid:
+        evts = mut.inject_raid(t_s=150)
+        print(f"  Injected raid: {len(evts)} events")
+
+    if args.perturb:
+        evt = mut.inject_perturbation(t_s=mut.state.current_t_s + 10)
+        print(f"  Injected perturbation: {evt['event_type']}")
 
     if args.tick > 0:
         mut.tick(dt_s=args.tick)

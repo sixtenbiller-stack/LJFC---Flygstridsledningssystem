@@ -2,6 +2,7 @@
 Scenario Runtime — bridges generator/mutator into the NEON COMMAND backend.
 
 Provides:
+  - generate_scenario(): create scenario from template + seed, save to generated/
   - LiveSession: wraps ScenarioMutator for live-mode operation
 """
 from __future__ import annotations
@@ -16,11 +17,43 @@ from typing import Any
 ENGINE_DIR = Path(__file__).resolve().parent.parent / "neon-command-engine"
 sys.path.insert(0, str(ENGINE_DIR))
 
+from scenario_generator import ScenarioGenerator, SCENARIO_TEMPLATES  # noqa: E402
 from scenario_mutator import ScenarioMutator  # noqa: E402
 
-from scenario_registry import RUNTIME_DIR, load_scenario_raw  # noqa: E402
+from scenario_registry import GENERATED_DIR, RUNTIME_DIR, load_scenario_raw  # noqa: E402
 
-AVAILABLE_TEMPLATES = ["random"]
+AVAILABLE_TEMPLATES = list(SCENARIO_TEMPLATES.keys()) + ["random"]
+
+
+def generate_scenario(
+    template: str = "swarm_pressure",
+    seed: int | None = None,
+    duration_s: int = 300,
+    output_name: str | None = None,
+) -> dict[str, Any]:
+    """Generate a scenario and write it to the generated directory."""
+    gen = ScenarioGenerator(seed=seed)
+
+    if template == "random":
+        scenario = gen.generate_random(duration_s=duration_s)
+    else:
+        scenario = gen.generate(template)
+
+    data = scenario.to_dict()
+    file_id = output_name or f"scenario_{template}_{gen.seed}"
+    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = GENERATED_DIR / f"{file_id}.json"
+    with open(out_path, "w") as f:
+        json.dump(data, f, indent=2, default=str)
+
+    return {
+        "file_id": file_id,
+        "path": str(out_path),
+        "seed": gen.seed,
+        "template": template,
+        "duration_s": data["meta"].get("duration_s", duration_s),
+        "total_events": len(data["events"]),
+    }
 
 
 class LiveSession:
@@ -78,8 +111,47 @@ class LiveSession:
         self._mutator.tick(dt_s=dt_s)
 
     def inject(self, inject_type: str, params: dict | None = None) -> dict:
-        """Perform a live injection (not implemented - scenario generator removed)."""
-        return {"error": "Injections disabled - Scenario Generator removed."}
+        """Perform a live injection (swarm, raid, sensor_degrade, etc)."""
+        params = params or {}
+        t = self._mutator.state.current_t_s + 1
+        result: dict[str, Any] = {"type": inject_type, "t_s": t}
+
+        if inject_type == "swarm":
+            corridor = params.get("corridor", "corridor-n")
+            size = params.get("size", 12)
+            events = self._mutator.inject_swarm(t_s=t, corridor=corridor, size=size)
+            result["events_added"] = len(events)
+        elif inject_type == "second_wave":
+            corridors = params.get("corridors", ["corridor-nw", "corridor-n"])
+            events = self._mutator.inject_raid(t_s=t, corridors=corridors)
+            result["events_added"] = len(events)
+        elif inject_type == "sensor_degrade":
+            sensor_id = params.get("sensor_id", "sensor-boreal")
+            severity = params.get("severity", "partial")
+            event = self._mutator.degrade_sensor(t_s=t, sensor_id=sensor_id, severity=severity)
+            result["event"] = event
+        elif inject_type == "reclassify":
+            track_id = params.get("track_id", "")
+            new_class = params.get("new_class", "decoy-suspected")
+            new_conf = params.get("new_confidence", 0.3)
+            reason = params.get("reason", "Operator reclassification")
+            event = self._mutator.reclassify_track(
+                t_s=t,
+                track_id=track_id,
+                new_class=new_class,
+                new_confidence=new_conf,
+                reason=reason,
+            )
+            result["event"] = event
+        elif inject_type == "readiness_drop":
+            result["note"] = "Readiness reduction applied via CONSTRAINT_CHANGED"
+            event = self._mutator.inject_perturbation(t_s=t)
+            result["event"] = event
+        else:
+            result["error"] = f"Unknown inject type: {inject_type}"
+
+        self._injection_log.append(result)
+        return result
 
     def get_state_snapshot(self) -> dict[str, Any]:
         """Return normalized snapshot for frontend consumption."""
