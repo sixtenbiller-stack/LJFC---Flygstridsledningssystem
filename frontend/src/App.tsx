@@ -560,6 +560,7 @@ export default function App() {
               onFollowTopThreatChange={setFollowTopThreat}
               topThreatTrackId={topThreatTrackId}
               highlightTrackIds={selectedGroup ? (groups.find(g => g.group_id === selectedGroup)?.member_track_ids ?? []) : []}
+              placeables={state.placeables}
             />
           </main>
 
