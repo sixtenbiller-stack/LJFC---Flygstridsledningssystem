@@ -426,9 +426,23 @@ def start_live_session(body: dict[str, Any]) -> dict[str, Any]:
     _scenario_source_file = file_id
 
     sim_controller.add_session("live", _live_session)
-
-    raw = {"meta": _live_session.get_meta(),
-           "events": _live_session.get_events_for_engine()}
+    raw = {
+        "meta": _live_session.get_meta(),
+        "events": _live_session.get_events_for_engine()
+    }
+    # Check if the map background has been specified in the raw scenario
+    raw_source = load_scenario_raw(file_id)
+    if "map_background" in raw_source:
+         raw["map_background"] = raw_source["map_background"]
+         if engine.geography: engine.geography.map_background = raw["map_background"]
+    elif "meta" in raw_source and "map_background" in raw_source["meta"]:
+         raw["map_background"] = raw_source["meta"]["map_background"]
+         if engine.geography: engine.geography.map_background = raw["map_background"]
+         if engine.geography: engine.geography.map_background = raw["map_background"]
+    elif "meta" in raw_source and "map_background" in raw_source["meta"]:
+         raw["map_background"] = raw_source["meta"]["map_background"]
+         if engine.geography: engine.geography.map_background = raw["map_background"]
+         
     engine.load_from_data(file_id, raw)
 
     chief.add_event_item(
@@ -457,10 +471,20 @@ def control_live(body: dict[str, Any]) -> dict[str, Any]:
     elif action == "pause":
         _live_session.pause()
         engine.pause()
-    elif action == "reset":
-        _live_session.reset()
         raw = {"meta": _live_session.get_meta(),
                "events": _live_session.get_events_for_engine()}
+        raw_source = load_scenario_raw(_live_session.file_id)
+        if "map_background" in raw_source:
+             raw["map_background"] = raw_source["map_background"]
+             if engine.geography: engine.geography.map_background = raw["map_background"]
+        elif "meta" in raw_source and "map_background" in raw_source["meta"]:
+             raw["map_background"] = raw_source["meta"]["map_background"]
+             if engine.geography: engine.geography.map_background = raw["map_background"]
+        engine.load_from_data(_live_session.file_id, raw)
+        if "map_background" in raw_source:
+             raw["map_background"] = raw_source["map_background"]
+        elif "meta" in raw_source and "map_background" in raw_source["meta"]:
+             raw["map_background"] = raw_source["meta"]["map_background"]
         engine.load_from_data(_live_session.file_id, raw)
     elif action == "set_speed":
         speed = body.get("value", 1.0)
@@ -473,12 +497,21 @@ def control_live(body: dict[str, Any]) -> dict[str, Any]:
 @app.post("/scenario/live/tick")
 def tick_live(body: dict[str, Any] | None = None) -> dict[str, Any]:
     if not _live_session:
+    if not _live_session:
         return {"error": "No live session active"}
     body = body or {}
     dt = body.get("dt_s", 5)
     _live_session.tick(dt_s=dt)
 
     raw = {"meta": _live_session.get_meta(),
+           "events": _live_session.get_events_for_engine()}
+    if engine.geography and hasattr(engine.geography, "map_background"):
+        raw["map_background"] = engine.geography.map_background
+    engine.load_from_data(_live_session.file_id, raw)
+    engine.current_time_s = _live_session.current_time_s
+    engine._apply_events()
+    return {"status": "ticked", "time_s": _live_session.current_time_s,
+            "active_tracks": len(_live_session._mutator.state.get_active_tracks())}
            "events": _live_session.get_events_for_engine()}
     engine.load_from_data(_live_session.file_id, raw)
     engine.current_time_s = _live_session.current_time_s
@@ -494,12 +527,12 @@ def inject_live(body: dict[str, Any]) -> dict[str, Any]:
         return {"error": "No live session active"}
     inject_type = body.get("type", "swarm")
     params = body.get("params", {})
-    result = _live_session.inject(inject_type, params)
-
     raw = {"meta": _live_session.get_meta(),
            "events": _live_session.get_events_for_engine()}
+    if engine.geography and hasattr(engine.geography, "map_background"):
+        raw["map_background"] = engine.geography.map_background
     engine.load_from_data(_live_session.file_id, raw)
-    engine.current_time_s = _live_session.current_time_s
+    engine._apply_events()
     engine._apply_events()
 
     label_map = {
