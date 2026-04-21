@@ -254,17 +254,17 @@
 .placeable-range-ring {
   fill: none;
   stroke: var(--neon-cyan);
-  stroke-width: 1.5;
-  stroke-dasharray: 6 4;
-  opacity: 0.9;
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+  opacity: 1;
 }
 
 .placeable-range-ring.selected {
-  stroke-width: 2.2;
+  stroke-width: 3;
   stroke-dasharray: none;
   opacity: 1;
   stroke: var(--selected);
-  filter: drop-shadow(0 0 6px var(--selected));
+  filter: drop-shadow(0 0 8px var(--selected));
 }
 
 .preview-range {

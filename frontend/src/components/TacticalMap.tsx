@@ -291,7 +291,7 @@ export function TacticalMap({
               width={VIEW_W - 2 * PADDING}
               height={VIEW_H - 2 * PADDING}
               preserveAspectRatio="xMidYMid slice"
-              style={{ opacity: 0.7 }}
+              style={{ opacity: 0.7, pointerEvents: 'none' }}
             />
           )}
 
@@ -307,7 +307,7 @@ export function TacticalMap({
           {geography.terrain.map((t) => {
             const pts = polyToSvg(t.polygon_km);
             return (
-              <polygon key={t.id} points={pts} className={`terrain terrain-${t.type}`} style={{pointerEvents: 'none'}} />
+              <polygon key={t.id} points={pts} className={`terrain terrain-${t.type}`} />
             );
           })}
 
@@ -315,7 +315,7 @@ export function TacticalMap({
             const [cx, cy] = toSvg(z.center_km[0], z.center_km[1]);
             const r = (z.radius_km / (BOUNDS.xMax - BOUNDS.xMin)) * (VIEW_W - 2 * PADDING);
             return (
-              <g key={z.id} style={{pointerEvents: 'none'}}>
+              <g key={z.id}>
                 <circle cx={cx} cy={cy} r={r} className={`zone zone-p${z.priority}`} />
                 {showDetailLabels && (
                   <text x={cx} y={cy - r - 4} className="zone-label">{z.name.replace(' Defence Zone', '').replace(' Zone', '')}</text>
@@ -327,20 +327,20 @@ export function TacticalMap({
           {layers.coverage && geography.features.filter(f => f.type === 'sam_site').map(f => {
             const [cx, cy] = toSvg(f.x_km, f.y_km);
             const r = ((f.coverage_radius_km || 0) / (BOUNDS.xMax - BOUNDS.xMin)) * (VIEW_W - 2 * PADDING);
-            return <circle key={`sam-cov-${f.id}`} cx={cx} cy={cy} r={r} className="sam-coverage" style={{pointerEvents: 'none'}} />;
+            return <circle key={`sam-cov-${f.id}`} cx={cx} cy={cy} r={r} className="sam-coverage" />;
           })}
 
           {layers.coverage && geography.features.filter(f => f.type === 'sensor_site').map(f => {
             const [cx, cy] = toSvg(f.x_km, f.y_km);
             const r = ((f.detection_range_km || 0) / (BOUNDS.xMax - BOUNDS.xMin)) * (VIEW_W - 2 * PADDING);
-            return <circle key={`sensor-cov-${f.id}`} cx={cx} cy={cy} r={r} className="sensor-coverage" style={{pointerEvents: 'none'}} />;
+            return <circle key={`sensor-cov-${f.id}`} cx={cx} cy={cy} r={r} className="sensor-coverage" />;
           })}
 
           {geography.features.map((f) => {
             const [x, y] = toSvg(f.x_km, f.y_km);
             const showLab = layers.terrainLabels && showDetailLabels;
             return (
-              <g key={f.id} style={{pointerEvents: 'none'}}>
+              <g key={f.id}>
                 <text x={x} y={y + 4} className={`feature-icon feature-${f.type}`} textAnchor="middle">
                   {MAP_ICONS[f.type] || '○'}
                 </text>
@@ -361,25 +361,17 @@ export function TacticalMap({
             </g>
           )}
 
-          {/* Placeables */}
+          {/* Placeables Icons & Labels */}
           {placeables.map((p) => {
             const [x, y] = toSvg(p.x_km, p.y_km);
             const iconUrl = PLACEABLE_ICONS[p.type];
             const isSelected = selectedPlaceableId === p.id;
             return (
               <g
-                key={p.id}
+                key={`p-icon-${p.id}`}
                 className={`map-placeable ${isSelected ? 'selected' : ''}`}
                 transform={`translate(${x}, ${y})`}
-                onClick={(e) => {
-                  if (editorMode && activeTool === 'select') {
-                    e.stopPropagation();
-                    onSelectPlaceable?.(isSelected ? null : p.id);
-                  }
-                }}
-                style={{ cursor: editorMode && activeTool === 'select' ? 'pointer' : 'default' }}
               >
-                <circle r={radiusToSvg(p.properties.range_km || 100)} className={`placeable-range-ring ${isSelected ? 'selected' : ''}`} style={{pointerEvents: 'none'}} />
                 {isSelected && (
                   <g 
                     className="placeable-drag-handle" 
@@ -392,18 +384,40 @@ export function TacticalMap({
                     <text y="-13" textAnchor="middle" style={{fontSize: 9, fill: 'var(--neon-cyan)', userSelect: 'none', fontWeight: 'bold'}}>✥</text>
                   </g>
                 )}
-                {iconUrl ? (
-                  <image href={iconUrl} x="-10" y="-10" width="20" height="20" style={{pointerEvents: 'none'}} />
-                ) : (
-                  <text className="placeable-icon" textAnchor="middle" dy=".3em" style={{pointerEvents: 'none'}}>
-                    {MAP_ICONS[p.type] || '★'}
+                <g 
+                   className="placeable-click-area"
+                   onClick={(e) => {
+                     if (editorMode && activeTool === 'select') {
+                       e.stopPropagation();
+                       onSelectPlaceable?.(isSelected ? null : p.id);
+                     }
+                   }}
+                   style={{ cursor: editorMode && activeTool === 'select' ? 'pointer' : 'default' }}
+                >
+                  {iconUrl ? (
+                    <image href={iconUrl} x="-10" y="-10" width="20" height="20" />
+                  ) : (
+                    <text className="placeable-icon" textAnchor="middle" dy=".3em">
+                      {MAP_ICONS[p.type] || '★'}
+                    </text>
+                  )}
+                  <text className="placeable-label" textAnchor="middle" y="18">
+                    {p.type}
                   </text>
-                )}
-                <text className="placeable-label" textAnchor="middle" y="18" style={{pointerEvents: 'none'}}>
-                  {p.type}
-                </text>
+                </g>
               </g>
             );
+          })}
+
+          {/* Range Rings (Rendered last to be on top) */}
+          {placeables.map((p) => {
+             const [x, y] = toSvg(p.x_km, p.y_km);
+             const isSelected = selectedPlaceableId === p.id;
+             return (
+               <g key={`p-range-${p.id}`} transform={`translate(${x}, ${y})`} style={{pointerEvents: 'none'}}>
+                 <circle r={radiusToSvg(p.properties.range_km || 100)} className={`placeable-range-ring ${isSelected ? 'selected' : ''}`} />
+               </g>
+             );
           })}
 
           {assets.map((a) => {

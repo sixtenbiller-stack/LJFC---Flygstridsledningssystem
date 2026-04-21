@@ -155,6 +155,8 @@ export function ScenarioLab({
       events: [],
       meta: {}
     });
+    setSelectedTemplate(placeableTemplates[0]?.type || null);
+    setSelectedPlaceableId(null);
     flash('Map reset');
   };
 
