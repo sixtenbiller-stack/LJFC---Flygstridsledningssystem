@@ -51,6 +51,7 @@ export default function App() {
   const [session, setSession] = useState<ScenarioSession | null>(null);
   const [markers, setMarkers] = useState<TimelineMarker[]>([]);
   const [layoutPreset, setLayoutPreset] = useState<LayoutPresetId>('balanced');
+  const [mainTab, setMainTab] = useState<'product' | 'lab'>('product');
   const [leftPx, setLeftPx] = useState(320);
   const [rightPx, setRightPx] = useState(420);
   const [bottomMode, setBottomMode] = useState<BottomBarMode>('normal');
@@ -228,6 +229,7 @@ export default function App() {
   }, [layoutPreset, leftPx, rightPx, bottomMode]);
 
   const applyPreset = useCallback((id: LayoutPresetId) => {
+    // Scaling options internal use
     const w = bodyRef.current?.clientWidth ?? window.innerWidth;
     const p = presetToPixels(id, w);
     setLeftPx(p.leftPx);
@@ -446,16 +448,29 @@ export default function App() {
 
   return (
     <div
-      className="app-layout"
+      className={`app-layout ${mainTab === 'lab' ? 'lab-mode' : ''}`}
       style={{
-        gridTemplateRows: `48px 1fr ${bottomH}px`,
+        gridTemplateRows: mainTab === 'lab' ? '48px 1fr' : `48px 1fr ${bottomH}px`,
       }}
     >
       <header className="app-header">
         <div className="header-left">
           <span className="header-logo">◆</span>
           <span className="header-title">NEON COMMAND</span>
-          <span className="header-sub">Smart Stridsledning</span>
+          <div className="app-main-tabs">
+            <button
+              className={`main-tab-btn ${mainTab === 'product' ? 'active' : ''}`}
+              onClick={() => setMainTab('product')}
+            >
+              PRODUCT
+            </button>
+            <button
+              className={`main-tab-btn ${mainTab === 'lab' ? 'active' : ''}`}
+              onClick={() => setMainTab('lab')}
+            >
+              SCENARIO LAB
+            </button>
+          </div>
         </div>
         <div className="header-center">
           <span className="header-scenario">{state.scenario_name || 'No Scenario'}</span>
@@ -468,143 +483,136 @@ export default function App() {
           )}
         </div>
         <div className="header-right">
-          <div className="layout-presets" title="Layout presets">
-            {(Object.keys(LAYOUT_PRESETS) as LayoutPresetId[]).map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={`layout-preset-btn ${layoutPreset === id ? 'active' : ''}`}
-                onClick={() => applyPreset(id)}
-              >
-                {LAYOUT_PRESETS[id].label}
-              </button>
-            ))}
-            <button type="button" className="layout-reset-btn" onClick={() => applyPreset('balanced')}>
-              Reset layout
-            </button>
-          </div>
           <span className="header-state-id">{state.source_state_id}</span>
         </div>
       </header>
 
-      <div
-        className="app-body"
-        ref={bodyRef}
-        style={{
-          gridTemplateColumns: `${leftPx}px 6px 1fr 6px ${rightPx}px`,
-        }}
-      >
-        <aside className="left-rail panel-rail">
+      {mainTab === 'product' ? (
+        <div
+          className="app-body"
+          ref={bodyRef}
+          style={{
+            gridTemplateColumns: `${leftPx}px 6px 1fr 6px ${rightPx}px`,
+          }}
+        >
+          <aside className="left-rail panel-rail">
+            <div className="left-view-toggle">
+              <button
+                type="button"
+                className={`lv-tab ${leftView === 'tracks' ? 'active' : ''}`}
+                onClick={() => setLeftView('tracks')}
+              >
+                TRACKS
+              </button>
+              <button
+                type="button"
+                className={`lv-tab ${leftView === 'groups' ? 'active' : ''}`}
+                onClick={() => setLeftView('groups')}
+              >
+                GROUPS{groups.length > 0 ? ` (${groups.length})` : ''}
+              </button>
+            </div>
+            {leftView === 'tracks' ? (
+              <AlertQueue
+                alerts={alerts || []}
+                sortedAlerts={sortedAlerts}
+                selectedTrack={selectedTrack}
+                onAlertClick={handleAlertClick}
+              />
+            ) : (
+              <GroupQueue
+                groups={groups}
+                selectedGroup={selectedGroup}
+                onGroupClick={handleGroupClick}
+              />
+            )}
+          </aside>
+
+          <div
+            className="col-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            onMouseDown={onDividerMouseDown('left')}
+            onDoubleClick={onDividerDoubleClick}
+          />
+
+          <main className="center-map">
+            <TacticalMap
+              geography={geo}
+              tracks={state.tracks}
+              assets={state.assets}
+              selectedTrack={selectedTrack}
+              onSelectTrack={setSelectedTrack}
+              coas={coas}
+              followTopThreat={followTopThreat}
+              onFollowTopThreatChange={setFollowTopThreat}
+              topThreatTrackId={topThreatTrackId}
+              highlightTrackIds={selectedGroup ? (groups.find(g => g.group_id === selectedGroup)?.member_track_ids ?? []) : []}
+            />
+          </main>
+
+          <div
+            className="col-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            onMouseDown={onDividerMouseDown('right')}
+            onDoubleClick={onDividerDoubleClick}
+          />
+
+          <aside className="right-rail panel-rail">
+            {decisionCard && selectedGroup && (
+              <div className="dc-container">
+                <DecisionCard
+                  card={decisionCard}
+                  onApprove={handleGroupApprove}
+                  onDefer={handleGroupDefer}
+                  onOverride={handleGroupOverride}
+                  onGenerateCoas={handleGenerateCoas}
+                  onSimulate={handleSimulate}
+                  loading={loading}
+                />
+              </div>
+            )}
+            <CopilotPanel
+              state={state}
+              coas={coas}
+              coaWave={coaWave}
+              explanation={explanation}
+              simResult={simResult}
+              decisions={decisions}
+              loading={loading}
+              feedItems={feedItems}
+              copilotStatus={copilotStatus}
+              alerts={sortedAlerts}
+              selectedTrack={selectedTrack}
+              groups={groups}
+              selectedGroup={selectedGroup}
+              decisionCard={decisionCard}
+              scenarioMode={runtimeMode}
+              scenarioOrigin={scenarioOrigin}
+              onGenerateCoas={handleGenerateCoas}
+              onExplain={handleExplain}
+              onSimulate={handleSimulate}
+              onApprove={handleApprove}
+              onSendCommand={handleSendCommand}
+            />
+          </aside>
+        </div>
+      ) : (
+        <div className="app-body-lab">
           <ScenarioLab
             currentScenarioId={state.scenario_id}
             currentMode={runtimeMode}
             currentOrigin={scenarioOrigin}
             isPlaying={state.is_playing}
             session={session}
-            onScenarioLoaded={handleScenarioLoaded}
+            onScenarioLoaded={() => {
+              handleScenarioLoaded();
+              setMainTab('product');
+            }}
           />
-          <div className="left-view-toggle">
-            <button
-              type="button"
-              className={`lv-tab ${leftView === 'tracks' ? 'active' : ''}`}
-              onClick={() => setLeftView('tracks')}
-            >
-              TRACKS
-            </button>
-            <button
-              type="button"
-              className={`lv-tab ${leftView === 'groups' ? 'active' : ''}`}
-              onClick={() => setLeftView('groups')}
-            >
-              GROUPS{groups.length > 0 ? ` (${groups.length})` : ''}
-            </button>
-          </div>
-          {leftView === 'tracks' ? (
-            <AlertQueue
-              alerts={alerts || []}
-              sortedAlerts={sortedAlerts}
-              selectedTrack={selectedTrack}
-              onAlertClick={handleAlertClick}
-            />
-          ) : (
-            <GroupQueue
-              groups={groups}
-              selectedGroup={selectedGroup}
-              onGroupClick={handleGroupClick}
-            />
-          )}
-        </aside>
-
-        <div
-          className="col-resizer"
-          role="separator"
-          aria-orientation="vertical"
-          onMouseDown={onDividerMouseDown('left')}
-          onDoubleClick={onDividerDoubleClick}
-        />
-
-        <main className="center-map">
-          <TacticalMap
-            geography={geo}
-            tracks={state.tracks}
-            assets={state.assets}
-            selectedTrack={selectedTrack}
-            onSelectTrack={setSelectedTrack}
-            coas={coas}
-            followTopThreat={followTopThreat}
-            onFollowTopThreatChange={setFollowTopThreat}
-            topThreatTrackId={topThreatTrackId}
-            highlightTrackIds={selectedGroup ? (groups.find(g => g.group_id === selectedGroup)?.member_track_ids ?? []) : []}
-          />
-        </main>
-
-        <div
-          className="col-resizer"
-          role="separator"
-          aria-orientation="vertical"
-          onMouseDown={onDividerMouseDown('right')}
-          onDoubleClick={onDividerDoubleClick}
-        />
-
-        <aside className="right-rail panel-rail">
-          {decisionCard && selectedGroup && (
-            <div className="dc-container">
-              <DecisionCard
-                card={decisionCard}
-                onApprove={handleGroupApprove}
-                onDefer={handleGroupDefer}
-                onOverride={handleGroupOverride}
-                onGenerateCoas={handleGenerateCoas}
-                onSimulate={handleSimulate}
-                loading={loading}
-              />
-            </div>
-          )}
-          <CopilotPanel
-            state={state}
-            coas={coas}
-            coaWave={coaWave}
-            explanation={explanation}
-            simResult={simResult}
-            decisions={decisions}
-            loading={loading}
-            feedItems={feedItems}
-            copilotStatus={copilotStatus}
-            alerts={sortedAlerts}
-            selectedTrack={selectedTrack}
-            groups={groups}
-            selectedGroup={selectedGroup}
-            decisionCard={decisionCard}
-            scenarioMode={runtimeMode}
-            scenarioOrigin={scenarioOrigin}
-            onGenerateCoas={handleGenerateCoas}
-            onExplain={handleExplain}
-            onSimulate={handleSimulate}
-            onApprove={handleApprove}
-            onSendCommand={handleSendCommand}
-          />
-        </aside>
-      </div>
+        </div>
+      )}
 
       <footer className={`bottom-bar ${timelineCollapsed ? 'collapsed' : ''}`}>
         <div className="timeline-size-controls">
