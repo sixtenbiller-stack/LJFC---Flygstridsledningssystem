@@ -28,7 +28,10 @@ class ScenarioEngine:
         self.assets: dict[str, Asset] = {}
         self.alerts: list[Alert] = []
         self.events_log: list[dict[str, Any]] = []
-        self.geography = None
+        try:
+            self.geography = load_geography()
+        except:
+            self.geography = None
 
         self._initial_assets: list[Asset] = []
         self._events_applied_up_to: int = 0
