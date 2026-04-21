@@ -390,7 +390,6 @@ def load_scenario_endpoint(req: ScenarioLoadRequest) -> dict[str, Any]:
         pass
 
     _scenario_loaded_at = datetime.now(timezone.utc).isoformat()
-    engine.active_scenario_id = sid
     return {"status": "loaded", "scenario_id": sid,
             "runtime_mode": _runtime_mode, "scenario_origin": _scenario_origin}
 
