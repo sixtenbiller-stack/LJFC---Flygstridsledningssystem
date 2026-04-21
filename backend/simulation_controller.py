@@ -56,12 +56,15 @@ class SimulationController:
         if not os.path.exists(path):
             path = os.path.join(base_dir, 'placeables', 'template.py')
         
-        spec = importlib.util.spec_from_file_location(type_name, path)
+        # Set up a qualified name and package context to support relative imports in placeables
+        qualified_name = f"placeables.{type_name}"
+        spec = importlib.util.spec_from_file_location(qualified_name, path)
         if spec is None or spec.loader is None:
-             from .placeables.base import PlaceableBase
+             from placeables.base import PlaceableBase
              return PlaceableBase
 
         module = importlib.util.module_from_spec(spec)
+        module.__package__ = "placeables"
         spec.loader.exec_module(module)
         return getattr(module, 'Template')
 

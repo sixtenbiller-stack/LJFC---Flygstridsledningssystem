@@ -285,7 +285,7 @@ async def list_placeable_templates():
     results = []
     if PLACEABLES_DIR.exists():
         for p in PLACEABLES_DIR.glob("*.py"):
-            if p.stem in ["base", "template"]:
+            if p.stem in ["base", "template", "__init__"]:
                 continue
             icon_path = p.with_suffix(".png")
             results.append({
@@ -385,10 +385,12 @@ def load_scenario_endpoint(req: ScenarioLoadRequest) -> dict[str, Any]:
         raw_data = load_scenario_raw(file_id)
         if "placeables" in raw_data:
             sim_controller.update_placeables("live", raw_data["placeables"])
+            logger.info(f"Loaded {len(raw_data['placeables'])} placeables for session live")
     except:
         pass
 
     _scenario_loaded_at = datetime.now(timezone.utc).isoformat()
+    engine.active_scenario_id = sid
     return {"status": "loaded", "scenario_id": sid,
             "runtime_mode": _runtime_mode, "scenario_origin": _scenario_origin}
 

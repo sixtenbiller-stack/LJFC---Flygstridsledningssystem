@@ -1,12 +1,274 @@
 {
   "meta": {
-    "name": "Clean Slate",
-    "description": "Empty geography for building from scratch",
+    "name": "Boreal Passage",
+    "description": "Fictional Nordic-style operational area for NEON COMMAND hackathon prototype",
     "bounds_km": { "x_min": 0, "x_max": 400, "y_min": 0, "y_max": 600 },
     "coordinate_system": "local_km_grid",
     "version": "1.0"
   },
-  "features": [],
-  "terrain": [],
-  "defended_zones": []
+  "features": [
+    {
+      "id": "base-north",
+      "type": "air_base",
+      "name": "Northern Vanguard Base",
+      "side": "friendly",
+      "x_km": 200,
+      "y_km": 550,
+      "value_score": 0.8,
+      "defended_priority": 3,
+      "runway_status": "operational",
+      "notes": "Primary northern fighter base. 4 aircraft assigned."
+    },
+    {
+      "id": "base-highridge",
+      "type": "air_base",
+      "name": "Highridge Command",
+      "side": "friendly",
+      "x_km": 300,
+      "y_km": 420,
+      "value_score": 0.85,
+      "defended_priority": 2,
+      "runway_status": "operational",
+      "notes": "Mixed squadron base. 3 fighters + 2 UAV. Central command co-located."
+    },
+    {
+      "id": "base-south",
+      "type": "air_base",
+      "name": "Southern Redoubt",
+      "side": "friendly",
+      "x_km": 280,
+      "y_km": 150,
+      "value_score": 0.6,
+      "defended_priority": 4,
+      "runway_status": "operational",
+      "notes": "Reserve base. 2 aircraft on standby readiness."
+    },
+    {
+      "id": "base-spear",
+      "type": "air_base",
+      "name": "Spear Point Base",
+      "side": "friendly",
+      "x_km": 350,
+      "y_km": 200,
+      "value_score": 0.7,
+      "defended_priority": 3,
+      "runway_status": "operational",
+      "notes": "QRA base. 2 aircraft on alert status."
+    },
+    {
+      "id": "city-arktholm",
+      "type": "city",
+      "name": "Arktholm",
+      "side": "friendly",
+      "x_km": 250,
+      "y_km": 400,
+      "value_score": 1.0,
+      "defended_priority": 1,
+      "population_label": "capital",
+      "notes": "National capital equivalent. Highest defended priority."
+    },
+    {
+      "id": "city-valbrek",
+      "type": "city",
+      "name": "Valbrek",
+      "side": "friendly",
+      "x_km": 180,
+      "y_km": 350,
+      "value_score": 0.75,
+      "defended_priority": 2,
+      "population_label": "industrial_center",
+      "notes": "Major industrial zone. Defence manufacturing."
+    },
+    {
+      "id": "city-nordvik",
+      "type": "city",
+      "name": "Nordvik",
+      "side": "friendly",
+      "x_km": 320,
+      "y_km": 300,
+      "value_score": 0.65,
+      "defended_priority": 3,
+      "population_label": "port_city",
+      "notes": "Strategic port. Naval logistics hub."
+    },
+    {
+      "id": "city-meridia",
+      "type": "city",
+      "name": "Meridia",
+      "side": "friendly",
+      "x_km": 300,
+      "y_km": 120,
+      "value_score": 0.9,
+      "defended_priority": 1,
+      "population_label": "southern_capital",
+      "notes": "Southern capital equivalent. Government continuity site."
+    },
+    {
+      "id": "city-callhaven",
+      "type": "city",
+      "name": "Callhaven",
+      "side": "friendly",
+      "x_km": 220,
+      "y_km": 250,
+      "value_score": 0.55,
+      "defended_priority": 4,
+      "population_label": "logistics_hub",
+      "notes": "Central logistics and supply hub."
+    },
+    {
+      "id": "city-solano",
+      "type": "city",
+      "name": "Solano",
+      "side": "friendly",
+      "x_km": 360,
+      "y_km": 180,
+      "value_score": 0.5,
+      "defended_priority": 4,
+      "population_label": "coastal_city",
+      "notes": "Eastern coastal city. Fishing and trade."
+    },
+    {
+      "id": "sam-firewatch",
+      "type": "sam_site",
+      "name": "Firewatch Station",
+      "side": "friendly",
+      "x_km": 220,
+      "y_km": 370,
+      "value_score": 0.7,
+      "defended_priority": 2,
+      "coverage_radius_km": 80,
+      "missile_count": 12,
+      "sam_class": "medium_range",
+      "notes": "Medium-range SAM battery. Covers Arktholm southern approach and Valbrek."
+    },
+    {
+      "id": "sam-eastern",
+      "type": "sam_site",
+      "name": "Eastern Ridge SAM",
+      "side": "friendly",
+      "x_km": 370,
+      "y_km": 280,
+      "value_score": 0.55,
+      "defended_priority": 3,
+      "coverage_radius_km": 50,
+      "missile_count": 8,
+      "sam_class": "short_range",
+      "notes": "Short-range SAM. Point defence for Nordvik eastern flank."
+    },
+    {
+      "id": "sensor-boreal",
+      "type": "sensor_site",
+      "name": "Boreal Watch Post",
+      "side": "friendly",
+      "x_km": 150,
+      "y_km": 480,
+      "detection_range_km": 250,
+      "sensor_type": "long_range_radar",
+      "notes": "Primary early warning radar. Northern coverage."
+    },
+    {
+      "id": "sensor-highridge",
+      "type": "sensor_site",
+      "name": "Highridge Radar",
+      "side": "friendly",
+      "x_km": 310,
+      "y_km": 430,
+      "detection_range_km": 200,
+      "sensor_type": "medium_range_radar",
+      "notes": "Central radar. Overlapping coverage with Boreal Watch."
+    },
+    {
+      "id": "sensor-spear",
+      "type": "sensor_site",
+      "name": "Spear Point Radar",
+      "side": "friendly",
+      "x_km": 360,
+      "y_km": 210,
+      "detection_range_km": 180,
+      "sensor_type": "medium_range_radar",
+      "notes": "Southern and eastern coverage."
+    }
+  ],
+  "terrain": [
+    {
+      "id": "terrain-mainland",
+      "type": "landmass",
+      "name": "Boreal Mainland",
+      "polygon_km": [
+        [50, 0], [0, 100], [10, 300], [40, 450], [80, 550],
+        [150, 600], [300, 600], [380, 520], [400, 400],
+        [400, 200], [380, 50], [300, 0], [50, 0]
+      ],
+      "notes": "Main landmass. Mountainous interior, coastal plains."
+    },
+    {
+      "id": "terrain-peninsula",
+      "type": "peninsula",
+      "name": "Boreal Peninsula",
+      "polygon_km": [
+        [40, 450], [10, 480], [0, 530], [20, 570], [60, 580],
+        [80, 550], [40, 450]
+      ],
+      "notes": "Northwestern peninsula. Exposed coastal area."
+    },
+    {
+      "id": "terrain-highlands",
+      "type": "elevated",
+      "name": "Central Highlands",
+      "polygon_km": [
+        [180, 280], [160, 360], [200, 420], [280, 420],
+        [320, 360], [300, 280], [180, 280]
+      ],
+      "elevation_m": 800,
+      "notes": "Elevated terrain. Radar shadow potential on eastern slopes."
+    },
+    {
+      "id": "terrain-island-east",
+      "type": "island",
+      "name": "Stormholm Island",
+      "polygon_km": [
+        [380, 320], [370, 350], [390, 370], [410, 350],
+        [410, 320], [380, 320]
+      ],
+      "notes": "Eastern island. No military installations. Civilian population."
+    }
+  ],
+  "defended_zones": [
+    {
+      "id": "zone-arktholm",
+      "name": "Arktholm Defence Zone",
+      "center_km": [250, 400],
+      "radius_km": 60,
+      "priority": 1,
+      "protected_features": ["city-arktholm", "base-highridge"],
+      "notes": "Capital defence zone. Highest priority."
+    },
+    {
+      "id": "zone-valbrek",
+      "name": "Valbrek Industrial Zone",
+      "center_km": [180, 350],
+      "radius_km": 40,
+      "priority": 2,
+      "protected_features": ["city-valbrek", "sam-firewatch"],
+      "notes": "Industrial and SAM defence zone."
+    },
+    {
+      "id": "zone-meridia",
+      "name": "Meridia Southern Zone",
+      "center_km": [300, 120],
+      "radius_km": 50,
+      "priority": 1,
+      "protected_features": ["city-meridia", "base-south"],
+      "notes": "Southern capital zone. Government continuity."
+    },
+    {
+      "id": "zone-nordvik",
+      "name": "Nordvik Port Zone",
+      "center_km": [320, 300],
+      "radius_km": 35,
+      "priority": 3,
+      "protected_features": ["city-nordvik", "sam-eastern"],
+      "notes": "Port defence zone."
+    }
+  ]
 }
