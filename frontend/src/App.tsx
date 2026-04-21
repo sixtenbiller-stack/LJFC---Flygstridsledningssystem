@@ -147,6 +147,12 @@ export default function App() {
     return () => clearInterval(interval);
   }, [fetchGroups]);
 
+  useEffect(() => {
+    if (mainTab === 'product' && loaded) {
+      geoLoaded.current = false;
+    }
+  }, [mainTab, loaded]);
+
   const refreshSession = useCallback(async () => {
     try {
       const s: ScenarioSession = await api.getSession();

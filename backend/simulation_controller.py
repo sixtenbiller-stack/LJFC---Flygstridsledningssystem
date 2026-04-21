@@ -72,6 +72,10 @@ class SimulationController:
             del self.placeables[session_id]
         logger.info(f'Session {session_id} removed')
 
+    def update_placeables(self, session_id: str, configs: List[Dict[str, Any]]):
+        self.placeables[session_id] = self._instantiate_placeables(configs)
+        logger.info(f'Session {session_id} placeables updated. Count: {len(self.placeables[session_id])}')
+
     def start(self):
         if not self.is_running:
             self.is_running = True

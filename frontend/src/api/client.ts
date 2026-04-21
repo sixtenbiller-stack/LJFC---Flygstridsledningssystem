@@ -118,6 +118,12 @@ export const api = {
       body: JSON.stringify(scenario),
     }),
 
+  syncScenario: (scenario: any) =>
+    request<any>('/map-editor/sync', {
+      method: 'POST',
+      body: JSON.stringify(scenario),
+    }),
+
   uploadMap: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

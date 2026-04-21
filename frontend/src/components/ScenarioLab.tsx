@@ -66,6 +66,13 @@ export function ScenarioLab({
     const match = scenarios.find(s => s.file_id === fileId || s.scenario_id === currentScenarioId);
     if (match) setSelectedFileId(match.file_id);
   }, [currentScenarioId, scenarios]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      api.syncScenario(editorScenario).catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [editorScenario]);
+
 
   const flash = (msg: string) => {
     setStatusMsg(msg);

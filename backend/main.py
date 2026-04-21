@@ -256,6 +256,8 @@ def _reset_all_state():
     _track_creation_times = {}
     _live_session = None
     sim_controller.remove_session("live")
+    if engine.geography:
+        engine.geography.map_background = None
     _runtime_mode = "replay"
     _scenario_origin = "builtin"
     _scenario_loaded_at = ""
@@ -328,6 +330,15 @@ async def load_scenario_for_editor(file_id: str):
     except FileNotFoundError:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Scenario not found")
+
+@app.post("/map-editor/sync")
+async def sync_editor_state(scenario: ScenarioModel):
+    """Sync editor state with the live simulation for preview."""
+    sim_controller.update_placeables("live", [p.model_dump() for p in scenario.placeables])
+    if engine.geography:
+        engine.geography.map_background = scenario.map_background
+    return {"status": "synced"}
+
 
 
 
