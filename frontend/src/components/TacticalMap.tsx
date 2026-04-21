@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import type { Geography, Track, Asset, CourseOfAction } from '../types';
+import type { Geography, Track, Asset, CourseOfAction, Placeable } from '../types';
 import { MapToolbar, type MapLayerToggles } from './MapToolbar';
 import './TacticalMap.css';
 
@@ -14,6 +14,8 @@ interface Props {
   onFollowTopThreatChange: (v: boolean) => void;
   topThreatTrackId: string | null;
   highlightTrackIds?: string[];
+  placeables?: Placeable[];
+  onMapClick?: (x_km: number, y_km: number) => void;
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -31,7 +33,7 @@ function polyToSvg(poly: number[][]): string {
   return poly.map(([x, y]) => toSvg(x, y).join(',')).join(' ');
 }
 
-const ICON: Record<string, string> = {
+export const MAP_ICONS: Record<string, string> = {
   air_base: '✦',
   city: '●',
   sam_site: '◈',
@@ -39,6 +41,7 @@ const ICON: Record<string, string> = {
   fighter: '▲',
   uav: '△',
   sam_battery: '◆',
+  radar: '◎',
 };
 
 function headingArrow(deg: number, len: number): [number, number] {
@@ -57,6 +60,8 @@ export function TacticalMap({
   geography, tracks, assets, selectedTrack, onSelectTrack, coas,
   followTopThreat, onFollowTopThreatChange, topThreatTrackId,
   highlightTrackIds = [],
+  placeables = [],
+  onMapClick,
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -175,7 +180,19 @@ export function TacticalMap({
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           className={`tactical-map-svg${selectedTrack ? ' has-selection' : ''}`}
-          onClick={() => onSelectTrack(null)}
+          onClick={(e) => {
+            if (onMapClick) {
+              const rect = (e.currentTarget as any).getBoundingClientRect();
+              const svgX = e.clientX - rect.left;
+              const svgY = e.clientY - rect.top;
+              // Reverse projection
+              const kmX = BOUNDS.xMin + ((svgX - PADDING) / (VIEW_W - 2 * PADDING)) * (BOUNDS.xMax - BOUNDS.xMin);
+              const kmY = BOUNDS.yMax - ((svgY - PADDING) / (VIEW_H - 2 * PADDING)) * (BOUNDS.yMax - BOUNDS.yMin);
+              onMapClick(kmX, kmY);
+            } else {
+              onSelectTrack(null);
+            }
+          }}
         >
           <defs>
             <filter id="glow">
@@ -241,13 +258,28 @@ export function TacticalMap({
             return (
               <g key={f.id}>
                 <text x={x} y={y + 4} className={`feature-icon feature-${f.type}`} textAnchor="middle">
-                  {ICON[f.type] || '○'}
+                  {MAP_ICONS[f.type] || '○'}
                 </text>
                 {showLab && (
                   <text x={x} y={y + 14} className="feature-label" textAnchor="middle">
                     {f.name.length > 18 ? f.name.slice(0, 16) + '…' : f.name}
                   </text>
                 )}
+              </g>
+            );
+          })}
+
+          {/* Placeables */}
+          {placeables.map((p) => {
+            const [x, y] = toSvg(p.x_km, p.y_km);
+            return (
+              <g key={p.id} className="map-placeable" transform={`translate(${x}, ${y})`}>
+                <text className="placeable-icon" textAnchor="middle" dy=".3em">
+                  {MAP_ICONS[p.type] || '★'}
+                </text>
+                <text className="placeable-label" textAnchor="middle" y="14">
+                  {p.type}
+                </text>
               </g>
             );
           })}
@@ -261,7 +293,7 @@ export function TacticalMap({
             return (
               <g key={a.asset_id} className={`asset ${statusClass}`}>
                 <text x={x + (assets.indexOf(a) % 4) * 4 - 6} y={y - 8} className="asset-icon" textAnchor="middle">
-                  {ICON[a.asset_type] || '◇'}
+                  {MAP_ICONS[a.asset_type] || '◇'}
                 </text>
               </g>
             );

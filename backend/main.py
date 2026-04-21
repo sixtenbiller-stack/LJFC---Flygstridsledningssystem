@@ -13,13 +13,18 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
 import gemini_provider
 from models import (
     ScenarioLoadRequest, ScenarioControlRequest, CoaRequest, ExplainRequest,
     SimulateRequest, ApproveRequest, ThreatScoreBreakdown,
     CopilotCommand, CopilotResponse, CopilotStatus, FeedItem,
+    ScenarioModel, PlaceableConfig,
     ThreatGroup, ResponseOption, DecisionCardSnapshot, AfterActionRecord,
 )
+
 from scenario_engine import ScenarioEngine
 from threat_scorer import ThreatScorer
 from copilot_service import CopilotService
@@ -174,6 +179,10 @@ def get_state(include_geo: bool = False) -> dict[str, Any]:
     result["mode"] = _runtime_mode
     result["runtime_mode"] = _runtime_mode
     result["scenario_origin"] = _scenario_origin
+    
+    # Add placeables from simulation controller
+    p_objs = sim_controller.placeables.get("live", [])
+    result["placeables"] = [p.to_dict() for p in p_objs]
     return result
 
 
@@ -251,6 +260,31 @@ def list_scenarios() -> dict[str, Any]:
         "scenarios": discover_scenarios(),
         "templates": AVAILABLE_TEMPLATES,
     }
+
+@app.get("/api/map-editor/placeables")
+async def list_placeable_templates():
+    placeables_dir = Path(__file__).resolve().parent / "placeables"
+    results = []
+    if placeables_dir.exists():
+        for p in placeables_dir.glob("*.py"):
+            if p.stem in ["base", "template"]:
+                continue
+            icon_path = p.with_suffix(".png")
+            results.append({
+                "type": p.stem,
+                "icon_url": f"/api/placeables/icons/{icon_path.name}" if icon_path.exists() else None
+            })
+    return {"placeables": results}
+
+@app.post("/api/map-editor/save")
+async def save_scenario(scenario: ScenarioModel):
+    custom_dir = Path(__file__).resolve().parent.parent / "neon-command-data" / "custom"
+    custom_dir.mkdir(parents=True, exist_ok=True)
+    file_path = custom_dir / f"scenario_{scenario.scenario_id}.json"
+    with open(file_path, "w") as f:
+        f.write(scenario.json(indent=2))
+    return {"status": "success", "file_id": scenario.scenario_id}
+
 
 
 @app.post("/scenario/load")

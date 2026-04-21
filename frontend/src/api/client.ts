@@ -114,6 +114,15 @@ export const api = {
     request<any>('/scenario/live/start', {
       method: 'POST',
       body: JSON.stringify({ file_id: fileId, seed }),
+
+  getPlaceableTemplates: () => request<any>('/map-editor/placeables'),
+
+  saveScenario: (scenario: any) =>
+    request<any>('/map-editor/save', {
+      method: 'POST',
+      body: JSON.stringify(scenario),
+    }),
+
     }),
 
   liveControl: (action: string, speed?: number) =>

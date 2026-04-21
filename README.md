@@ -125,6 +125,46 @@ neon-command-data/  Scenario data and mock responses
 scripts/           Startup scripts
 ```
 
+## Scenario System & Map Editor
+
+NEON COMMAND now features a Map Editor and a revamped extensible scenario system.
+
+### Extensible Placeables
+Placeables (Radars, SAM batteries, etc.) are defined as Python scripts in `backend/placeables/`.
+Each placeable must follow this structure:
+- **Python Script** (e.g., `radar.py`): Logic for the placeable, inheriting from `BasePlaceable`.
+- **Icon** (e.g., `radar.png`): Display icon on the tactical map.
+
+#### Placeable Data Structure
+Every placeable object has access to:
+- `self.config`: Static configuration from the scenario JSON.
+- `self.data`: Dynamic state (mutated during simulation).
+- `world_state`: Access to all other objects in the simulation.
+
+#### Simulation Loop
+The `step(dt, world_state)` method is called every tick. It can read and modify its own data or other objects' data through the world state.
+
+### Scenario JSON Format
+Scenarios are stored in `neon-command-data/custom/` with the following structure:
+```json
+{
+  "scenario_id": "string",
+  "name": "string",
+  "map_background": "url",
+  "placeables": [
+    {
+      "id": "unique-id",
+      "type": "radar",
+      "x_km": 100,
+      "y_km": 200,
+      "properties": { "range_km": 150 },
+      "data": {}
+    }
+  ]
+}
+```
+
+
 ## Safety
 
 This is a hackathon prototype using synthetic data only. It is not a combat system, not an autonomous engagement system, and not connected to any real-world systems. Operator approval is mandatory for all plan execution.

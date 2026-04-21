@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
-import type { ScenarioEntry, ScenarioSession, TimelineMarker } from '../types';
+import type { ScenarioEntry, ScenarioSession, TimelineMarker, Geography, Placeable, PlaceableTemplate, ScenarioModel } from '../types';
+import { TacticalMap } from './TacticalMap';
 import './ScenarioLab.css';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
   speed: number;
   session: ScenarioSession | null;
   markers: TimelineMarker[];
+  geography: Geography | null;
   onScenarioLoaded: () => void;
   onControl: (action: string, speed?: number) => void;
   onReset: () => void;
@@ -33,8 +35,9 @@ const SPEEDS = [1, 2, 4, 8];
 
 export function ScenarioLab({
   currentScenarioId, currentMode, currentOrigin, isPlaying, speed,
-  session, markers, onScenarioLoaded, onControl, onReset
+  session, markers, geography, onScenarioLoaded, onControl, onReset
 }: Props) {
+  const [activeTab, setActiveTab] = useState<'management' | 'editor'>('management');
   const [scenarios, setScenarios] = useState<ScenarioEntry[]>([]);
   const [selectedFileId, setSelectedFileId] = useState('scenario_swarm_beta');
   const [mode, setMode] = useState<'replay' | 'live'>('replay');
@@ -43,7 +46,18 @@ export function ScenarioLab({
   const [genDuration, setGenDuration] = useState('300');
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-  const [expanded, setExpanded] = useState(true);
+
+  // Editor State
+  const [editorScenario, setEditorScenario] = useState<ScenarioModel>({
+    scenario_id: 'custom_1',
+    name: 'Custom Scenario 1',
+    map_background: '',
+    placeables: [],
+    events: [],
+    meta: {}
+  });
+  const [placeableTemplates, setTemplates] = useState<PlaceableTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   const liveActive = currentMode === 'live';
 
@@ -54,7 +68,14 @@ export function ScenarioLab({
     } catch { /* skip */ }
   }, []);
 
-  useEffect(() => { fetchScenarios(); }, [fetchScenarios]);
+  useEffect(() => {
+    fetchScenarios();
+    api.getPlaceableTemplates().then(res => {
+      const list = res.placeables || [];
+      setTemplates(list);
+      if (list.length > 0) setSelectedTemplate(list[0].type);
+    }).catch(() => {});
+  }, [fetchScenarios]);
 
   useEffect(() => {
     if (!currentScenarioId) return;
@@ -72,10 +93,10 @@ export function ScenarioLab({
     if (mode === 'replay') {
       const sid = selectedFileId.replace(/_/g, '-');
       await api.loadScenario(sid);
-      flash(`Loaded ${selectedFileId} (replay)`);
+      flash('Loaded ' + selectedFileId + ' (replay)');
     } else {
       await api.startLiveSession(selectedFileId);
-      flash(`Live session: ${selectedFileId}`);
+      flash('Live session: ' + selectedFileId);
     }
     onScenarioLoaded();
   };
@@ -86,7 +107,7 @@ export function ScenarioLab({
       const seed = genSeed ? parseInt(genSeed) : undefined;
       const dur = parseInt(genDuration) || 300;
       const res = await api.generateScenario(genTemplate, seed, dur);
-      flash(`Generated: ${res.file_id} (seed ${res.seed})`);
+      flash('Generated: ' + res.file_id);
       await fetchScenarios();
       setSelectedFileId(res.file_id);
     } finally {
@@ -102,7 +123,7 @@ export function ScenarioLab({
       const res = await api.generateScenario(genTemplate, seed, dur);
       const sid = res.file_id.replace(/_/g, '-');
       await api.loadScenario(sid);
-      flash(`Generated & loaded: ${res.file_id}`);
+      flash('Generated & loaded: ' + res.file_id);
       await fetchScenarios();
       setSelectedFileId(res.file_id);
       onScenarioLoaded();
@@ -113,168 +134,158 @@ export function ScenarioLab({
 
   const handleLiveTick = async (dt: number) => {
     await api.liveTick(dt);
-    flash(`Ticked +${dt}s`);
+    flash('Ticked +' + dt + 's');
   };
 
   const handleInject = async (type: string, params?: Record<string, unknown>) => {
     await api.liveInject(type, params);
-    flash(`Injected: ${type}`);
+    flash('Injected: ' + type);
+  };
+
+  // Editor Handlers
+  const handleMapClick = (x: number, y: number) => {
+    if (activeTab !== 'editor' || !selectedTemplate) return;
+    const newPlaceable: Placeable = {
+      id: 'p-' + Date.now(),
+      type: selectedTemplate,
+      x_km: x,
+      y_km: y,
+      properties: {}
+    };
+    setEditorScenario(prev => ({
+      ...prev,
+      placeables: [...prev.placeables, newPlaceable]
+    }));
+  };
+
+  const handleSaveScenario = async () => {
+    try {
+      await api.saveScenario(editorScenario);
+      flash('Scenario saved!');
+      fetchScenarios();
+    } catch { flash('Save failed'); }
   };
 
   return (
-    <div className="scenario-lab">
-      <div className="slab-header">
-        <span className="slab-title">⚗ SCENARIO LAB</span>
-        <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>
-        <span className={`slab-badge slab-badge-origin origin-${currentOrigin}`}>{ORIGIN_LABELS[currentOrigin] || currentOrigin.toUpperCase()}</span>
+    <div className={'scenario-lab ' + (activeTab === 'editor' ? 'editor-mode-active' : '')}>
+      <div className='slab-tabs'>
+        <button className={activeTab === 'management' ? 'active' : ''} onClick={() => setActiveTab('management')}>MANAGEMENT</button>
+        <button className={activeTab === 'editor' ? 'active' : ''} onClick={() => setActiveTab('editor')}>MAP EDITOR</button>
       </div>
 
-      {statusMsg && <div className="slab-status">{statusMsg}</div>}
+      {statusMsg && <div className='slab-status'>{statusMsg}</div>}
 
-      {/* Playback Controls */}
-      <div className="slab-section">
-        <label className="slab-label">Playback Control</label>
-        <div className="slab-playback-row">
-          <button className="slab-btn" onClick={onReset} title="Reset">⟳ Reset</button>
-          {isPlaying ? (
-            <button className="slab-btn slab-btn-pause" onClick={() => onControl('pause')}>❚❚ Pause</button>
-          ) : (
-            <button className="slab-btn slab-btn-play" onClick={() => onControl('play')}>▶ Play</button>
+      {activeTab === 'management' ? (
+        <div className='slab-management-view'>
+          <div className='slab-header'>
+            <span className='slab-title'>⚗ SCENARIO LAB</span>
+            <span className={'slab-badge slab-badge-mode mode-' + currentMode}>{currentMode.toUpperCase()}</span>
+            <span className={'slab-badge slab-badge-origin origin-' + currentOrigin}>{ORIGIN_LABELS[currentOrigin] || currentOrigin.toUpperCase()}</span>
+          </div>
+
+          <div className='slab-section'>
+            <label className='slab-label'>Playback Control</label>
+            <div className='slab-playback-row'>
+              <button className='slab-btn' onClick={onReset}>⟳ Reset</button>
+              {isPlaying ? (
+                <button className='slab-btn slab-btn-pause' onClick={() => onControl('pause')}>❚❚ Pause</button>
+              ) : (
+                <button className='slab-btn slab-btn-play' onClick={() => onControl('play')}>▶ Play</button>
+              )}
+              <div className='slab-speed-group'>
+                {SPEEDS.map(s => (
+                  <button key={s} className={'slab-speed-btn ' + (speed === s ? 'active' : '')} onClick={() => onControl('speed', s)}>×{s}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {session && session.scenario_id && (
+            <div className='slab-active-session' style={{marginTop: 8}}>
+              <span className='slab-active-name'>{session.scenario_label}</span>
+              <span className='slab-active-meta'>{session.track_count} tracks · {session.group_count} groups · {session.duration_s}s</span>
+            </div>
           )}
-          <div className="slab-speed-group">
-            {SPEEDS.map(s => (
-              <button
-                key={s}
-                className={`slab-speed-btn ${speed === s ? 'active' : ''}`}
-                onClick={() => onControl('speed', s)}
-              >
-                ×{s}
-              </button>
-            ))}
+
+          <div className='slab-section' style={{marginTop: 12}}>
+            <label className='slab-label'>Scenario Selector</label>
+            <select className='slab-select' value={selectedFileId} onChange={e => setSelectedFileId(e.target.value)}>
+              {scenarios.map(s => (
+                <option key={s.file_id} value={s.file_id}>{s.title}{s.jury_demo ? ' ★' : ''}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className='slab-section slab-row'>
+            <div className='slab-mode-toggle'>
+              <button className={'slab-mode-btn ' + (mode === 'replay' ? 'active' : '')} onClick={() => setMode('replay')}>Replay</button>
+              <button className={'slab-mode-btn ' + (mode === 'live' ? 'active' : '')} onClick={() => setMode('live')}>Live</button>
+            </div>
+            <button className='slab-btn slab-btn-primary' onClick={handleLoad}>Load & Start</button>
+          </div>
+
+          <div className='slab-section' style={{marginTop: 12}}>
+            <label className='slab-label'>Scenario Generator</label>
+            <div className='slab-gen-row'>
+              <select className='slab-select' value={genTemplate} onChange={e => setGenTemplate(e.target.value)}>
+                {TEMPLATES.map(t => (
+                  <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+              </select>
+              <input className='slab-input' style={{width: 65}} type='number' placeholder='Seed' value={genSeed} onChange={e => setGenSeed(e.target.value)} />
+            </div>
+            <div className='slab-gen-actions' style={{marginTop: 4}}>
+              <button className='slab-btn' onClick={handleGenerate} disabled={generating}>Generate</button>
+              <button className='slab-btn slab-btn-accent' onClick={handleGenerateAndLoad} disabled={generating}>Gen & Load</button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Active scenario card */}
-      {session && session.scenario_id && (
-        <div className="slab-active-session">
-          <div className="slab-active-top">
-            <span className="slab-active-name">{session.scenario_label}</span>
+      ) : (
+        <div className='slab-editor-view'>
+          <div className='slab-editor-sidebar'>
+            <div className='slab-section'>
+              <label className='slab-label'>Scenario Info</label>
+              <input className='slab-input' value={editorScenario.scenario_id} onChange={e => setEditorScenario({...editorScenario, scenario_id: e.target.value})} placeholder='Scenario ID' />
+              <input className='slab-input' value={editorScenario.name} onChange={e => setEditorScenario({...editorScenario, name: e.target.value})} placeholder='Name' />
+            </div>
+            <div className='slab-section'>
+              <label className='slab-label'>Asset Palette (Click to Select)</label>
+              <div className='slab-asset-palette'>
+                {placeableTemplates.map(t => (
+                  <button key={t.type} className={'slab-asset-btn ' + (selectedTemplate === t.type ? 'active' : '')} onClick={() => setSelectedTemplate(t.type)}>
+                    {t.type.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <p style={{fontSize: 9, color: '#6e7681'}}>Click on map to place selected asset</p>
+            </div>
+            <div className='slab-section'>
+              <button className='slab-btn slab-btn-primary' onClick={handleSaveScenario}>SAVE SCENARIO</button>
+            </div>
+            <div className='slab-section slab-editor-list'>
+              <label className='slab-label'>Placed Assets ({editorScenario.placeables.length})</label>
+              {editorScenario.placeables.map(p => (
+                <div key={p.id} className='slab-placed-item'>
+                  <span>{p.type} ({p.x_km.toFixed(0)}, {p.y_km.toFixed(0)})</span>
+                  <button onClick={() => setEditorScenario({...editorScenario, placeables: editorScenario.placeables.filter(x => x.id !== p.id)})}>×</button>
+                </div>
+              ))}
+            </div>
           </div>
-          {session.description && (
-            <span className="slab-active-desc">{session.description.length > 120 ? session.description.slice(0, 120) + '…' : session.description}</span>
-          )}
-          <span className="slab-active-meta">
-            {session.track_count} tracks · {session.group_count} groups · {session.duration_s}s
-          </span>
-          {session.seed != null && (
-            <span className="slab-active-meta">Seed: {session.seed}{session.template_name ? ` · Template: ${session.template_name}` : ''}</span>
-          )}
-        </div>
-      )}
-
-      {/* Scenario selector */}
-      <div className="slab-section">
-        <label className="slab-label">Scenario Selector</label>
-        <select
-          className="slab-select"
-          value={selectedFileId}
-          onChange={e => setSelectedFileId(e.target.value)}
-        >
-          {scenarios.map(s => (
-            <option key={s.file_id} value={s.file_id}>
-              {s.title}{s.jury_demo ? ' ★' : ''}{s.source_type === 'generated' ? ' (gen)' : ''}
-            </option>
-          ))}
-        </select>
-        <div className="slab-meta">
-          {(() => {
-            const s = scenarios.find(x => x.file_id === selectedFileId);
-            if (!s) return null;
-            return (
-              <>
-                {s.short_description && <span className="slab-meta-desc">{s.short_description}</span>}
-              </>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* Mode selector + load */}
-      <div className="slab-section slab-row">
-        <div className="slab-mode-toggle">
-          <button
-            className={`slab-mode-btn ${mode === 'replay' ? 'active' : ''}`}
-            onClick={() => setMode('replay')}
-          >Replay</button>
-          <button
-            className={`slab-mode-btn ${mode === 'live' ? 'active' : ''}`}
-            onClick={() => setMode('live')}
-          >Live Mode</button>
-        </div>
-        <button className="slab-btn slab-btn-primary" onClick={handleLoad}>
-          Load & Start
-        </button>
-      </div>
-
-      {/* Generator */}
-      <div className="slab-section">
-        <label className="slab-label">Scenario Generator</label>
-        <div className="slab-gen-row">
-          <select className="slab-select slab-gen-tmpl" value={genTemplate} onChange={e => setGenTemplate(e.target.value)}>
-            {TEMPLATES.map(t => (
-              <option key={t.id} value={t.id}>{t.label}</option>
-            ))}
-          </select>
-          <input
-            className="slab-input"
-            type="number"
-            placeholder="Seed"
-            value={genSeed}
-            onChange={e => setGenSeed(e.target.value)}
-            style={{ width: 70 }}
-          />
-          <input
-            className="slab-input"
-            type="number"
-            placeholder="Dur"
-            value={genDuration}
-            onChange={e => setGenDuration(e.target.value)}
-            style={{ width: 60 }}
-          />
-        </div>
-        <div className="slab-gen-actions">
-          <button className="slab-btn" onClick={handleGenerate} disabled={generating}>
-            {generating ? 'Generating...' : 'Generate New'}
-          </button>
-          <button className="slab-btn slab-btn-accent" onClick={handleGenerateAndLoad} disabled={generating}>
-            Generate & Load
-          </button>
-        </div>
-      </div>
-
-      {/* Live controls */}
-      {liveActive && (
-        <div className="slab-section slab-live-controls">
-          <label className="slab-label">Autonomous Live Controls</label>
-          <div className="slab-live-row">
-            <button className="slab-btn" onClick={() => handleLiveTick(5)}>Jump +5s</button>
-            <button className="slab-btn" onClick={() => handleLiveTick(15)}>Jump +15s</button>
-          </div>
-          <label className="slab-label" style={{ marginTop: 8 }}>Dynamic Perturbations</label>
-          <div className="slab-inject-grid">
-            <button className="slab-inject-btn inject-swarm" onClick={() => handleInject('swarm', { corridor: 'corridor-n', size: 12 })}>
-              Inject Swarm
-            </button>
-            <button className="slab-inject-btn inject-raid" onClick={() => handleInject('second_wave', { corridors: ['corridor-nw', 'corridor-ne'] })}>
-              Inject Raid
-            </button>
-            <button className="slab-inject-btn inject-sensor" onClick={() => handleInject('sensor_degrade', { sensor_id: 'sensor-boreal', severity: 'partial' })}>
-              Degrade Sensor
-            </button>
-            <button className="slab-inject-btn inject-readiness" onClick={() => handleInject('readiness_drop')}>
-              Drop Readiness
-            </button>
+          <div className='slab-editor-main'>
+            <TacticalMap 
+              geography={geography}
+              tracks={[]}
+              assets={[]}
+              placeables={editorScenario.placeables}
+              selectedTrack={null}
+              onSelectTrack={() => {}}
+              coas={[]}
+              followTopThreat={false}
+              onFollowTopThreatChange={() => {}}
+              topThreatTrackId={null}
+              onMapClick={handleMapClick}
+            />
           </div>
         </div>
       )}

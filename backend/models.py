@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -475,3 +476,22 @@ class CopilotStatus(BaseModel):
     scenario_id: str
     feed_count: int
     session_commands: int
+
+
+# ── Map Editor & Advanced Scenarios ──
+
+class PlaceableConfig(BaseModel):
+    id: str
+    type: str
+    x_km: float
+    y_km: float
+    properties: Dict[str, Any] = Field(default_factory=dict)
+
+class ScenarioModel(BaseModel):
+    scenario_id: str
+    name: str
+    map_background: str
+    placeables: List[PlaceableConfig] = Field(default_factory=list)
+    events: List[Dict[str, Any]] = Field(default_factory=list)
+    meta: Dict[str, Any] = Field(default_factory=dict)
+

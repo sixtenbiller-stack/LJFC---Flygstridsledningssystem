@@ -8,6 +8,8 @@ from typing import Any
 DATA_DIR = Path(__file__).resolve().parent.parent / "neon-command-data"
 GENERATED_DIR = DATA_DIR / "generated"
 RUNTIME_DIR = DATA_DIR / "runtime"
+CUSTOM_DIR = DATA_DIR / "custom"
+
 
 SCENARIO_LABELS: dict[str, dict[str, Any]] = {
     "scenario_alpha": {
@@ -60,7 +62,7 @@ def discover() -> list[dict[str, Any]]:
     """Return metadata for all discoverable scenarios."""
     results: list[dict[str, Any]] = []
 
-    for scan_dir, source_type in [(DATA_DIR, "base"), (GENERATED_DIR, "generated")]:
+    for scan_dir, source_type in [(DATA_DIR, "base"), (GENERATED_DIR, "generated"), (CUSTOM_DIR, "custom")]:
         if not scan_dir.exists():
             continue
         for p in sorted(scan_dir.glob("scenario_*.json")):
@@ -80,7 +82,7 @@ def discover() -> list[dict[str, Any]]:
 
 def load_scenario_raw(file_id: str) -> dict[str, Any]:
     """Load a scenario JSON by file_id, checking base then generated dirs."""
-    for d in [DATA_DIR, GENERATED_DIR]:
+    for d in [DATA_DIR, GENERATED_DIR, CUSTOM_DIR]:
         path = d / f"{file_id}.json"
         if path.exists():
             with open(path) as f:

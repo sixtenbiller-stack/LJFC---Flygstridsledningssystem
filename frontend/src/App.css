@@ -124,14 +124,17 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 40px;
+  padding: 10px;
   overflow-y: auto;
   background: var(--bg);
 }
 
+.app-layout.lab-mode .app-body-lab {
+  padding: 10px;
+}
+
 .app-body-lab .scenario-lab {
   width: 100%;
-  max-width: 600px;
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: 8px;

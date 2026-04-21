@@ -620,6 +620,7 @@ export default function App() {
             speed={state.speed_multiplier}
             session={session}
             markers={markers}
+            geography={geo}
             onScenarioLoaded={() => {
               handleScenarioLoaded();
               setMainTab('product');

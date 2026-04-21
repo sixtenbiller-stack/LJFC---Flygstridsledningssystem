@@ -207,6 +207,7 @@ export interface ScenarioState {
   wave: number;
   coa_trigger_pending: boolean;
   events_log: EventLog[];
+  placeables?: Placeable[];
   mode?: string;
   runtime_mode?: string;
   scenario_origin?: string;
@@ -401,3 +402,27 @@ export interface AfterActionRecord {
   source_state_id: string;
   wave: number;
 }
+
+export interface Placeable {
+  id: string;
+  type: string;
+  x_km: number;
+  y_km: number;
+  properties: Record<string, any>;
+  data?: Record<string, any>;
+}
+
+export interface PlaceableTemplate {
+  type: string;
+  icon_url: string | null;
+}
+
+export interface ScenarioModel {
+  scenario_id: string;
+  name: string;
+  map_background: string;
+  placeables: Placeable[];
+  events: any[];
+  meta: Record<string, any>;
+}
+
