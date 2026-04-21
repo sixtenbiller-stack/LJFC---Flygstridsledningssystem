@@ -380,6 +380,14 @@ def load_scenario_endpoint(req: ScenarioLoadRequest) -> dict[str, Any]:
         _scenario_seed = meta.get("seed")
     else:
         _scenario_origin = "builtin"
+    # Load placeables from scenario file into simulation controller
+    try:
+        raw_data = load_scenario_raw(file_id)
+        if "placeables" in raw_data:
+            sim_controller.update_placeables("live", raw_data["placeables"])
+    except:
+        pass
+
     _scenario_loaded_at = datetime.now(timezone.utc).isoformat()
     return {"status": "loaded", "scenario_id": sid,
             "runtime_mode": _runtime_mode, "scenario_origin": _scenario_origin}
