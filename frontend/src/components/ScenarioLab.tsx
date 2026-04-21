@@ -141,14 +141,21 @@ export function ScenarioLab({
     if (!fileId) return;
     try {
       const data = await api.getScenarioRaw(fileId);
+      // Determine if map_background exists within meta
+      const mapBg = data.meta?.map_background || data.map_background || '';
+      
       setEditorScenario({
         scenario_id: data.meta?.scenario_id || data.scenario_id || fileId,
         name: data.meta?.name || data.name || data.title || fileId,
-        map_background: data.meta?.map_background || data.map_background || '',
+        map_background: mapBg,
         placeables: data.placeables || [],
         events: data.events || [],
         meta: data.meta || {}
       });
+      // also push to geography internally for Tactical Map rendering.
+      if (geography) {
+         setGeography({ ...geography, map_background: mapBg });
+      }
       flash('Loaded for edit: ' + fileId);
     } catch { flash('Load failed'); }
   };
