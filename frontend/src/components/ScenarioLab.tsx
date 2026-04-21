@@ -39,7 +39,7 @@ export function ScenarioLab({
 }: Props) {
   const [activeTab, setActiveTab] = useState<'management' | 'editor'>('management');
   const [scenarios, setScenarios] = useState<ScenarioEntry[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState('scenario_swarm_beta');
+  const [selectedFileId, setSelectedFileId] = useState('');
   const [mode, setMode] = useState<'replay' | 'live'>('replay');
   const [genTemplate, setGenTemplate] = useState('swarm_pressure');
   const [genSeed, setGenSeed] = useState('');

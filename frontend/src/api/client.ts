@@ -19,7 +19,7 @@ export const api = {
 
   getDecisions: () => request<any[]>('/decisions'),
 
-  loadScenario: (scenarioId = 'scenario-alpha') =>
+  loadScenario: (scenarioId: string) =>
     request<any>('/scenario/load', {
       method: 'POST',
       body: JSON.stringify({ scenario_id: scenarioId }),

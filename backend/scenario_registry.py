@@ -11,26 +11,7 @@ RUNTIME_DIR = DATA_DIR / "runtime"
 CUSTOM_DIR = DATA_DIR / "custom"
 
 
-SCENARIO_LABELS: dict[str, dict[str, Any]] = {
-    "scenario_alpha": {
-        "title": "Two-Wave Pressure Test",
-        "short": "Legacy baseline scenario with two-wave probe.",
-        "recommended_mode": "replay",
-        "jury_demo": False,
-    },
-    "scenario_swarm_beta": {
-        "title": "Swarm / Coordinated Threat Demo",
-        "short": "Drone swarm with recon probe, EW screen, and mixed raid.",
-        "recommended_mode": "live",
-        "jury_demo": True,
-    },
-    "scenario_raid_gamma": {
-        "title": "Multi-Corridor Mixed Raid",
-        "short": "Multi-axis raid with eastern swarm and perturbations.",
-        "recommended_mode": "live",
-        "jury_demo": True,
-    },
-}
+SCENARIO_LABELS: dict[str, dict[str, Any]] = {}
 
 
 def _read_meta(path: Path) -> dict[str, Any]:

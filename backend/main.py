@@ -315,21 +315,31 @@ async def load_scenario_for_editor(file_id: str):
 @app.post("/scenario/load")
 def load_scenario_endpoint(req: ScenarioLoadRequest) -> dict[str, Any]:
     from datetime import datetime, timezone
+    from fastapi import HTTPException
     global _scenario_loaded_at, _scenario_source_file, _runtime_mode, _scenario_origin
     global _scenario_template, _scenario_seed
     _reset_all_state()
     sid = req.scenario_id
     file_id = sid.replace("-", "_")
     try:
-        engine.load(sid)
-        from scenario_registry import DATA_DIR
-        _scenario_source_file = str(DATA_DIR / f"{file_id}.json")
+        try:
+            engine.load(sid)
+            from scenario_registry import DATA_DIR
+            _scenario_source_file = str(DATA_DIR / f"{file_id}.json")
+        except FileNotFoundError:
+            raw = load_scenario_raw(file_id)
+            engine.load_from_data(sid, raw)
+            from scenario_registry import GENERATED_DIR, CUSTOM_DIR
+            gen_path = GENERATED_DIR / f"{file_id}.json"
+            cust_path = CUSTOM_DIR / f"{file_id}.json"
+            if gen_path.exists():
+                _scenario_source_file = str(gen_path)
+            elif cust_path.exists():
+                _scenario_source_file = str(cust_path)
+            else:
+                _scenario_source_file = file_id
     except FileNotFoundError:
-        raw = load_scenario_raw(file_id)
-        engine.load_from_data(sid, raw)
-        from scenario_registry import GENERATED_DIR
-        gen_path = GENERATED_DIR / f"{file_id}.json"
-        _scenario_source_file = str(gen_path) if gen_path.exists() else file_id
+        raise HTTPException(status_code=404, detail=f"Scenario {sid} not found")
     meta = engine.scenario_meta
     _runtime_mode = "replay"
     has_generator = meta.get("generator") is not None and meta.get("seed") is not None
