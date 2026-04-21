@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../api/client';
-import type { ScenarioEntry, ScenarioSession } from '../types';
+import type { ScenarioEntry, ScenarioSession, TimelineMarker } from '../types';
 import './ScenarioLab.css';
 
 interface Props {
@@ -8,8 +8,12 @@ interface Props {
   currentMode: string;
   currentOrigin: string;
   isPlaying: boolean;
+  speed: number;
   session: ScenarioSession | null;
+  markers: TimelineMarker[];
   onScenarioLoaded: () => void;
+  onControl: (action: string, speed?: number) => void;
+  onReset: () => void;
 }
 
 const TEMPLATES = [
@@ -25,7 +29,12 @@ const ORIGIN_LABELS: Record<string, string> = {
   runtime_copy: 'Runtime Copy',
 };
 
-export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isPlaying, session, onScenarioLoaded }: Props) {
+const SPEEDS = [1, 2, 4, 8];
+
+export function ScenarioLab({
+  currentScenarioId, currentMode, currentOrigin, isPlaying, speed,
+  session, markers, onScenarioLoaded, onControl, onReset
+}: Props) {
   const [scenarios, setScenarios] = useState<ScenarioEntry[]>([]);
   const [selectedFileId, setSelectedFileId] = useState('scenario_swarm_beta');
   const [mode, setMode] = useState<'replay' | 'live'>('replay');
@@ -112,26 +121,39 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
     flash(`Injected: ${type}`);
   };
 
-  if (!expanded) {
-    return (
-      <div className="slab-collapsed" onClick={() => setExpanded(true)}>
-        <span className="slab-collapsed-icon">⚗</span>
-        <span className="slab-collapsed-label">SCENARIO LAB</span>
-        <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>
-      </div>
-    );
-  }
-
   return (
     <div className="scenario-lab">
       <div className="slab-header">
         <span className="slab-title">⚗ SCENARIO LAB</span>
         <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>
         <span className={`slab-badge slab-badge-origin origin-${currentOrigin}`}>{ORIGIN_LABELS[currentOrigin] || currentOrigin.toUpperCase()}</span>
-        <button className="slab-collapse-btn" onClick={() => setExpanded(false)} title="Collapse">—</button>
       </div>
 
       {statusMsg && <div className="slab-status">{statusMsg}</div>}
+
+      {/* Playback Controls */}
+      <div className="slab-section">
+        <label className="slab-label">Playback Control</label>
+        <div className="slab-playback-row">
+          <button className="slab-btn" onClick={onReset} title="Reset">⟳ Reset</button>
+          {isPlaying ? (
+            <button className="slab-btn slab-btn-pause" onClick={() => onControl('pause')}>❚❚ Pause</button>
+          ) : (
+            <button className="slab-btn slab-btn-play" onClick={() => onControl('play')}>▶ Play</button>
+          )}
+          <div className="slab-speed-group">
+            {SPEEDS.map(s => (
+              <button
+                key={s}
+                className={`slab-speed-btn ${speed === s ? 'active' : ''}`}
+                onClick={() => onControl('speed', s)}
+              >
+                ×{s}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Active scenario card */}
       {session && session.scenario_id && (
@@ -144,41 +166,16 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
           )}
           <span className="slab-active-meta">
             {session.track_count} tracks · {session.group_count} groups · {session.duration_s}s
-            {session.extended_schema_present && ' · extended'}
           </span>
           {session.seed != null && (
             <span className="slab-active-meta">Seed: {session.seed}{session.template_name ? ` · Template: ${session.template_name}` : ''}</span>
           )}
-          {session.runtime_session_id && (
-            <span className="slab-active-meta">Session: {session.runtime_session_id.slice(0, 24)}</span>
-          )}
-          {session.source_parent_scenario && (
-            <span className="slab-active-meta">Source: {session.source_parent_scenario}</span>
-          )}
-          {session.recommended_demo && (
-            <span className="slab-active-demo">{session.recommended_demo.length > 100 ? session.recommended_demo.slice(0, 100) + '…' : session.recommended_demo}</span>
-          )}
-        </div>
-      )}
-
-      {/* Mutation log for live mode */}
-      {liveActive && session?.mutation_log && session.mutation_log.length > 0 && (
-        <div className="slab-mutation-log">
-          <span className="slab-label">Mutation Log</span>
-          <div className="slab-mutation-list">
-            {session.mutation_log.slice(-5).map((m, i) => (
-              <div key={i} className="slab-mutation-item">
-                <span className="slab-mut-type">{String(m.type || '?')}</span>
-                <span className="slab-mut-time">t={String(m.t_s || '?')}s</span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
       {/* Scenario selector */}
       <div className="slab-section">
-        <label className="slab-label">Scenario</label>
+        <label className="slab-label">Scenario Selector</label>
         <select
           className="slab-select"
           value={selectedFileId}
@@ -197,10 +194,6 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
             return (
               <>
                 {s.short_description && <span className="slab-meta-desc">{s.short_description}</span>}
-                <span className="slab-meta-stats">
-                  {s.track_count ?? '?'} tracks · {s.group_count ?? '?'} groups · {s.duration_s ?? '?'}s
-                  {s.extended_fields && ' · extended'}
-                </span>
               </>
             );
           })()}
@@ -217,16 +210,16 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
           <button
             className={`slab-mode-btn ${mode === 'live' ? 'active' : ''}`}
             onClick={() => setMode('live')}
-          >Live</button>
+          >Live Mode</button>
         </div>
         <button className="slab-btn slab-btn-primary" onClick={handleLoad}>
-          Load
+          Load & Start
         </button>
       </div>
 
       {/* Generator */}
       <div className="slab-section">
-        <label className="slab-label">Generate Scenario</label>
+        <label className="slab-label">Scenario Generator</label>
         <div className="slab-gen-row">
           <select className="slab-select slab-gen-tmpl" value={genTemplate} onChange={e => setGenTemplate(e.target.value)}>
             {TEMPLATES.map(t => (
@@ -252,7 +245,7 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
         </div>
         <div className="slab-gen-actions">
           <button className="slab-btn" onClick={handleGenerate} disabled={generating}>
-            {generating ? 'Generating...' : 'Generate'}
+            {generating ? 'Generating...' : 'Generate New'}
           </button>
           <button className="slab-btn slab-btn-accent" onClick={handleGenerateAndLoad} disabled={generating}>
             Generate & Load
@@ -263,16 +256,12 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
       {/* Live controls */}
       {liveActive && (
         <div className="slab-section slab-live-controls">
-          <label className="slab-label">Live Controls</label>
+          <label className="slab-label">Autonomous Live Controls</label>
           <div className="slab-live-row">
-            <button className="slab-btn" onClick={() => api.liveControl(isPlaying ? 'pause' : 'play')}>
-              {isPlaying ? '⏸ Pause' : '▶ Play'}
-            </button>
-            <button className="slab-btn" onClick={() => handleLiveTick(5)}>+5s</button>
-            <button className="slab-btn" onClick={() => handleLiveTick(15)}>+15s</button>
-            <button className="slab-btn" onClick={() => api.liveControl('reset').then(onScenarioLoaded)}>Reset</button>
+            <button className="slab-btn" onClick={() => handleLiveTick(5)}>Jump +5s</button>
+            <button className="slab-btn" onClick={() => handleLiveTick(15)}>Jump +15s</button>
           </div>
-          <label className="slab-label" style={{ marginTop: 8 }}>Perturbations</label>
+          <label className="slab-label" style={{ marginTop: 8 }}>Dynamic Perturbations</label>
           <div className="slab-inject-grid">
             <button className="slab-inject-btn inject-swarm" onClick={() => handleInject('swarm', { corridor: 'corridor-n', size: 12 })}>
               Inject Swarm

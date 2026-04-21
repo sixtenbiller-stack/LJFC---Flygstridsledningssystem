@@ -180,9 +180,21 @@ export default function App() {
   }, [refreshSession]);
 
   useEffect(() => {
-    api.loadScenario('scenario-alpha').then(() => setLoaded(true));
-    api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
-    refreshSession();
+    // Only load a default scenario if one isn't already active on the server
+    const init = async () => {
+      try {
+        const currentState = await api.getState();
+        if (!currentState.scenario_id) {
+          await api.loadScenario('scenario-alpha');
+        }
+      } catch {
+        await api.loadScenario('scenario-alpha');
+      }
+      setLoaded(true);
+      api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
+      refreshSession();
+    };
+    init();
   }, [refreshSession]);
 
   const initLayout = useCallback(() => {
@@ -605,11 +617,15 @@ export default function App() {
             currentMode={runtimeMode}
             currentOrigin={scenarioOrigin}
             isPlaying={state.is_playing}
+            speed={state.speed_multiplier}
             session={session}
+            markers={markers}
             onScenarioLoaded={() => {
               handleScenarioLoaded();
               setMainTab('product');
             }}
+            onControl={handleControl}
+            onReset={handleReset}
           />
         </div>
       )}
