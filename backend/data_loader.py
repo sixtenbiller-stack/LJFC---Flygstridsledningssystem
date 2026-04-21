@@ -49,11 +49,7 @@ def load_scoring_params() -> dict[str, Any]:
 
 
 def load_mock_response(filename: str) -> dict[str, Any]:
-    path = DATA_DIR / "mock_responses" / filename
-    if not path.exists():
-        return {}
-    with open(path) as f:
-        return json.load(f)
+    return {}
 
 
 def load_planning_guardrails() -> dict[str, Any]:

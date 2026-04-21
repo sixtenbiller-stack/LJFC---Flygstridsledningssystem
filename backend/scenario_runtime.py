@@ -16,12 +16,11 @@ from typing import Any
 ENGINE_DIR = Path(__file__).resolve().parent.parent / "neon-command-engine"
 sys.path.insert(0, str(ENGINE_DIR))
 
-from scenario_generator import SCENARIO_TEMPLATES  # noqa: E402
 from scenario_mutator import ScenarioMutator  # noqa: E402
 
 from scenario_registry import RUNTIME_DIR, load_scenario_raw  # noqa: E402
 
-AVAILABLE_TEMPLATES = list(SCENARIO_TEMPLATES.keys()) + ["random"]
+AVAILABLE_TEMPLATES = ["random"]
 
 
 class LiveSession:
@@ -79,44 +78,8 @@ class LiveSession:
         self._mutator.tick(dt_s=dt_s)
 
     def inject(self, inject_type: str, params: dict | None = None) -> dict:
-        """Perform a live injection (swarm, raid, sensor_degrade, etc)."""
-        params = params or {}
-        t = self._mutator.state.current_t_s + 1
-        result: dict[str, Any] = {"type": inject_type, "t_s": t}
-
-        if inject_type == "swarm":
-            corridor = params.get("corridor", "corridor-n")
-            size = params.get("size", 12)
-            events = self._mutator.inject_swarm(t_s=t, corridor=corridor, size=size)
-            result["events_added"] = len(events)
-        elif inject_type == "second_wave":
-            corridors = params.get("corridors", ["corridor-nw", "corridor-n"])
-            events = self._mutator.inject_raid(t_s=t, corridors=corridors)
-            result["events_added"] = len(events)
-        elif inject_type == "sensor_degrade":
-            sensor_id = params.get("sensor_id", "sensor-boreal")
-            severity = params.get("severity", "partial")
-            event = self._mutator.degrade_sensor(t_s=t, sensor_id=sensor_id, severity=severity)
-            result["event"] = event
-        elif inject_type == "reclassify":
-            track_id = params.get("track_id", "")
-            new_class = params.get("new_class", "decoy-suspected")
-            new_conf = params.get("new_confidence", 0.3)
-            reason = params.get("reason", "Operator reclassification")
-            event = self._mutator.reclassify_track(t_s=t, track_id=track_id,
-                                                   new_class=new_class,
-                                                   new_confidence=new_conf,
-                                                   reason=reason)
-            result["event"] = event
-        elif inject_type == "readiness_drop":
-            result["note"] = "Readiness reduction applied via CONSTRAINT_CHANGED"
-            event = self._mutator.inject_perturbation(t_s=t)
-            result["event"] = event
-        else:
-            result["error"] = f"Unknown inject type: {inject_type}"
-
-        self._injection_log.append(result)
-        return result
+        """Perform a live injection (not implemented - scenario generator removed)."""
+        return {"error": "Injections disabled - Scenario Generator removed."}
 
     def get_state_snapshot(self) -> dict[str, Any]:
         """Return normalized snapshot for frontend consumption."""
