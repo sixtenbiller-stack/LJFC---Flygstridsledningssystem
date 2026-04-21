@@ -253,11 +253,6 @@ export function ScenarioLab({
                   <option key={t.id} value={t.id}>{t.label}</option>
                 ))}
               </select>
-              <input className='slab-input' style={{width: 65}} type='number' placeholder='Seed' value={genSeed} onChange={e => setGenSeed(e.target.value)} />
-            </div>
-            <div className='slab-gen-actions' style={{marginTop: 4}}>
-              <button className='slab-btn' onClick={handleGenerate} disabled={generating}>Generate</button>
-              <button className='slab-btn slab-btn-accent' onClick={handleGenerateAndLoad} disabled={generating}>Gen & Load</button>
             </div>
           </div>
         </div>

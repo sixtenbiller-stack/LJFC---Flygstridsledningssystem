@@ -309,7 +309,7 @@ async def save_scenario(scenario: ScenarioModel):
                 json.dump(geo_data, f, indent=2)
 
     with open(file_path, "w") as f:
-        f.write(scenario.json(indent=2))
+        f.write(scenario.model_dump_json(indent=2))
     return {"status": "success", "file_id": scenario.scenario_id}
 
 @app.post("/map-editor/upload-map")
