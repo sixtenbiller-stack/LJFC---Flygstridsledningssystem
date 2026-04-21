@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from pathlib import Path
@@ -129,7 +129,14 @@ async def _chief_evaluator_loop():
             logger.exception("Chief evaluator error")
 
 
+MAPS_DIR = Path(__file__).resolve().parent.parent / "neon-command-data" / "maps"
+MAPS_DIR.mkdir(parents=True, exist_ok=True)
+PLACEABLES_DIR = Path(__file__).resolve().parent / "placeables"
+
 app = FastAPI(title="NEON COMMAND", version="0.5.0", lifespan=lifespan)
+
+app.mount("/api/maps", StaticFiles(directory=str(MAPS_DIR)), name="maps")
+app.mount("/api/placeables/icons", StaticFiles(directory=str(PLACEABLES_DIR)), name="placeable-icons")
 
 app.add_middleware(
     CORSMiddleware,
@@ -284,6 +291,15 @@ async def save_scenario(scenario: ScenarioModel):
     with open(file_path, "w") as f:
         f.write(scenario.json(indent=2))
     return {"status": "success", "file_id": scenario.scenario_id}
+
+@app.post("/api/map-editor/upload-map")
+async def upload_map(file: UploadFile = File(...)):
+    if not file.filename:
+        return {"error": "No filename"}
+    file_path = MAPS_DIR / file.filename
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+    return {"url": f"/api/maps/{file.filename}"}
 
 @app.get("/api/map-editor/load/{file_id}")
 async def load_scenario_for_editor(file_id: str):

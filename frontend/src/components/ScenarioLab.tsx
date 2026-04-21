@@ -182,6 +182,18 @@ export function ScenarioLab({
     flash('Map reset');
   };
 
+  const handleUploadMap = async (file: File) => {
+    try {
+      const res = await api.uploadMap(file);
+      if (res.url) {
+        setEditorScenario({ ...editorScenario, map_background: res.url });
+        flash('Map uploaded!');
+      } else if (res.error) {
+        flash('Error: ' + res.error);
+      }
+    } catch { flash('Upload failed'); }
+  };
+
   return (
     <div className={'scenario-lab ' + (activeTab === 'editor' ? 'editor-mode-active' : '')}>
       <div className='slab-tabs'>
@@ -268,8 +280,17 @@ export function ScenarioLab({
             </div>
 
             <div className='slab-section'>
-              <label className='slab-label'>Map Background (PNG/JPG URL)</label>
-              <input className='slab-input' value={editorScenario.map_background || ''} onChange={e => setEditorScenario({...editorScenario, map_background: e.target.value})} placeholder='e.g. /api/maps/gotland.png' />
+              <label className='slab-label'>Map Background (PNG/JPG)</label>
+              <div style={{display: 'flex', gap: 4}}>
+                <input className='slab-input' style={{flex: 1}} value={editorScenario.map_background || ''} onChange={e => setEditorScenario({...editorScenario, map_background: e.target.value})} placeholder='/api/maps/gotland.png' />
+                <label className='slab-btn' style={{cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center'}}>
+                   ⬆
+                   <input type="file" style={{display: 'none'}} accept="image/*" onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadMap(file);
+                   }} />
+                </label>
+              </div>
             </div>
 
             <div className='slab-section'>

@@ -124,6 +124,15 @@ export const api = {
       body: JSON.stringify(scenario),
     }),
 
+  uploadMap: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetch('/api/map-editor/upload-map', {
+      method: 'POST',
+      body: formData,
+    }).then(res => res.json());
+  },
+
   getScenarioRaw: (fileId: string) => request<any>(`/map-editor/load/${fileId}`),
 
 
