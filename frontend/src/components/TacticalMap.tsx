@@ -16,8 +16,12 @@ interface Props {
   highlightTrackIds?: string[];
   placeables?: Placeable[];
   onMapClick?: (x_km: number, y_km: number) => void;
+  onDeletePlaceable?: (id: string) => void;
   editorMode?: boolean;
   mapBackground?: string;
+  selectedPlaceableId?: string | null;
+  onSelectPlaceable?: (id: string | null) => void;
+  selectedTemplate?: string | null;
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -46,6 +50,12 @@ export const MAP_ICONS: Record<string, string> = {
   radar: '◎',
 };
 
+const PLACEABLE_ICONS: Record<string, string> = {
+  arthur_radar: '/api/placeables/icons/arthur_radar.png',
+  radar: '/api/placeables/icons/radar.png',
+  sam_battery: '/api/placeables/icons/sam_battery.png',
+};
+
 function headingArrow(deg: number, len: number): [number, number] {
   const rad = ((deg - 90) * Math.PI) / 180;
   return [Math.cos(rad) * len, -Math.sin(rad) * len];
@@ -64,12 +74,17 @@ export function TacticalMap({
   highlightTrackIds = [],
   placeables = [],
   onMapClick,
+  onDeletePlaceable,
   editorMode = false,
   mapBackground,
+  selectedPlaceableId,
+  onSelectPlaceable,
+  selectedTemplate,
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [layers, setLayers] = useState<MapLayerToggles>(DEFAULT_LAYERS);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0, kmX: 0, kmY: 0 });
   const panning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -117,9 +132,19 @@ export function TacticalMap({
   }, [focusSelection]);
 
   const onWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
+    // e.preventDefault(); // This is often problematic in React's SyntheticEvent, better to use non-passive listener
     const delta = -e.deltaY * 0.0015;
     setZoom(z => Math.min(2.5, Math.max(0.45, z + delta)));
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const handleRawWheel = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+    container.addEventListener('wheel', handleRawWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleRawWheel);
   }, []);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
@@ -132,6 +157,22 @@ export function TacticalMap({
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      const svg = containerRef.current?.querySelector('svg')?.getBoundingClientRect();
+      
+      if (rect && svg) {
+        // Position relative to the SVG element's viewbox
+        const svgX = ((e.clientX - svg.left) / svg.width) * VIEW_W;
+        const svgY = ((e.clientY - svg.top) / svg.height) * VIEW_H;
+        
+        const [kmX, kmY] = [
+           BOUNDS.xMin + ((svgX - PADDING) / (VIEW_W - 2 * PADDING)) * (BOUNDS.xMax - BOUNDS.xMin),
+           BOUNDS.yMax - ((svgY - PADDING) / (VIEW_H - 2 * PADDING)) * (BOUNDS.yMax - BOUNDS.yMin),
+        ];
+
+        setMousePos({ x: svgX, y: svgY, kmX, kmY });
+      }
+
       if (!panning.current) return;
       const dx = e.clientX - panStart.current.x;
       const dy = e.clientY - panStart.current.y;
@@ -156,12 +197,20 @@ export function TacticalMap({
     return <div className="map-empty">Loading tactical display...</div>;
   }
 
+  const radiusToSvg = (km: number) => (km / (BOUNDS.xMax - BOUNDS.xMin)) * (VIEW_W - 2 * PADDING);
+
   return (
     <div
       className="tactical-map-container"
       ref={containerRef}
       onWheel={onWheel}
     >
+      {editorMode && selectedPlaceableId && (
+        <div className="map-interaction-tools">
+          <button onClick={() => onDeletePlaceable?.(selectedPlaceableId)} className="tool-btn delete">DELETE</button>
+          <button onClick={() => onSelectPlaceable?.(null)} className="tool-btn cancel">DESELECT</button>
+        </div>
+      )}
       <MapToolbar
         zoomPct={zoomPct}
         followTopThreat={followTopThreat}
@@ -188,16 +237,17 @@ export function TacticalMap({
           onClick={(e) => {
             if (onMapClick) {
               const rect = (e.currentTarget as any).getBoundingClientRect();
-              const svgX = e.clientX - rect.left;
-              const svgY = e.clientY - rect.top;
+              const svgX = ((e.clientX - rect.left) / rect.width) * VIEW_W;
+              const svgY = ((e.clientY - rect.top) / rect.height) * VIEW_H;
               // Reverse projection
-    const [kmX, kmY] = [
+              const [kmX, kmY] = [
                 BOUNDS.xMin + ((svgX - PADDING) / (VIEW_W - 2 * PADDING)) * (BOUNDS.xMax - BOUNDS.xMin),
                 BOUNDS.yMax - ((svgY - PADDING) / (VIEW_H - 2 * PADDING)) * (BOUNDS.yMax - BOUNDS.yMin),
               ];
               onMapClick(kmX, kmY);
             } else {
               onSelectTrack(null);
+              onSelectPlaceable?.(null);
             }
           }}
         >
@@ -288,14 +338,40 @@ export function TacticalMap({
             );
           })}
 
+          {/* Preview for placement */}
+          {editorMode && !selectedPlaceableId && (
+            <g transform={`translate(${mousePos.x}, ${mousePos.y})`} className="placement-preview" style={{pointerEvents: 'none'}}>
+              <circle r={radiusToSvg(selectedTemplate === 'arthur_radar' ? 100 : 50)} className="preview-range" strokeDasharray="4 2" />
+              <text textAnchor="middle" dy=".3em" style={{fontSize: 10, fill: 'var(--neon-cyan)', opacity: 0.8}}>➕</text>
+            </g>
+          )}
+
           {/* Placeables */}
           {placeables.map((p) => {
             const [x, y] = toSvg(p.x_km, p.y_km);
+            const iconUrl = PLACEABLE_ICONS[p.type];
+            const isSelected = selectedPlaceableId === p.id;
             return (
-              <g key={p.id} className="map-placeable" transform={`translate(${x}, ${y})`}>
-                <text className="placeable-icon" textAnchor="middle" dy=".3em">
-                  {MAP_ICONS[p.type] || '★'}
-                </text>
+              <g
+                key={p.id}
+                className={`map-placeable ${isSelected ? 'selected' : ''}`}
+                transform={`translate(${x}, ${y})`}
+                onClick={(e) => {
+                  if (editorMode) {
+                    e.stopPropagation();
+                    onSelectPlaceable?.(isSelected ? null : p.id);
+                  }
+                }}
+                style={{ cursor: editorMode ? 'pointer' : 'default' }}
+              >
+                {isSelected && <circle r={radiusToSvg(p.properties.range_km || 100)} className="placeable-range-ring" />}
+                {iconUrl ? (
+                  <image href={iconUrl} x="-8" y="-8" width="16" height="16" />
+                ) : (
+                  <text className="placeable-icon" textAnchor="middle" dy=".3em">
+                    {MAP_ICONS[p.type] || '★'}
+                  </text>
+                )}
                 <text className="placeable-label" textAnchor="middle" y="14">
                   {p.type}
                 </text>

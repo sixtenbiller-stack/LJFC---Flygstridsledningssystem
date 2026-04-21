@@ -213,3 +213,58 @@
 .tactical-map-svg.has-selection .asset:not(.asset-assigned) {
   opacity: 0.5;
 }
+
+.map-interaction-tools {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  background: rgba(13, 17, 23, 0.9);
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.tool-btn {
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #21262d;
+  color: var(--text-normal);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.tool-btn.delete { color: #f85149; }
+.tool-btn:hover { background: #30363d; }
+
+.placeable-range-ring {
+  fill: rgba(121, 192, 255, 0.05);
+  stroke: var(--neon-cyan);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.preview-range {
+  fill: rgba(121, 192, 255, 0.1);
+  stroke: var(--neon-cyan);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.map-placeable.selected .placeable-icon {
+  fill: var(--neon-cyan);
+}
+.map-placeable:hover .placeable-icon {
+  fill: var(--neon-cyan);
+}
+.placeable-label {
+  fill: var(--text-dim);
+  font-size: 6px;
+  font-family: var(--font-mono);
+  pointer-events: none;
+}

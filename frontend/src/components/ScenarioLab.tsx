@@ -41,6 +41,7 @@ export function ScenarioLab({
   });
   const [placeableTemplates, setTemplates] = useState<PlaceableTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [selectedPlaceableId, setSelectedPlaceableId] = useState<string | null>(null);
 
   const fetchScenarios = useCallback(async () => {
     try {
@@ -90,7 +91,9 @@ export function ScenarioLab({
       type: selectedTemplate,
       x_km: x,
       y_km: y,
-      properties: {}
+      properties: {
+        range_km: selectedTemplate === 'arthur_radar' ? 100 : 50
+      }
     };
     setEditorScenario(prev => ({
       ...prev,
@@ -104,6 +107,14 @@ export function ScenarioLab({
       flash('Scenario saved!');
       fetchScenarios();
     } catch { flash('Save failed'); }
+  };
+
+  const handleDeletePlaceable = (id: string) => {
+    setEditorScenario(prev => ({
+      ...prev,
+      placeables: prev.placeables.filter(p => p.id !== id)
+    }));
+    if (selectedPlaceableId === id) setSelectedPlaceableId(null);
   };
 
   const handleLoadForEdit = async (fileId: string) => {
@@ -250,19 +261,19 @@ export function ScenarioLab({
               <button className='slab-btn slab-btn-primary' style={{flex: 1}} onClick={handleSaveScenario}>SAVE</button>
             </div>
 
-            <div className='slab-section slab-editor-list' style={{marginTop: 10}}>
-              <label className='slab-label'>Placed Assets ({editorScenario.placeables.length})</label>
-              <div style={{maxHeight: 150, overflowY: 'auto'}}>
-                {editorScenario.placeables.map(p => (
-                  <div key={p.id} className='slab-placed-item'>
-                    <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                      {p.type} ({p.x_km.toFixed(0)}, {p.y_km.toFixed(0)})
-                    </span>
-                    <button onClick={() => setEditorScenario({...editorScenario, placeables: editorScenario.placeables.filter(x => x.id !== p.id)})}>×</button>
-                  </div>
-                ))}
-              </div>
+          <div className='slab-editor-list' style={{marginTop: 10}}>
+            <label className='slab-label'>Placed Assets ({editorScenario.placeables.length})</label>
+            <div style={{maxHeight: 150, overflowY: 'auto'}}>
+              {editorScenario.placeables.map(p => (
+                <div key={p.id} className={'slab-placed-item ' + (selectedPlaceableId === p.id ? 'active' : '')} onClick={() => setSelectedPlaceableId(p.id)}>
+                  <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                    {p.type} ({p.x_km.toFixed(0)}, {p.y_km.toFixed(0)})
+                  </span>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeletePlaceable(p.id); }}>×</button>
+                </div>
+              ))}
             </div>
+          </div>
           </div>
           <div className='slab-editor-main'>
             <TacticalMap
@@ -277,8 +288,12 @@ export function ScenarioLab({
               onFollowTopThreatChange={() => {}}
               topThreatTrackId={null}
               onMapClick={handleMapClick}
+              onDeletePlaceable={handleDeletePlaceable}
               editorMode={true}
               mapBackground={editorScenario.map_background}
+              selectedPlaceableId={selectedPlaceableId}
+              onSelectPlaceable={setSelectedPlaceableId}
+              selectedTemplate={selectedTemplate}
             />
           </div>
         </div>
