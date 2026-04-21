@@ -123,6 +123,13 @@ export function ScenarioLab({
     if (selectedPlaceableId === id) setSelectedPlaceableId(null);
   };
 
+  const handleMovePlaceable = (id: string, x: number, y: number) => {
+    setEditorScenario(prev => ({
+      ...prev,
+      placeables: prev.placeables.map(p => p.id === id ? { ...p, x_km: x, y_km: y } : p)
+    }));
+  };
+
   const handleLoadForEdit = async (fileId: string) => {
     if (!fileId) return;
     try {
@@ -313,6 +320,7 @@ export function ScenarioLab({
               topThreatTrackId={null}
               onMapClick={handleMapClick}
               onDeletePlaceable={handleDeletePlaceable}
+              onMovePlaceable={handleMovePlaceable}
               editorMode={true}
               mapBackground={editorScenario.map_background}
               selectedPlaceableId={selectedPlaceableId}

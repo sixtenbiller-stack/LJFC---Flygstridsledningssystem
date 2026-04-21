@@ -242,14 +242,22 @@
 .tool-btn.delete { color: #f85149; }
 .tool-btn:hover { background: #30363d; }
 
+.placeable-drag-handle {
+  cursor: move;
+}
+.placeable-drag-handle:hover circle {
+  fill: var(--neon-cyan);
+}
+.placeable-drag-handle:hover text {
+  fill: #000;
+}
 .placeable-range-ring {
   fill: none;
   stroke: var(--neon-cyan);
   stroke-width: 0.8;
   stroke-dasharray: 4 4;
-  opacity: 0.4;
+  opacity: 0.25;
 }
-
 .placeable-range-ring.selected {
   stroke-width: 1.5;
   stroke-dasharray: none;

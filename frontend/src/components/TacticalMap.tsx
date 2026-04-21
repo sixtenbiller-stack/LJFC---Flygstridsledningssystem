@@ -17,6 +17,7 @@ interface Props {
   placeables?: Placeable[];
   onMapClick?: (x_km: number, y_km: number) => void;
   onDeletePlaceable?: (id: string) => void;
+  onMovePlaceable?: (id: string, x: number, y: number) => void;
   editorMode?: boolean;
   mapBackground?: string;
   selectedPlaceableId?: string | null;
@@ -77,6 +78,7 @@ export function TacticalMap({
   placeables = [],
   onMapClick,
   onDeletePlaceable,
+  onMovePlaceable,
   editorMode = false,
   mapBackground,
   selectedPlaceableId,
@@ -89,6 +91,7 @@ export function TacticalMap({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [layers, setLayers] = useState<MapLayerToggles>(DEFAULT_LAYERS);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0, kmX: 0, kmY: 0 });
+  const [draggingPlaceableId, setDraggingPlaceableId] = useState<string | null>(null);
   const panning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -175,6 +178,10 @@ export function TacticalMap({
         ];
 
         setMousePos({ x: svgX, y: svgY, kmX, kmY });
+
+        if (draggingPlaceableId) {
+          onMovePlaceable?.(draggingPlaceableId, kmX, kmY);
+        }
       }
 
       if (!panning.current) return;
@@ -182,7 +189,10 @@ export function TacticalMap({
       const dy = e.clientY - panStart.current.y;
       setPan({ x: panStart.current.px + dx, y: panStart.current.py + dy });
     };
-    const onUp = () => { panning.current = false; };
+    const onUp = () => { 
+      panning.current = false; 
+      setDraggingPlaceableId(null);
+    };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => {
@@ -371,6 +381,18 @@ export function TacticalMap({
                 style={{ cursor: editorMode && activeTool === 'select' ? 'pointer' : 'default' }}
               >
                 <circle r={radiusToSvg(p.properties.range_km || 100)} className={`placeable-range-ring ${isSelected ? 'selected' : ''}`} />
+                {isSelected && (
+                  <g 
+                    className="placeable-drag-handle" 
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      setDraggingPlaceableId(p.id);
+                    }}
+                  >
+                    <circle r="12" cy="-12" fill="var(--panel-bg)" stroke="var(--neon-cyan)" strokeWidth="1" />
+                    <text y="-10" textAnchor="middle" style={{fontSize: 8, fill: 'var(--neon-cyan)', userSelect: 'none'}}>✥</text>
+                  </g>
+                )}
                 {iconUrl ? (
                   <image href={iconUrl} x="-8" y="-8" width="16" height="16" />
                 ) : (
