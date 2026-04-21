@@ -497,7 +497,6 @@ def control_live(body: dict[str, Any]) -> dict[str, Any]:
 @app.post("/scenario/live/tick")
 def tick_live(body: dict[str, Any] | None = None) -> dict[str, Any]:
     if not _live_session:
-    if not _live_session:
         return {"error": "No live session active"}
     body = body or {}
     dt = body.get("dt_s", 5)
@@ -510,13 +509,6 @@ def tick_live(body: dict[str, Any] | None = None) -> dict[str, Any]:
     engine.load_from_data(_live_session.file_id, raw)
     engine.current_time_s = _live_session.current_time_s
     engine._apply_events()
-    return {"status": "ticked", "time_s": _live_session.current_time_s,
-            "active_tracks": len(_live_session._mutator.state.get_active_tracks())}
-           "events": _live_session.get_events_for_engine()}
-    engine.load_from_data(_live_session.file_id, raw)
-    engine.current_time_s = _live_session.current_time_s
-    engine._apply_events()
-
     return {"status": "ticked", "time_s": _live_session.current_time_s,
             "active_tracks": len(_live_session._mutator.state.get_active_tracks())}
 
@@ -532,7 +524,6 @@ def inject_live(body: dict[str, Any]) -> dict[str, Any]:
     if engine.geography and hasattr(engine.geography, "map_background"):
         raw["map_background"] = engine.geography.map_background
     engine.load_from_data(_live_session.file_id, raw)
-    engine._apply_events()
     engine._apply_events()
 
     label_map = {
@@ -550,7 +541,7 @@ def inject_live(body: dict[str, Any]) -> dict[str, Any]:
              f"Params: {params}. Active tracks: {len(_live_session._mutator.state.get_active_tracks())}.",
         source_state_id=engine.source_state_id,
     )
-    return result
+    return {"status": "injected", "type": inject_type}
 
 
 @app.get("/scenario/live/state")
