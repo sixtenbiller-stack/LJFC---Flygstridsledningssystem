@@ -82,7 +82,7 @@ class ScenarioEngine:
         self._scenario_meta = raw.get("meta", {})
         self._scenario_name = self._scenario_meta.get("name", scenario_id)
         self._duration_s = self._scenario_meta.get("duration_s", 240)
-        self._events = [ScenarioEvent(**e) for e in raw["events"]]
+        self._events = [ScenarioEvent(**e) for e in raw.get("events", [])]
         self.geography = load_geography()
         if raw.get("map_background"):
             self.geography.map_background = raw["map_background"]

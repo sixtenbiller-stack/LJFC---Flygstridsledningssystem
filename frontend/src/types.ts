@@ -46,6 +46,7 @@ export interface Geography {
   features: GeoFeature[];
   terrain: TerrainFeature[];
   defended_zones: DefendedZone[];
+  map_background?: string;
 }
 
 export interface Asset {

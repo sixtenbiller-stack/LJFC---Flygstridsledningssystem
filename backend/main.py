@@ -270,10 +270,10 @@ def list_scenarios() -> dict[str, Any]:
 
 @app.get("/map-editor/placeables")
 async def list_placeable_templates():
-    placeables_dir = Path(__file__).resolve().parent / "placeables"
+    # Use global PLACEABLES_DIR
     results = []
-    if placeables_dir.exists():
-        for p in placeables_dir.glob("*.py"):
+    if PLACEABLES_DIR.exists():
+        for p in PLACEABLES_DIR.glob("*.py"):
             if p.stem in ["base", "template"]:
                 continue
             icon_path = p.with_suffix(".png")
