@@ -316,7 +316,7 @@ export function ScenarioLab({
               <p style={{fontSize: 9, color: '#6e7681', marginTop: 4}}>Click on map to place asset</p>
             </div>
 
-            <div className='slab-section slab-row' style={{marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--border)'}}>
+            <div className='slab-section slab-row' style={{paddingTop: 10, borderTop: '1px solid var(--border)'}}>
               <button className='slab-btn' style={{flex: 1}} onClick={handleResetMap}>RESET ALL</button>
               <button className='slab-btn slab-btn-primary' style={{flex: 1}} onClick={handleSaveScenario}>SAVE</button>
             </div>

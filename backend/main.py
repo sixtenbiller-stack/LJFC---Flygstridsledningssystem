@@ -152,6 +152,14 @@ app.add_middleware(
 def get_state(include_geo: bool = False) -> dict[str, Any]:
     global _current_scores, _current_groups, _current_responses
     state = engine.get_state(include_geo=include_geo)
+    
+    # Ensure geography is included if requested, even if not active in engine
+    if include_geo and not state.geography:
+        from data_loader import load_geography
+        try:
+            state.geography = load_geography()
+        except:
+            pass
 
     if engine.geography and engine.tracks:
         zones = engine.geography.defended_zones
@@ -288,6 +296,17 @@ async def save_scenario(scenario: ScenarioModel):
     custom_dir = Path(__file__).resolve().parent.parent / "neon-command-data" / "custom"
     custom_dir.mkdir(parents=True, exist_ok=True)
     file_path = custom_dir / f"scenario_{scenario.scenario_id}.json"
+    
+    # Also update geography.json if map background is set
+    if scenario.map_background:
+        geo_path = Path(__file__).resolve().parent.parent / "neon-command-data" / "geography.json"
+        if geo_path.exists():
+            with open(geo_path, "r") as f:
+                geo_data = json.load(f)
+            geo_data["map_background"] = scenario.map_background
+            with open(geo_path, "w") as f:
+                json.dump(geo_data, f, indent=2)
+
     with open(file_path, "w") as f:
         f.write(scenario.json(indent=2))
     return {"status": "success", "file_id": scenario.scenario_id}

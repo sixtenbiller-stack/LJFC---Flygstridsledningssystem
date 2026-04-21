@@ -29,8 +29,9 @@ class ScenarioEngine:
         self.alerts: list[Alert] = []
         self.events_log: list[dict[str, Any]] = []
         try:
+            from data_loader import load_geography
             self.geography = load_geography()
-        except:
+        except Exception:
             self.geography = None
 
         self._initial_assets: list[Asset] = []
