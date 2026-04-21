@@ -124,6 +124,9 @@ export const api = {
       body: JSON.stringify(scenario),
     }),
 
+  getScenarioRaw: (fileId: string) => request<any>(`/map-editor/load/${fileId}`),
+
+
   liveControl: (action: string, speed?: number) =>
     request<any>('/scenario/live/control', {
       method: 'POST',

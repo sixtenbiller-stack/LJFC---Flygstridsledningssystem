@@ -285,6 +285,15 @@ async def save_scenario(scenario: ScenarioModel):
         f.write(scenario.json(indent=2))
     return {"status": "success", "file_id": scenario.scenario_id}
 
+@app.get("/api/map-editor/load/{file_id}")
+async def load_scenario_for_editor(file_id: str):
+    try:
+        return load_scenario_raw(file_id)
+    except FileNotFoundError:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Scenario not found")
+
+
 
 
 @app.post("/scenario/load")

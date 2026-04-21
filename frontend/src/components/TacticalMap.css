@@ -8,6 +8,7 @@
   position: relative;
   touch-action: none;
   min-height: 0;
+  overflow: hidden;
 }
 
 .map-transform-layer {

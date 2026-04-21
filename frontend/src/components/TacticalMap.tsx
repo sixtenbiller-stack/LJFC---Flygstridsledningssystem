@@ -16,6 +16,8 @@ interface Props {
   highlightTrackIds?: string[];
   placeables?: Placeable[];
   onMapClick?: (x_km: number, y_km: number) => void;
+  editorMode?: boolean;
+  mapBackground?: string;
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -62,6 +64,8 @@ export function TacticalMap({
   highlightTrackIds = [],
   placeables = [],
   onMapClick,
+  editorMode = false,
+  mapBackground,
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -168,6 +172,7 @@ export function TacticalMap({
         onZoomIn={() => setZoom(z => Math.min(2.5, z * 1.12))}
         onZoomOut={() => setZoom(z => Math.max(0.45, z / 1.12))}
         onLayerToggle={toggleLayer}
+        minimal={editorMode}
       />
       <div
         className="map-transform-layer"
@@ -210,6 +215,18 @@ export function TacticalMap({
               </feMerge>
             </filter>
           </defs>
+
+          {mapBackground && (
+            <image
+              href={mapBackground}
+              x={PADDING}
+              y={PADDING}
+              width={VIEW_W - 2 * PADDING}
+              height={VIEW_H - 2 * PADDING}
+              preserveAspectRatio="xMidYMid slice"
+              style={{ opacity: 0.7 }}
+            />
+          )}
 
           {Array.from({ length: 9 }, (_, i) => {
             const x = PADDING + ((i * 50) / (BOUNDS.xMax - BOUNDS.xMin)) * (VIEW_W - 2 * PADDING);

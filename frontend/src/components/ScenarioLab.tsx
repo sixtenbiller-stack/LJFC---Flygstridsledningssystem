@@ -49,8 +49,8 @@ export function ScenarioLab({
 
   // Editor State
   const [editorScenario, setEditorScenario] = useState<ScenarioModel>({
-    scenario_id: 'custom_1',
-    name: 'Custom Scenario 1',
+    scenario_id: 'custom_' + Date.now(),
+    name: 'New Custom Scenario',
     map_background: '',
     placeables: [],
     events: [],
@@ -58,8 +58,6 @@ export function ScenarioLab({
   });
   const [placeableTemplates, setTemplates] = useState<PlaceableTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-
-  const liveActive = currentMode === 'live';
 
   const fetchScenarios = useCallback(async () => {
     try {
@@ -132,16 +130,6 @@ export function ScenarioLab({
     }
   };
 
-  const handleLiveTick = async (dt: number) => {
-    await api.liveTick(dt);
-    flash('Ticked +' + dt + 's');
-  };
-
-  const handleInject = async (type: string, params?: Record<string, unknown>) => {
-    await api.liveInject(type, params);
-    flash('Injected: ' + type);
-  };
-
   // Editor Handlers
   const handleMapClick = (x: number, y: number) => {
     if (activeTab !== 'editor' || !selectedTemplate) return;
@@ -164,6 +152,34 @@ export function ScenarioLab({
       flash('Scenario saved!');
       fetchScenarios();
     } catch { flash('Save failed'); }
+  };
+
+  const handleLoadForEdit = async (fileId: string) => {
+    if (!fileId) return;
+    try {
+      const data = await api.getScenarioRaw(fileId);
+      setEditorScenario({
+        scenario_id: data.meta?.scenario_id || data.scenario_id || fileId,
+        name: data.meta?.name || data.name || data.title || fileId,
+        map_background: data.meta?.map_background || data.map_background || '',
+        placeables: data.placeables || [],
+        events: data.events || [],
+        meta: data.meta || {}
+      });
+      flash('Loaded for edit: ' + fileId);
+    } catch { flash('Load failed'); }
+  };
+
+  const handleResetMap = () => {
+    setEditorScenario({
+      scenario_id: 'custom_' + Date.now(),
+      name: 'New Custom Scenario',
+      map_background: '',
+      placeables: [],
+      events: [],
+      meta: {}
+    });
+    flash('Map reset');
   };
 
   return (
@@ -245,9 +261,27 @@ export function ScenarioLab({
           <div className='slab-editor-sidebar'>
             <div className='slab-section'>
               <label className='slab-label'>Scenario Info</label>
-              <input className='slab-input' value={editorScenario.scenario_id} onChange={e => setEditorScenario({...editorScenario, scenario_id: e.target.value})} placeholder='Scenario ID' />
-              <input className='slab-input' value={editorScenario.name} onChange={e => setEditorScenario({...editorScenario, name: e.target.value})} placeholder='Name' />
+              <div style={{display: 'flex', flexDirection: 'column', gap: 4}}>
+                <input className='slab-input' value={editorScenario.scenario_id} onChange={e => setEditorScenario({...editorScenario, scenario_id: e.target.value})} placeholder='Scenario ID (e.g. proto_1)' />
+                <input className='slab-input' value={editorScenario.name} onChange={e => setEditorScenario({...editorScenario, name: e.target.value})} placeholder='Display Name' />
+              </div>
             </div>
+
+            <div className='slab-section'>
+              <label className='slab-label'>Map Background (PNG/JPG URL)</label>
+              <input className='slab-input' value={editorScenario.map_background || ''} onChange={e => setEditorScenario({...editorScenario, map_background: e.target.value})} placeholder='e.g. /api/maps/gotland.png' />
+            </div>
+
+            <div className='slab-section'>
+              <label className='slab-label'>Load Existing to Edit</label>
+              <select className='slab-select' onChange={e => handleLoadForEdit(e.target.value)}>
+                <option value="">-- Choose Scenario --</option>
+                {scenarios.map(s => (
+                  <option key={s.file_id} value={s.file_id}>{s.title}</option>
+                ))}
+              </select>
+            </div>
+
             <div className='slab-section'>
               <label className='slab-label'>Asset Palette (Click to Select)</label>
               <div className='slab-asset-palette'>
@@ -257,23 +291,30 @@ export function ScenarioLab({
                   </button>
                 ))}
               </div>
-              <p style={{fontSize: 9, color: '#6e7681'}}>Click on map to place selected asset</p>
+              <p style={{fontSize: 9, color: '#6e7681', marginTop: 4}}>Click on map to place asset</p>
             </div>
-            <div className='slab-section'>
-              <button className='slab-btn slab-btn-primary' onClick={handleSaveScenario}>SAVE SCENARIO</button>
+
+            <div className='slab-section slab-row' style={{marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--border)'}}>
+              <button className='slab-btn' style={{flex: 1}} onClick={handleResetMap}>RESET ALL</button>
+              <button className='slab-btn slab-btn-primary' style={{flex: 1}} onClick={handleSaveScenario}>SAVE</button>
             </div>
-            <div className='slab-section slab-editor-list'>
+
+            <div className='slab-section slab-editor-list' style={{marginTop: 10}}>
               <label className='slab-label'>Placed Assets ({editorScenario.placeables.length})</label>
-              {editorScenario.placeables.map(p => (
-                <div key={p.id} className='slab-placed-item'>
-                  <span>{p.type} ({p.x_km.toFixed(0)}, {p.y_km.toFixed(0)})</span>
-                  <button onClick={() => setEditorScenario({...editorScenario, placeables: editorScenario.placeables.filter(x => x.id !== p.id)})}>×</button>
-                </div>
-              ))}
+              <div style={{maxHeight: 150, overflowY: 'auto'}}>
+                {editorScenario.placeables.map(p => (
+                  <div key={p.id} className='slab-placed-item'>
+                    <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                      {p.type} ({p.x_km.toFixed(0)}, {p.y_km.toFixed(0)})
+                    </span>
+                    <button onClick={() => setEditorScenario({...editorScenario, placeables: editorScenario.placeables.filter(x => x.id !== p.id)})}>×</button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           <div className='slab-editor-main'>
-            <TacticalMap 
+            <TacticalMap
               geography={geography}
               tracks={[]}
               assets={[]}
@@ -285,6 +326,8 @@ export function ScenarioLab({
               onFollowTopThreatChange={() => {}}
               topThreatTrackId={null}
               onMapClick={handleMapClick}
+              editorMode={true}
+              mapBackground={editorScenario.map_background}
             />
           </div>
         </div>
