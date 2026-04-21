@@ -184,11 +184,9 @@ export default function App() {
     const init = async () => {
       try {
         const currentState = await api.getState();
-        if (!currentState.scenario_id) {
-          await api.loadScenario('scenario-alpha');
-        }
+        // Skip automatic load since we are on a clean slate
       } catch {
-        await api.loadScenario('scenario-alpha');
+        // Skip automatic load
       }
       setLoaded(true);
       api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
