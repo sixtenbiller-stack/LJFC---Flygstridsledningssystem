@@ -238,18 +238,11 @@ export function ScenarioLab({
           <div className='slab-section' style={{marginTop: 12}}>
             <label className='slab-label'>Scenario Selector</label>
             <select className='slab-select' value={selectedFileId} onChange={e => setSelectedFileId(e.target.value)}>
+              <option value="">-- Choose Scenario --</option>
               {scenarios.map(s => (
                 <option key={s.file_id} value={s.file_id}>{s.title}{s.jury_demo ? ' ★' : ''}</option>
               ))}
             </select>
-          </div>
-
-          <div className='slab-section slab-row'>
-            <div className='slab-mode-toggle'>
-              <button className={'slab-mode-btn ' + (mode === 'replay' ? 'active' : '')} onClick={() => setMode('replay')}>Replay</button>
-              <button className={'slab-mode-btn ' + (mode === 'live' ? 'active' : '')} onClick={() => setMode('live')}>Live</button>
-            </div>
-            <button className='slab-btn slab-btn-primary' onClick={handleLoad}>Load & Start</button>
           </div>
 
           <div className='slab-section' style={{marginTop: 12}}>
