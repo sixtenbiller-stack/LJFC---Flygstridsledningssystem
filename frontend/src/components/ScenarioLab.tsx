@@ -229,6 +229,17 @@ export function ScenarioLab({
               ))}
             </select>
           </div>
+
+          <div className='slab-section' style={{marginTop: 12}}>
+            <button
+               className='slab-btn slab-btn-primary'
+               style={{width: '100%', padding: '10px'}}
+               onClick={handleLoad}
+               disabled={!selectedFileId}
+            >
+               LOAD SELECTED SCENARIO INTO PRODUCT TAB
+            </button>
+          </div>
         </div>
       ) : (
         <div className='slab-editor-view'>
@@ -275,12 +286,33 @@ export function ScenarioLab({
 
             <div className='slab-section'>
               <label className='slab-label'>Load Existing to Edit</label>
-              <select className='slab-select' onChange={e => handleLoadForEdit(e.target.value)}>
+              <select className='slab-select' id='editorScenarioSelect' onChange={e => {
+                  const val = e.target.value;
+                  if(val) document.getElementById('btnLoadEditor')?.removeAttribute('disabled');
+                  else document.getElementById('btnLoadEditor')?.setAttribute('disabled', 'true');
+              }}>
                 <option value="">-- Choose Scenario --</option>
                 {scenarios.map(s => (
                   <option key={s.file_id} value={s.file_id}>{s.title}</option>
                 ))}
               </select>
+            </div>
+
+            <div className='slab-section' style={{marginTop: 8}}>
+              <button 
+                  id='btnLoadEditor'
+                  className='slab-btn slab-btn-primary' 
+                  style={{width: '100%', padding: '10px'}}
+                  disabled
+                  onClick={() => {
+                     const select = document.getElementById('editorScenarioSelect') as HTMLSelectElement;
+                     if(select && select.value) {
+                         handleLoadForEdit(select.value);
+                     }
+                  }}
+              >
+                  LOAD SELECTED
+              </button>
             </div>
 
             <div className='slab-section'>
