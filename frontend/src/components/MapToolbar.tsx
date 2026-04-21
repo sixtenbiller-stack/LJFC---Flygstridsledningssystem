@@ -18,6 +18,8 @@ interface Props {
   onZoomOut: () => void;
   onLayerToggle: (key: keyof MapLayerToggles) => void;
   minimal?: boolean;
+  activeTool?: 'select' | 'place';
+  onToolChange?: (tool: 'select' | 'place') => void;
 }
 
 export function MapToolbar({
@@ -31,9 +33,29 @@ export function MapToolbar({
   onZoomOut,
   onLayerToggle,
   minimal = false,
+  activeTool,
+  onToolChange,
 }: Props) {
   return (
     <div className="map-toolbar">
+      {minimal && onToolChange && (
+        <div className="map-toolbar-group tools">
+          <button 
+            type="button" 
+            className={`map-tb-btn ${activeTool === 'select' ? 'active' : ''}`}
+            onClick={() => onToolChange('select')}
+          >
+            Selection Tool
+          </button>
+          <button 
+            type="button" 
+            className={`map-tb-btn ${activeTool === 'place' ? 'active' : ''}`}
+            onClick={() => onToolChange('place')}
+          >
+            Placement Tool
+          </button>
+        </div>
+      )}
       {!minimal && (
         <div className="map-toolbar-group">
           <button type="button" className="map-tb-btn" onClick={onFitTheater} title="Fit entire theater">

@@ -23,6 +23,10 @@
   flex-wrap: wrap;
 }
 
+.map-toolbar-group.tools {
+  margin-right: auto;
+}
+
 .map-toolbar-group.layers {
   margin-left: auto;
   gap: 10px;

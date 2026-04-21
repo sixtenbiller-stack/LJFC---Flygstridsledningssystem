@@ -319,6 +319,7 @@ export function ScenarioLab({
               onSelectPlaceable={setSelectedPlaceableId}
               selectedTemplate={selectedTemplate}
               activeTool={editorTool}
+              onToolChange={setEditorTool}
             />
           </div>
         </div>

@@ -23,6 +23,7 @@ interface Props {
   onSelectPlaceable?: (id: string | null) => void;
   selectedTemplate?: string | null;
   activeTool?: 'select' | 'place';
+  onToolChange?: (tool: 'select' | 'place') => void;
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -82,6 +83,7 @@ export function TacticalMap({
   onSelectPlaceable,
   selectedTemplate,
   activeTool = 'select',
+  onToolChange,
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -224,6 +226,8 @@ export function TacticalMap({
         onZoomOut={() => setZoom(z => Math.max(0.45, z / 1.12))}
         onLayerToggle={toggleLayer}
         minimal={editorMode}
+        activeTool={activeTool}
+        onToolChange={onToolChange}
       />
       <div
         className="map-transform-layer"
