@@ -30,6 +30,8 @@ from command_router import CommandRouter
 from threat_group_engine import ThreatGroupEngine
 from response_ranking_engine import ResponseRankingEngine
 from data_loader import load_planning_guardrails
+from simulation_controller import SimulationController
+
 from scenario_registry import discover as discover_scenarios, load_scenario_raw
 from scenario_runtime import generate_scenario, LiveSession, AVAILABLE_TEMPLATES
 
@@ -40,6 +42,7 @@ engine = ScenarioEngine()
 scorer = ThreatScorer()
 copilot = CopilotService()
 simulator = SimulationEngine()
+sim_controller = SimulationController()
 audit = AuditService()
 chief = ChiefOfStaffService()
 router = CommandRouter()
@@ -67,11 +70,35 @@ async def lifespan(app: FastAPI):
     mode = gemini_provider.init_provider()
     logger.info("AI provider mode: %s (model: %s)", mode, gemini_provider.get_model())
 
-    ticker = asyncio.create_task(engine.start_ticker(interval=0.1))
+    sim_controller.start()
+    ticker = asyncio.create_task(_main_ticker_loop())
     evaluator = asyncio.create_task(_chief_evaluator_loop())
     yield
     ticker.cancel()
     evaluator.cancel()
+    sim_controller.stop()
+
+
+async def _main_ticker_loop():
+    """Main loop that ticks the scenario engine and syncs simulations."""
+    while True:
+        try:
+            # Simulation Controller ticks all active sessions (including live session)
+            # The controller handles autonomous server-side execution.
+            # We don't call _live_session.tick() here because the controller does it.
+            
+            engine.tick()
+            
+            # Sync engine time if in live mode
+            if _runtime_mode == "live" and _live_session:
+                engine.current_time_s = float(_live_session.current_time_s)
+                
+            await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            logger.exception("Error in main ticker loop")
+            await asyncio.sleep(1.0)
 
 
 async def _chief_evaluator_loop():
@@ -203,6 +230,7 @@ def _reset_all_state():
     _after_action = []
     _track_creation_times = {}
     _live_session = None
+    sim_controller.remove_session("live")
     _runtime_mode = "replay"
     _scenario_origin = "builtin"
     _scenario_loaded_at = ""
@@ -298,6 +326,8 @@ def start_live_session(body: dict[str, Any]) -> dict[str, Any]:
     _source_parent_scenario = file_id
     _scenario_loaded_at = datetime.now(timezone.utc).isoformat()
     _scenario_source_file = file_id
+
+    sim_controller.add_session("live", _live_session)
 
     raw = {"meta": _live_session.get_meta(),
            "events": _live_session.get_events_for_engine()}
@@ -699,12 +729,36 @@ def simulate_coa(req: SimulateRequest) -> dict[str, Any]:
     coa_match = [c for c in _current_coas if c.coa_id == req.coa_id]
 
     if coa_match:
-        result = copilot.simulate(
-            coa_id=req.coa_id,
-            seed=req.seed,
+        # Move from mock to actual server-side simulation execution
+        coa = coa_match[0]
+        zones = engine.geography.defended_zones if engine.geography else []
+        
+        result = simulator.run(
+            coa=coa,
+            tracks=engine.tracks,
+            assets=engine.assets,
+            zones=zones,
             source_state_id=engine.source_state_id,
-            wave=engine.wave,
+            seed=req.seed,
         )
+
+        # Still call copilot for narration if AI is available
+        if gemini_provider.is_available():
+            enhanced = gemini_provider.generate(
+                prompt=(
+                    f"Simulation results for {coa.coa_id}:\n"
+                    f"Outcome score: {result.outcome_score:.0%}\n"
+                    f"Threats intercepted: {result.threats_intercepted}, missed: {result.threats_missed}\n"
+                    f"Zone breaches: {result.zone_breaches}\n"
+                    f"Readiness remaining: {result.readiness_remaining_pct:.0f}%\n"
+                    f"Timeline events: {len(result.timeline)}\n\n"
+                    "Narrate this simulation result concisely for the operator."
+                ),
+                system_instruction="You are the simulation narrator for NEON COMMAND.Reference specific events, assets, and outcomes.",
+                max_tokens=300,
+            )
+            if enhanced:
+                result.narration = enhanced
 
         chief.add_event_item(
             category="sim_complete",
