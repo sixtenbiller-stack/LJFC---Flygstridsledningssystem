@@ -70,26 +70,6 @@ export function Timeline({
   return (
     <div className={`timeline ${compact ? 'timeline--compact' : ''}`}>
       <div className="timeline-controls">
-        <button className="tl-btn" onClick={onReset} title="Reset">⟳</button>
-
-        {isPlaying ? (
-          <button className="tl-btn tl-pause" onClick={() => onControl('pause')} title="Pause">❚❚</button>
-        ) : (
-          <button className="tl-btn tl-play" onClick={() => onControl('play')} title="Play">▶</button>
-        )}
-
-        <div className="speed-group">
-          {SPEEDS.map(s => (
-            <button
-              key={s}
-              className={`speed-btn ${speed === s ? 'active' : ''}`}
-              onClick={() => onControl('speed', s)}
-            >
-              ×{s}
-            </button>
-          ))}
-        </div>
-
         <div className="tl-time">
           <span className="tl-time-value">{formatTime(currentTime)}</span>
           <span className="tl-time-label">/ {formatTime(dur)}</span>
@@ -121,35 +101,6 @@ export function Timeline({
             );
           })}
         </div>
-
-        {coaTriggerPending && (
-          <div className="tl-coa-alert">COA RECOMMENDED</div>
-        )}
-      </div>
-
-      {!compact && onJump && (
-        <div className="tl-demo-strip">
-          {DEMO_JUMPS.map(d => (
-            <button
-              key={d.target}
-              className="tl-demo-btn"
-              onClick={() => onJump(d.target)}
-              title={`Jump to ${d.label}`}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="tl-event-log" ref={logRef}>
-        {eventsLog.slice(-20).map((e, i) => (
-          <div key={i} className={`tl-event ev-${e.type?.toLowerCase().includes('alert') ? 'alert' : e.type?.toLowerCase().includes('track') ? 'track' : e.type?.toLowerCase().includes('group') ? 'group' : 'normal'}`}>
-            <span className="tl-ev-time">{formatTime(e.t_s)}</span>
-            <span className="tl-ev-type">{e.type}</span>
-            <span className="tl-ev-summary">{e.summary}</span>
-          </div>
-        ))}
       </div>
     </div>
   );

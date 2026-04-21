@@ -25,7 +25,7 @@
 
 .app-layout {
   display: grid;
-  grid-template-rows: 48px 1fr 118px;
+  grid-template-rows: 48px 1fr 48px;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -91,6 +91,7 @@
   padding: 3px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  z-index: 100;
 }
 
 .main-tab-btn {
@@ -270,10 +271,10 @@
   background: var(--surface);
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  height: 48px;
   position: relative;
 }
-.bottom-bar.collapsed .tl-event-log {
+.timeline-size-controls, .bottom-bar.collapsed .tl-event-log {
   display: none;
 }
 
