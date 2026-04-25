@@ -193,6 +193,15 @@ export interface EventLog {
   summary: string;
 }
 
+export interface AtoContext {
+  ato_id: string;
+  commander_intent: string;
+  primary_defended_object_ids: string[];
+  reserve_policy: Record<string, number | string | boolean>;
+  approval_required: boolean;
+  approval_role: string;
+}
+
 export interface ScenarioState {
   scenario_id: string;
   scenario_name: string;
@@ -218,6 +227,7 @@ export interface ScenarioState {
   last_feed_event?: FeedEvent | null;
   recommendation_status?: string;
   ai_provider_status?: AIProviderStatus;
+  ato_context?: AtoContext;
 }
 
 export interface FeedEvent {

@@ -33,7 +33,8 @@ const MARKER_COLORS: Record<string, string> = {
 const DEMO_JUMPS = [
   { target: 'first_contact', label: 'First Contact' },
   { target: 'first_group', label: 'Group Formed' },
-  { target: 'first_decision', label: 'Decision' },
+  { target: 'first_decision', label: 'Recommendation' },
+  { target: 'sensor_degraded', label: 'Confidence' },
 ];
 
 export function Timeline({
@@ -111,7 +112,8 @@ export function Timeline({
                 onClick={() => onJump?.(m.type === 'second_wave' ? 'second_wave' :
                   m.type === 'first_contact' ? 'first_contact' :
                   m.type === 'first_group' ? 'first_group' :
-                  m.type === 'first_decision' ? 'first_decision' : 'first_contact')}
+                  m.type === 'first_decision' ? 'first_decision' :
+                  m.type === 'sensor_degraded' ? 'sensor_degraded' : 'first_contact')}
               >
                 {hoveredMarker === `${m.type}-${m.t_s}` && (
                   <span className="tl-marker-tooltip">{m.label}</span>

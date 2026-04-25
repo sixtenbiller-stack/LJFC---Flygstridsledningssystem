@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
-import type { ScenarioEntry, ScenarioSession } from '../types';
+import type { ScenarioEntry, ScenarioSession, FeedStatus, FeedEvent } from '../types';
 import './ScenarioLab.css';
 
 interface Props {
   currentScenarioId: string;
   currentMode: string;
-  currentOrigin: string;
   isPlaying: boolean;
   session: ScenarioSession | null;
+  feedStatus?: FeedStatus;
+  lastFeedEvent?: FeedEvent | null;
   onScenarioLoaded: () => void;
 }
 
@@ -19,13 +20,10 @@ const TEMPLATES = [
   { id: 'random', label: 'Random' },
 ];
 
-const ORIGIN_LABELS: Record<string, string> = {
-  builtin: 'Builtin',
-  generated: 'Generated',
-  runtime_copy: 'Runtime Copy',
-};
-
-export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isPlaying, session, onScenarioLoaded }: Props) {
+export function ScenarioLab({
+  currentScenarioId, currentMode, isPlaying, session,
+  feedStatus, lastFeedEvent, onScenarioLoaded,
+}: Props) {
   const [scenarios, setScenarios] = useState<ScenarioEntry[]>([]);
   const [selectedFileId, setSelectedFileId] = useState('scenario_minimal_alpha');
   const [featureFlags, setFeatureFlags] = useState({
@@ -39,8 +37,6 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
   const [genDuration, setGenDuration] = useState('300');
   const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
-  const [expanded, setExpanded] = useState(true);
-
   const liveActive = currentMode === 'live';
 
   const fetchScenarios = useCallback(async () => {
@@ -122,42 +118,31 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
     flash(`Injected: ${type}`);
   };
 
-  if (!expanded) {
-    return (
-      <div className="slab-collapsed" onClick={() => setExpanded(true)}>
-        <span className="slab-collapsed-label">MISSION</span>
-        <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>
-      </div>
-    );
-  }
+  const feedState = feedStatus?.status ?? (isPlaying ? 'running' : session && session.current_time_s > 0 ? 'paused' : 'stopped');
 
   return (
     <div className="scenario-lab">
       <div className="slab-header">
-        <span className="slab-title">FEED STATUS</span>
-        <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>
-        {currentOrigin !== 'builtin' && (
-          <span className={`slab-badge slab-badge-origin origin-${currentOrigin}`}>{ORIGIN_LABELS[currentOrigin] || currentOrigin.toUpperCase()}</span>
-        )}
-        <button className="slab-collapse-btn" onClick={() => setExpanded(false)} title="Collapse">—</button>
+        <span className="slab-title">Feed status</span>
+        <span className={`slab-badge slab-feed-ribbon slab-feed-${feedState}`}>{feedState.toUpperCase()}</span>
       </div>
 
       {statusMsg && <div className="slab-status">{statusMsg}</div>}
 
-      {/* Active scenario card */}
       {session && session.scenario_id && (
         <div className="slab-active-session">
           <div className="slab-active-top">
-            <span className="slab-active-name">Synthetic Feed: Minimal Alpha</span>
+            <span className="slab-active-name">{feedStatus?.label ?? 'Synthetic Live Feed: Minimal Alpha'}</span>
           </div>
-          {session.description && (
-            <span className="slab-active-desc">{session.description.length > 120 ? session.description.slice(0, 120) + '…' : session.description}</span>
-          )}
-          <span className="slab-active-meta">
-            Status {session.status} · t={Math.round(session.current_time_s)}s / {session.duration_s}s · {session.speed_multiplier}x
-          </span>
-          {typeof session.scenario_meta?.ato_ref === 'string' && (
-            <span className="slab-active-meta">ATO: {String(session.scenario_meta.ato_ref)}</span>
+          <div className="slab-feed-grid">
+            <span className="slab-k">State</span><span className="slab-v">{feedState}</span>
+            <span className="slab-k">Mission clock</span><span className="slab-v">T+{Math.round(feedStatus?.current_time_s ?? session.current_time_s)}s</span>
+            <span className="slab-k">Last update</span><span className="slab-v">{lastFeedEvent?.event_type ?? '—'}</span>
+            <span className="slab-k">ATO</span><span className="slab-v">{typeof session.scenario_meta?.ato_ref === 'string' ? String(session.scenario_meta.ato_ref) : 'ato_minimal_alpha'}</span>
+            <span className="slab-k">Speed</span><span className="slab-v">{(feedStatus?.speed_multiplier ?? session.speed_multiplier) ?? 1}x</span>
+          </div>
+          {session.description && session.description.length < 200 && (
+            <span className="slab-active-desc">{session.description}</span>
           )}
           {featureFlags.extended_scenarios && session.seed != null && (
             <span className="slab-active-meta">Seed: {session.seed}{session.template_name ? ` · Template: ${session.template_name}` : ''}</span>
@@ -223,10 +208,10 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
       )}
 
       <div className="slab-section slab-feed-controls">
-        <label className="slab-label">Synthetic Feed Controls</label>
+        <label className="slab-label">Feed controls</label>
         <div className="slab-live-row">
           <button className="slab-btn slab-btn-primary" onClick={() => api.control(isPlaying ? 'pause' : 'play').then(onScenarioLoaded)}>
-            {isPlaying ? 'Pause Feed' : 'Start Feed'}
+            {isPlaying ? 'Pause' : 'Start'}
           </button>
           <button className="slab-btn" onClick={() => api.control('step').then(onScenarioLoaded)}>Step</button>
           <button className="slab-btn" onClick={() => api.control('reset').then(onScenarioLoaded)}>Reset</button>

@@ -3,7 +3,7 @@ import { api } from './api/client';
 import { usePolling } from './hooks/usePolling';
 import type {
   ScenarioState, ThreatAlert, CourseOfAction, SimulationResult,
-  ExplanationData, AuditRecord, Geography, FeedItem, CopilotResponse,
+  ExplanationData, AuditRecord, Geography,
   CopilotStatusData, ThreatGroup, DecisionCard as DecisionCardType,
   ScenarioSession, TimelineMarker, AgentChatMessage,
 } from './types';
@@ -11,7 +11,6 @@ import { TacticalMap } from './components/TacticalMap';
 import { AlertQueue } from './components/AlertQueue';
 import { GroupQueue } from './components/GroupQueue';
 import { CopilotPanel } from './components/CopilotPanel';
-import { DecisionCard } from './components/DecisionCard';
 import { ScenarioLab } from './components/ScenarioLab';
 import { Timeline } from './components/Timeline';
 import {
@@ -36,15 +35,12 @@ export default function App() {
   const [explanation, setExplanation] = useState<ExplanationData | null>(null);
   const [simResult, setSimResult] = useState<SimulationResult | null>(null);
   const [decisions, setDecisions] = useState<AuditRecord[]>([]);
-  const [coaWave, setCoaWave] = useState(0);
   const [loading, setLoading] = useState('');
-  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [copilotStatus, setCopilotStatus] = useState<CopilotStatusData | null>(null);
   const [followTopThreat, setFollowTopThreat] = useState(false);
   const [groups, setGroups] = useState<ThreatGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [decisionCard, setDecisionCard] = useState<DecisionCardType | null>(null);
-  const [leftView, setLeftView] = useState<'tracks' | 'groups'>('tracks');
   const [runtimeMode, setRuntimeMode] = useState<string>('replay');
   const [scenarioOrigin, setScenarioOrigin] = useState<string>('builtin');
   const [session, setSession] = useState<ScenarioSession | null>(null);
@@ -59,8 +55,6 @@ export default function App() {
   const dragRef = useRef<'left' | 'right' | null>(null);
   const dragStartRef = useRef({ x: 0, l: 0, r: 0 });
   const geoLoaded = useRef(false);
-  const lastFeedId = useRef<string | undefined>(undefined);
-
   const fetchState = useCallback(async () => {
     const needGeo = !geoLoaded.current;
     const result = await api.getState(needGeo);
@@ -79,9 +73,6 @@ export default function App() {
     try {
       const g: ThreatGroup[] = await api.getGroups();
       setGroups(g);
-      if (g.length > 0 && leftView === 'tracks') {
-        setLeftView('groups');
-      }
       if (g.length > 0 && prevGroupCount.current === 0) {
         const topGroup = g[0];
         setSelectedGroup(topGroup.group_id);
@@ -95,18 +86,6 @@ export default function App() {
       }
       prevGroupCount.current = g.length;
     } catch { /* skip */ }
-  }, [leftView]);
-
-  const fetchFeed = useCallback(async () => {
-    try {
-      const items: FeedItem[] = await api.getFeed(lastFeedId.current);
-      if (items.length > 0) {
-        setFeedItems(prev => [...prev, ...items]);
-        lastFeedId.current = items[items.length - 1].id;
-      }
-    } catch {
-      /* skip */
-    }
   }, []);
 
   const { data: state } = usePolling<ScenarioState>(fetchState, 800, loaded);
@@ -136,11 +115,6 @@ export default function App() {
   }, [followTopThreat, topThreatTrackId]);
 
   useEffect(() => {
-    const interval = setInterval(fetchFeed, 2000);
-    return () => clearInterval(interval);
-  }, [fetchFeed]);
-
-  useEffect(() => {
     const interval = setInterval(fetchGroups, 1500);
     return () => clearInterval(interval);
   }, [fetchGroups]);
@@ -163,15 +137,11 @@ export default function App() {
     setExplanation(null);
     setSimResult(null);
     setDecisions([]);
-    setCoaWave(0);
-    setFeedItems([]);
-    lastFeedId.current = undefined;
     geoLoaded.current = false;
     setFollowTopThreat(false);
     setGroups([]);
     setSelectedGroup(null);
     setDecisionCard(null);
-    setLeftView('tracks');
     prevGroupCount.current = 0;
     await refreshSession();
     api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
@@ -277,7 +247,6 @@ export default function App() {
     try {
       const res = await api.generateCoas(state?.wave);
       setCoas(res.coas || []);
-      setCoaWave(res.wave || 0);
       setExplanation(null);
       setSimResult(null);
     } finally {
@@ -318,8 +287,19 @@ export default function App() {
   const handleSendCommand = async (input: string): Promise<AgentChatMessage | null> => {
     try {
       return await api.sendAgentChat(input);
-    } catch {
-      return null;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Request failed';
+      return {
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+        source_state_id: stateRef.current?.source_state_id ?? '',
+        status: 'error',
+        message: msg,
+        display_text: msg,
+        provider: 'system',
+        model: '',
+        parse_status: 'error',
+      };
     }
   };
 
@@ -377,15 +357,11 @@ export default function App() {
     setExplanation(null);
     setSimResult(null);
     setDecisions([]);
-    setCoaWave(0);
-    setFeedItems([]);
-    lastFeedId.current = undefined;
     geoLoaded.current = false;
     setFollowTopThreat(false);
     setGroups([]);
     setSelectedGroup(null);
     setDecisionCard(null);
-    setLeftView('tracks');
     prevGroupCount.current = 0;
     await refreshSession();
   };
@@ -438,7 +414,7 @@ export default function App() {
     <div
       className="app-layout"
       style={{
-        gridTemplateRows: `44px 1fr ${bottomH}px`,
+        gridTemplateRows: `40px 1fr ${bottomH}px`,
       }}
     >
       <header className="app-header">
@@ -447,12 +423,18 @@ export default function App() {
           <span className="header-sub">Current Air Picture</span>
         </div>
         <div className="header-center">
-          <span className="header-scenario">Synthetic Live Feed</span>
-          <span className="header-feed-clock">T+{Math.round(state.current_time_s)}s</span>
-          {runtimeMode !== 'replay' && <span className={`header-mode-badge mode-${runtimeMode}`}>{runtimeMode.toUpperCase()}</span>}
-          {scenarioOrigin !== 'builtin' && <span className={`header-origin-badge origin-${scenarioOrigin}`}>{scenarioOrigin.toUpperCase().replace('_', ' ')}</span>}
-          <span className={`header-status ${state.is_playing ? 'running' : 'paused'}`}>
-            FEED {state.is_playing ? 'RUNNING' : state.current_time_s > 0 ? 'PAUSED' : 'ONLINE'}
+          <span className="header-scenario" title={state.feed_status?.source_file}>
+            {state.feed_status?.label ?? 'Synthetic Live Feed: Minimal Alpha'}
+          </span>
+          <span className="header-feed-clock">Mission clock T+{Math.round(state.current_time_s)}s</span>
+          {runtimeMode !== 'replay' && runtimeMode !== 'feed' && (
+            <span className={`header-mode-badge mode-${runtimeMode}`}>{runtimeMode.toUpperCase()}</span>
+          )}
+          {scenarioOrigin !== 'builtin' && scenarioOrigin !== 'synthetic_feed' && (
+            <span className={`header-origin-badge origin-${scenarioOrigin}`}>{scenarioOrigin.toUpperCase().replace('_', ' ')}</span>
+          )}
+          <span className={`header-status header-feed-${state.feed_status?.status || (state.is_playing ? 'running' : state.current_time_s > 0 ? 'paused' : 'stopped')}`}>
+            FEED {(state.feed_status?.status ?? (state.is_playing ? 'running' : state.current_time_s > 0 ? 'paused' : 'stopped')).toUpperCase()}
           </span>
           <span className={`header-ai-status ${state.ai_provider_status?.status || copilotStatus?.ai_status?.status || 'fallback'}`}>
             {state.ai_provider_status?.label || copilotStatus?.ai_status?.label || 'LOCAL AI'}
@@ -474,42 +456,30 @@ export default function App() {
           <ScenarioLab
             currentScenarioId={state.scenario_id}
             currentMode={runtimeMode}
-            currentOrigin={scenarioOrigin}
             isPlaying={state.is_playing}
             session={session}
+            feedStatus={state.feed_status}
+            lastFeedEvent={state.last_feed_event}
             onScenarioLoaded={handleScenarioLoaded}
           />
-          <div className="rail-section-title">CURRENT THREAT SITUATION</div>
-          <div className="left-view-toggle">
-            <button
-              type="button"
-              className={`lv-tab ${leftView === 'tracks' ? 'active' : ''}`}
-              onClick={() => setLeftView('tracks')}
-            >
-              TRACKS
-            </button>
-            <button
-              type="button"
-              className={`lv-tab ${leftView === 'groups' ? 'active' : ''}`}
-              onClick={() => setLeftView('groups')}
-            >
-              GROUPS{groups.length > 0 ? ` (${groups.length})` : ''}
-            </button>
-          </div>
-          {leftView === 'tracks' ? (
-            <AlertQueue
-              alerts={alerts || []}
-              sortedAlerts={sortedAlerts}
-              selectedTrack={selectedTrack}
-              onAlertClick={handleAlertClick}
-            />
-          ) : (
-            <GroupQueue
-              groups={groups}
-              selectedGroup={selectedGroup}
-              onGroupClick={handleGroupClick}
-            />
+          <div className="rail-section-title">Current threat situation</div>
+          {groups.length > 0 && (
+            <>
+              <div className="situation-subhead">Threat groups</div>
+              <GroupQueue
+                groups={groups}
+                selectedGroup={selectedGroup}
+                onGroupClick={handleGroupClick}
+              />
+            </>
           )}
+          <div className="situation-subhead">{groups.length > 0 ? 'Incoming tracks' : 'Tracks'}</div>
+          <AlertQueue
+            alerts={alerts || []}
+            sortedAlerts={sortedAlerts}
+            selectedTrack={selectedTrack}
+            onAlertClick={handleAlertClick}
+          />
         </aside>
 
         <div
@@ -532,6 +502,7 @@ export default function App() {
             onFollowTopThreatChange={setFollowTopThreat}
             topThreatTrackId={topThreatTrackId}
             highlightTrackIds={selectedGroup ? (groups.find(g => g.group_id === selectedGroup)?.member_track_ids ?? []) : []}
+            feedActivityKey={state.last_feed_event?.event_id}
           />
         </main>
 
@@ -544,41 +515,24 @@ export default function App() {
         />
 
         <aside className="right-rail panel-rail">
-          {decisionCard && selectedGroup && (
-            <div className="dc-container">
-              <DecisionCard
-                card={decisionCard}
-                onApprove={handleGroupApprove}
-                onDefer={handleGroupDefer}
-                onOverride={handleGroupOverride}
-                onGenerateCoas={handleGenerateCoas}
-                onSimulate={handleSimulate}
-                loading={loading}
-              />
-            </div>
-          )}
           <CopilotPanel
             state={state}
             coas={coas}
-            coaWave={coaWave}
-            explanation={explanation}
-            simResult={simResult}
-            decisions={decisions}
             loading={loading}
-            feedItems={feedItems}
             copilotStatus={copilotStatus}
             alerts={sortedAlerts}
             selectedTrack={selectedTrack}
             groups={groups}
             selectedGroup={selectedGroup}
             decisionCard={decisionCard}
-            scenarioMode={runtimeMode}
-            scenarioOrigin={scenarioOrigin}
             onGenerateCoas={handleGenerateCoas}
             onExplain={handleExplain}
             onSimulate={handleSimulate}
             onApprove={handleApprove}
             onSendCommand={handleSendCommand}
+            onGroupApprove={handleGroupApprove}
+            onGroupDefer={handleGroupDefer}
+            onGroupOverride={handleGroupOverride}
           />
         </aside>
       </div>

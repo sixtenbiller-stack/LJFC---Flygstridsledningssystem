@@ -41,6 +41,7 @@ export function GroupQueue({ groups, selectedGroup, onGroupClick }: Props) {
             <div className="gq-pinned-meta">
               {topGroup.member_track_ids.length} tracks · urgency {(topGroup.urgency_score * 100).toFixed(0)}%
               {topGroup.time_to_zone_s != null ? ` · ETA ${Math.round(topGroup.time_to_zone_s)}s` : ''}
+              {topGroup.most_at_risk_object_id ? ` · defended ${topGroup.most_at_risk_object_id}` : ''}
             </div>
           </button>
         </div>

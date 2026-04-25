@@ -205,6 +205,14 @@
   stroke-width: 1.2;
 }
 
+.hostile-track.track-feed-pulse .track-dot {
+  animation: feedTrackPulse 0.7s ease-out 1;
+}
+@keyframes feedTrackPulse {
+  0% { stroke: rgba(214, 168, 79, 0.9); stroke-width: 2.2; }
+  100% { stroke: rgba(214, 168, 79, 0); stroke-width: 0.8; }
+}
+
 /* Dimming non-selected when a track is focused */
 .tactical-map-svg.has-selection .hostile-track:not(.track-selected) {
   opacity: 0.55;

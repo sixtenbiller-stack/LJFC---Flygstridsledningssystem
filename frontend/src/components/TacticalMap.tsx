@@ -14,6 +14,8 @@ interface Props {
   onFollowTopThreatChange: (v: boolean) => void;
   topThreatTrackId: string | null;
   highlightTrackIds?: string[];
+  /** Changes when a new feed event arrives — triggers a brief track highlight pulse */
+  feedActivityKey?: string;
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -57,14 +59,25 @@ export function TacticalMap({
   geography, tracks, assets, selectedTrack, onSelectTrack, coas,
   followTopThreat, onFollowTopThreatChange, topThreatTrackId,
   highlightTrackIds = [],
+  feedActivityKey,
 }: Props) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [layers, setLayers] = useState<MapLayerToggles>(DEFAULT_LAYERS);
+  const [feedPulse, setFeedPulse] = useState(false);
   const panning = useRef(false);
   const panStart = useRef({ x: 0, y: 0, px: 0, py: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const trackGroupRefs = useRef<Record<string, SVGGElement | null>>({});
+  const lastActivityKey = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!feedActivityKey || feedActivityKey === lastActivityKey.current) return;
+    lastActivityKey.current = feedActivityKey;
+    setFeedPulse(true);
+    const t = window.setTimeout(() => setFeedPulse(false), 700);
+    return () => clearTimeout(t);
+  }, [feedActivityKey]);
 
   const assignedAssets = useMemo(() => {
     const set = new Set<string>();
@@ -287,7 +300,7 @@ export function TacticalMap({
               <g
                 key={t.track_id}
                 ref={(el) => { trackGroupRefs.current[t.track_id] = el; }}
-                className={`hostile-track ${threatClass} ${isSelected ? 'track-selected' : ''} ${isTop ? 'track-top-threat' : ''} ${isGrouped ? 'track-group-highlight' : ''}`}
+                className={`hostile-track ${threatClass} ${isSelected ? 'track-selected' : ''} ${isTop ? 'track-top-threat' : ''} ${isGrouped ? 'track-group-highlight' : ''} ${feedPulse ? 'track-feed-pulse' : ''}`}
                 onClick={(e) => { e.stopPropagation(); onSelectTrack(t.track_id); }}
                 style={{ cursor: 'pointer' }}
               >

@@ -170,6 +170,7 @@ def get_state(include_geo: bool = False) -> dict[str, Any]:
     result["last_feed_event"] = _last_feed_event()
     result["recommendation_status"] = "available" if state.coa_trigger_pending else "monitoring"
     result["ai_provider_status"] = gemini_provider.get_status()
+    result["ato_context"] = _load_minimal_ato_context()
     return result
 
 
@@ -1047,19 +1048,20 @@ def approve_group_response(group_id: str, body: dict[str, Any] | None = None) ->
 
 CHIEF_OF_STAFF_SYSTEM_PROMPT = """You are the Chief of Staff agent for NEON COMMAND, a synthetic air-defence monitoring and decision-support prototype.
 
-Your job is to help the operator understand the current threat situation from the current operational state.
+Your task is to help the operator understand the current threat situation based on the current system state.
 
 Rules:
-- Be concise.
-- Use BLUF first: the most important conclusion in one sentence.
-- Ground every answer in current state, ATO constraints, track IDs, group IDs, asset IDs, and state IDs where available.
-- Do not invent tracks, assets, ATO rules, or recommendations.
-- If data is missing, say what is missing.
+- BLUF first: one sentence with the most important conclusion.
+- Ground every answer in the operational state JSON you receive.
+- Cite track IDs, group IDs, ATO IDs, asset IDs, and state IDs where relevant.
+- Do not invent facts, tracks, assets, or ATO rules.
+- If the feed is stopped or data is missing, say so clearly.
 - Do not claim real-world weapon performance.
-- Do not issue autonomous engagement instructions.
-- The operator approves all decisions.
-- Prefer operational clarity over conversational style.
-- Keep responses short enough to read in a command console.
+- Do not autonomously decide engagements; the operator approves all decisions.
+- Keep answers concise and operational; clarity over conversational style.
+- No hype; no "as an AI language model" phrasing.
+
+Structure your JSON fields to reflect: BLUF, current situation, evidence, recommendation, next actions.
 
 Return JSON only with schema_version neon.llm.chief_of_staff_response.v1 and fields:
 response_type, bluf, situation, evidence, recommendation, next_actions, confidence, warnings, cited_ids."""
@@ -1160,7 +1162,50 @@ def _coerce_chief_response(raw: Any, packet: dict[str, Any]) -> tuple[dict[str, 
         repaired.update({k: raw.get(k, repaired[k]) for k in repaired if isinstance(raw, dict) and k in raw})
         repaired["warnings"].append("Structured response was incomplete; repaired locally.")
         return repaired, "repaired"
-    return raw, "structured"
+    repaired = dict(raw)
+    repaired["schema_version"] = "neon.llm.chief_of_staff_response.v1"
+    if repaired.get("response_type") not in {"brief", "answer", "recommendation", "warning", "error"}:
+        repaired["response_type"] = "answer"
+    for key in ["bluf", "situation", "recommendation"]:
+        repaired[key] = str(repaired.get(key) or "")
+    evidence = repaired.get("evidence")
+    if isinstance(evidence, str):
+        repaired["evidence"] = [{"label": "Assessment", "detail": evidence, "cited_id": packet["source_state_id"]}]
+    elif isinstance(evidence, list):
+        repaired["evidence"] = [
+            {
+                "label": str(item.get("label", "Evidence")) if isinstance(item, dict) else "Evidence",
+                "detail": str(item.get("detail", item)) if isinstance(item, dict) else str(item),
+                "cited_id": str(item.get("cited_id", packet["source_state_id"])) if isinstance(item, dict) else packet["source_state_id"],
+            }
+            for item in evidence
+        ]
+    else:
+        repaired["evidence"] = []
+    actions = repaired.get("next_actions")
+    if isinstance(actions, str):
+        repaired["next_actions"] = [{"label": actions[:28] or "Brief", "command": "/brief"}]
+    elif isinstance(actions, list):
+        repaired["next_actions"] = [
+            {
+                "label": str(item.get("label", "Action")) if isinstance(item, dict) else str(item),
+                "command": str(item.get("command", "/brief")) if isinstance(item, dict) else "/brief",
+            }
+            for item in actions
+        ]
+    else:
+        repaired["next_actions"] = []
+    for key in ["warnings", "cited_ids"]:
+        value = repaired.get(key)
+        if isinstance(value, str):
+            repaired[key] = [value]
+        elif isinstance(value, list):
+            repaired[key] = [str(item) for item in value]
+        else:
+            repaired[key] = []
+    if repaired.get("confidence") not in {"low", "medium", "high"}:
+        repaired["confidence"] = "medium"
+    return repaired, "structured"
 
 
 @app.get("/agent/status")

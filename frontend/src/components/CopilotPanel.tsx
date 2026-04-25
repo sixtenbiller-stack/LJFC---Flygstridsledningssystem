@@ -1,92 +1,102 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import type {
-  ScenarioState, CourseOfAction, ExplanationData, SimulationResult,
-  AuditRecord, FeedItem, CopilotResponse, ThreatAlert, ThreatGroup,
+  ScenarioState, CourseOfAction, ThreatAlert, ThreatGroup,
   DecisionCard as DecisionCardType, AgentChatMessage, CopilotStatusData,
 } from '../types';
 import { ALL_COMMANDS, type CommandDef } from '../copilotCommands';
+import { DecisionCard } from './DecisionCard';
 import './CopilotPanel.css';
 
 interface Props {
   state: ScenarioState;
   coas: CourseOfAction[];
-  coaWave: number;
-  explanation: ExplanationData | null;
-  simResult: SimulationResult | null;
-  decisions: AuditRecord[];
   loading: string;
-  feedItems: FeedItem[];
   copilotStatus: CopilotStatusData | null;
   alerts: ThreatAlert[];
   selectedTrack: string | null;
   groups?: ThreatGroup[];
   selectedGroup?: string | null;
   decisionCard?: DecisionCardType | null;
-  scenarioMode?: string;
-  scenarioOrigin?: string;
   onGenerateCoas: () => void;
   onExplain: (coaId: string) => void;
   onSimulate: (coaId: string) => void;
   onApprove: (coaId: string) => void;
   onSendCommand: (input: string) => Promise<AgentChatMessage | null>;
+  onGroupApprove?: (groupId: string, responseId: string) => void;
+  onGroupDefer?: (groupId: string) => void;
+  onGroupOverride?: (groupId: string, responseId: string, reason: string) => void;
 }
 
-function ribbonCommands(args: {
-  alertCount: number;
-  coaCount: number;
-  wave: number;
-  decisionCount: number;
-}): Array<{ cmd: string; label: string }> {
-  const { alertCount, coaCount } = args;
-  if (coaCount > 0) {
-    return [
-      { cmd: '/why top', label: 'Why top plan?' },
-      { cmd: '/simulate top', label: 'Simulate' },
-      { cmd: '/audit', label: 'Audit' },
-      { cmd: '/commands', label: 'Commands' },
-    ];
+function evidenceItems(structured: AgentChatMessage['structured'] | undefined) {
+  const value = structured?.evidence as unknown;
+  if (Array.isArray(value)) {
+    return value.map((item, i) => {
+      if (item && typeof item === 'object') {
+        const obj = item as { label?: unknown; detail?: unknown; cited_id?: unknown };
+        return {
+          label: String(obj.label || `Evidence ${i + 1}`),
+          detail: String(obj.detail || ''),
+          cited_id: String(obj.cited_id || `evidence-${i}`),
+        };
+      }
+      return { label: `Evidence ${i + 1}`, detail: String(item), cited_id: `evidence-${i}` };
+    });
   }
-  return [
-    { cmd: '/brief', label: 'Brief' },
-    { cmd: '/summary', label: 'Summary' },
-    { cmd: alertCount > 0 ? '/top-threat' : '/threats', label: 'Top threat' },
-    { cmd: '/recommend', label: 'Recommend' },
-    { cmd: '/commands', label: 'Commands' },
-  ];
+  if (typeof value === 'string' && value.trim()) {
+    return [{ label: 'Assessment', detail: value, cited_id: 'gemma-text' }];
+  }
+  return [];
 }
 
-type View = 'feed' | 'plans' | 'compare' | 'explain' | 'simulate' | 'audit';
+function actionItems(structured: AgentChatMessage['structured'] | undefined) {
+  const value = structured?.next_actions as unknown;
+  if (Array.isArray(value)) {
+    return value.map((item, i) => {
+      if (item && typeof item === 'object') {
+        const obj = item as { label?: unknown; command?: unknown };
+        return {
+          label: String(obj.label || `Action ${i + 1}`),
+          command: String(obj.command || '/brief'),
+        };
+      }
+      return { label: String(item), command: '/brief' };
+    });
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return [{ label: value.slice(0, 28), command: '/brief' }];
+  }
+  return [];
+}
+
+const QUICK_PROMPTS: Array<{ label: string; cmd: string }> = [
+  { label: 'Brief', cmd: '/brief' },
+  { label: 'What changed?', cmd: '/what-changed' },
+  { label: 'Top threat', cmd: '/top-threat' },
+  { label: 'ATO constraints', cmd: '/ato' },
+  { label: 'Recommend', cmd: '/recommend' },
+  { label: 'Simulate current', cmd: '/simulate top' },
+];
 
 export function CopilotPanel({
-  state, coas, coaWave, explanation, simResult, decisions, loading,
-  feedItems, copilotStatus, alerts, selectedTrack,
-  groups = [], selectedGroup, decisionCard, scenarioMode, scenarioOrigin,
+  state, coas, loading, copilotStatus, alerts, selectedTrack,
+  groups = [], selectedGroup, decisionCard,
   onGenerateCoas, onExplain, onSimulate, onApprove, onSendCommand,
+  onGroupApprove, onGroupDefer, onGroupOverride,
 }: Props) {
-  const [view, setView] = useState<View>('feed');
-  const [compareIds, setCompareIds] = useState<[string, string] | null>(null);
-  const [selectedCoa, setSelectedCoa] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [commandLoading, setCommandLoading] = useState(false);
   const [commandResponse, setCommandResponse] = useState<AgentChatMessage | null>(null);
   const [chatLog, setChatLog] = useState<AgentChatMessage[]>([]);
-  const [quickActions, setQuickActions] = useState<string[]>([]);
   const [slashHighlight, setSlashHighlight] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
-  const feedEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const topThreat = alerts[0];
   const topCoa = coas[0];
-  const ribbon = useMemo(
-    () => ribbonCommands({
-      alertCount: alerts.length,
-      coaCount: coas.length,
-      wave: state.wave,
-      decisionCount: decisions.length,
-    }),
-    [alerts.length, coas.length, state.wave, decisions.length],
-  );
+  const activeGroup = groups.find(g => g.group_id === selectedGroup) || groups[0];
+  const ai = state.ai_provider_status || copilotStatus?.ai_status;
+  const ato = state.ato_context;
 
   const mergedSlashCommands = useMemo((): CommandDef[] => {
     const dyn: CommandDef[] = [];
@@ -115,10 +125,10 @@ export function CopilotPanel({
   const filteredSlash = useMemo(() => {
     if (!inputText.startsWith('/')) return [];
     const q = inputText.slice(1).toLowerCase();
-    if (!q) return mergedSlashCommands.slice(0, 48);
+    if (!q) return mergedSlashCommands.slice(0, 40);
     return mergedSlashCommands.filter(
       c => c.cmd.toLowerCase().includes(q) || c.label.toLowerCase().includes(q),
-    ).slice(0, 48);
+    ).slice(0, 40);
   }, [inputText, mergedSlashCommands]);
 
   const slashMenuOpen = inputFocused && inputText.startsWith('/') && filteredSlash.length > 0;
@@ -128,64 +138,77 @@ export function CopilotPanel({
   }, [inputText, filteredSlash.length]);
 
   useEffect(() => {
-    if (view === 'feed' && feedEndRef.current) {
-      feedEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [feedItems.length, view]);
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatLog.length, commandLoading]);
 
-  useEffect(() => {
-    if (feedItems.length > 0) {
-      const latest = feedItems[feedItems.length - 1];
-      if (latest.suggested_actions.length > 0) {
-        setQuickActions(latest.suggested_actions);
-      }
-    }
-  }, [feedItems]);
+  const providerLabel = copilotStatus?.provider === 'ollama' || ai?.provider === 'ollama'
+    ? 'Local Gemma'
+    : copilotStatus?.provider === 'gemini' || ai?.provider === 'gemini'
+      ? 'Gemini'
+      : 'Fallback';
 
-  const handleGenerate = () => {
-    onGenerateCoas();
-    setView('plans');
-    setSelectedCoa(null);
-    setCommandResponse(null);
-  };
+  const modelLine = `${ai?.provider || copilotStatus?.provider || '—'} · ${ai?.model || copilotStatus?.model || '—'}`;
 
-  const handleCompare = () => {
-    if (coas.length >= 2) {
-      setCompareIds([coas[0].coa_id, coas[1].coa_id]);
-      setView('compare');
-    }
-  };
+  const statusLabel = commandLoading
+    ? 'LOCAL GEMMA THINKING'
+    : (ai?.label || copilotStatus?.ai_status?.label || 'TEMPLATE FALLBACK');
 
-  const handleExplain = (coaId: string) => {
-    onExplain(coaId);
-    setView('explain');
-  };
+  const statusClass = commandLoading ? 'thinking' : (ai?.status || copilotStatus?.ai_status?.status || 'fallback');
 
-  const handleSimulate = (coaId: string) => {
-    onSimulate(coaId);
-    setView('simulate');
-  };
-
-  const handleApprove = (coaId: string) => {
-    onApprove(coaId);
-    setView('audit');
-  };
+  const contextLine = [
+    activeGroup?.group_id && `Grp ${activeGroup.group_id}`,
+    selectedTrack && `Trk ${selectedTrack}`,
+    state.source_state_id?.replace(/^snap-/, '').slice(0, 20),
+  ].filter(Boolean).join(' · ') || '—';
 
   const handleSendCommand = async (text?: string) => {
     const cmd = text || inputText.trim();
     if (!cmd) return;
-    setCommandLoading(true);
+    const ts = new Date().toISOString();
+    const opMsg: AgentChatMessage = {
+      role: 'operator',
+      message: cmd,
+      timestamp: ts,
+      source_state_id: state.source_state_id,
+    };
+    setChatLog(prev => [...prev, opMsg].slice(-40));
     setInputText('');
+    setCommandLoading(true);
     try {
       const resp = await onSendCommand(cmd);
       if (resp) {
         setCommandResponse(resp);
-        const operatorMessage: AgentChatMessage = { role: 'operator', message: cmd, timestamp: new Date().toISOString(), source_state_id: state.source_state_id };
-        setChatLog(prev => [...prev, operatorMessage, resp].slice(-20));
-        if (resp.structured?.next_actions?.length) {
-          setQuickActions(resp.structured.next_actions.map(action => action.label));
-        }
+        setChatLog(prev => [...prev, resp].slice(-40));
+      } else {
+        const err: AgentChatMessage = {
+          role: 'assistant',
+          timestamp: new Date().toISOString(),
+          source_state_id: state.source_state_id,
+          status: 'error',
+          message: 'No response from Chief of Staff endpoint.',
+          display_text: 'No response from Chief of Staff endpoint.',
+          provider: 'system',
+          model: '',
+          parse_status: 'error',
+        };
+        setCommandResponse(err);
+        setChatLog(prev => [...prev, err].slice(-40));
       }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Request failed';
+      const err: AgentChatMessage = {
+        role: 'assistant',
+        timestamp: new Date().toISOString(),
+        source_state_id: state.source_state_id,
+        status: 'error',
+        message: msg,
+        display_text: msg,
+        provider: 'system',
+        model: '',
+        parse_status: 'error',
+      };
+      setCommandResponse(err);
+      setChatLog(prev => [...prev, err].slice(-40));
     } finally {
       setCommandLoading(false);
     }
@@ -197,7 +220,7 @@ export function CopilotPanel({
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (slashMenuOpen) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -231,265 +254,165 @@ export function CopilotPanel({
     }
   };
 
-  const handleQuickAction = (action: string) => {
-    const cmdMap: Record<string, string> = {
-      'Generate COAs': '/generate-coas',
-      'Re-plan': '/replan',
-      'Compare top 2': '/compare top2',
-      'Why this plan?': '/why top',
-      'Simulate top plan': '/simulate top',
-      'Approve selected plan': '/approve',
-    };
-    const cmd = cmdMap[action] || action;
-    void handleSendCommand(cmd);
-  };
+  const hasDecisionCard = Boolean(decisionCard && selectedGroup && onGroupApprove && onGroupDefer && onGroupOverride);
 
   return (
-    <div className="copilot-panel">
-      <div className="copilot-header">
-        <div className="copilot-header-left">
-          <span className="copilot-title">CHIEF OF STAFF</span>
-          {copilotStatus && (
-            <span className={`copilot-provider ${copilotStatus.provider}`}>
-              {copilotStatus.provider === 'ollama' ? 'LOCAL GEMMA' : copilotStatus.provider === 'gemini' ? 'GEMINI' : 'FALLBACK'}
-            </span>
-          )}
-          <span className={`copilot-ai-state ${commandLoading ? 'busy' : copilotStatus?.ai_status?.status || 'fallback'}`}>
-            {commandLoading ? 'LOCAL GEMMA BUSY' : copilotStatus?.ai_status?.label || 'TEMPLATE FALLBACK'}
-          </span>
+    <div className="cos-console">
+      <header className="cos-header-block">
+        <div className="cos-header-top">
+          <h1 className="cos-product-title">Chief of Staff</h1>
+          <span className="cos-provider-badge">{providerLabel}</span>
         </div>
-        {coaWave > 0 && <span className="copilot-wave">W{coaWave}</span>}
-      </div>
+        <div className="cos-model-line">{modelLine}</div>
+        <div className={`cos-status-pill cos-status-${statusClass}`}>{statusLabel}</div>
+        <div className="cos-context-line" title={state.source_state_id}>Context: {contextLine}</div>
+      </header>
 
-      <LatestAssessmentCard
-        response={commandResponse}
-        thinking={commandLoading}
-        sourceStateId={state.source_state_id}
-        onAction={(cmd) => void handleSendCommand(cmd)}
-      />
+      <div className="cos-main-scroll">
+        <LatestAssessmentCard
+          response={commandResponse}
+          thinking={commandLoading}
+          sourceStateId={state.source_state_id}
+          onAction={(cmd) => void handleSendCommand(cmd)}
+        />
 
-      <div className="copilot-sticky" aria-label="Situation summary">
-        <div className="copilot-sticky-row">
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">Feed</span>
-            <span className="csk-value">Synthetic Live Feed</span>
-          </div>
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">Current State</span>
-            <span className="csk-value csk-mono" title={state.source_state_id}>
-              {state.source_state_id.length > 18 ? `${state.source_state_id.slice(0, 18)}…` : state.source_state_id}
-            </span>
-          </div>
-        </div>
-        {groups.length > 0 && (() => {
-          const topG = groups.find(g => g.group_id === selectedGroup) || groups[0];
-          return (
-            <div className="copilot-sticky-row copilot-group-summary">
-              <div className="copilot-sticky-cell">
-                <span className="csk-label">Top group</span>
-                <span className="csk-value csk-highlight">{topG.group_type || topG.group_id}</span>
-              </div>
-              <div className="copilot-sticky-cell">
-                <span className="csk-label">{topG.recommended_lane || 'FAST'}</span>
-                <span className="csk-value">{topG.member_track_ids.length} tracks · {Math.round((topG.confidence ?? 0) * 100)}%</span>
-              </div>
+        <section className="cos-decision-block" aria-label="Decision support">
+          <h2 className="cos-section-label">Decision support</h2>
+
+          {decisionCard?.recommended_response && (
+            <div className="cos-top-rec">
+              <span className="cos-quiet-label">Top recommendation</span>
+              <p className="cos-rec-title">{decisionCard.recommended_response.title}</p>
+              <p className="cos-rec-summary">{decisionCard.recommended_response.summary}</p>
             </div>
-          );
-        })()}
-        <div className="copilot-sticky-row">
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">Top threat</span>
-            <span className="csk-value">{topThreat?.track_id ?? '—'}</span>
+          )}
+          {!decisionCard && (
+            <div className="cos-quiet-empty">
+              {topCoa
+                ? <>Ranked response plan: <strong>{topCoa.title}</strong></>
+                : state.coa_trigger_pending
+                  ? 'Recommendation trigger active — generate COAs for ranked options.'
+                  : 'Monitoring — no ranked plan until feed develops the threat picture.'}
+            </div>
+          )}
+
+          <div className="cos-ato-panel">
+            <h3 className="cos-ato-heading">ATO / mission constraints</h3>
+            <div className="cos-ato-name">{ato?.ato_id ?? 'ato_minimal_alpha'}</div>
+            <p className="cos-ato-intent">{ato?.commander_intent ?? '—'}</p>
+            <dl className="cos-ato-dl">
+              <dt>Primary defended</dt>
+              <dd>{(ato?.primary_defended_object_ids ?? ['city-arktholm']).join(', ')}</dd>
+              <dt>Reserve</dt>
+              <dd>{JSON.stringify(ato?.reserve_policy ?? { min_fighter_reserve: 1 })}</dd>
+              <dt>Approval</dt>
+              <dd>{ato?.approval_required ? `Required · ${ato?.approval_role ?? '—'}` : '—'}</dd>
+            </dl>
           </div>
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">Top recommendation</span>
-            <span className="csk-value">{topCoa?.title ?? '—'}</span>
-          </div>
-        </div>
-      </div>
 
-      <div className="copilot-context-card" aria-label="Operator context">
-        <div className="cc-line">
-          <span className="cc-label">Selected</span>
-          <span className="cc-val">{selectedTrack ?? '—'}</span>
-        </div>
-        <div className="cc-line">
-          <span className="cc-label">Wave / trigger</span>
-          <span className="cc-val">
-            {state.wave}
-            {state.coa_trigger_pending ? ' · COA recommended' : ''}
-          </span>
-        </div>
-      </div>
-
-      <div className="copilot-ato-card" aria-label="ATO and mission constraints">
-        <div className="copilot-card-heading">ATO / MISSION CONSTRAINTS</div>
-        <div className="copilot-ato-name">ato_minimal_alpha</div>
-        <div className="copilot-ato-intent">
-          Protect Arktholm while preserving at least one fighter for follow-on uncertainty.
-        </div>
-        <div className="copilot-ato-grid">
-          <span>Primary defended</span><strong>city-arktholm</strong>
-          <span>Reserve rule</span><strong>Keep 1 fighter</strong>
-          <span>Approval</span><strong>Air defence battle manager</strong>
-        </div>
-      </div>
-
-      <div className="copilot-tabs">
-        <button className={view === 'feed' ? 'tab active' : 'tab'} onClick={() => setView('feed')}>
-          Feed{feedItems.length > 0 ? ` (${feedItems.length})` : ''}
-        </button>
-        <button className={view === 'plans' ? 'tab active' : 'tab'} onClick={() => setView('plans')}>Plan</button>
-        <button className="tab compare-tab" onClick={handleCompare} disabled={coas.length < 2}>Compare</button>
-        <button className={view === 'explain' ? 'tab active' : 'tab'} onClick={() => setView('explain')} disabled={!explanation}>Why?</button>
-        <button className={view === 'simulate' ? 'tab active' : 'tab'} onClick={() => setView('simulate')} disabled={!simResult}>Sim</button>
-        <button className={view === 'audit' ? 'tab active' : 'tab'} onClick={() => setView('audit')}>Audit</button>
-      </div>
-
-      <div className="copilot-content">
-        {view === 'feed' && (
-          <FeedView
-            items={feedItems}
-            commandResponse={commandResponse}
-            feedEndRef={feedEndRef}
-          />
-        )}
-
-        {view === 'plans' && (
-          <>
-            <button
-              className="generate-btn primary"
-              onClick={handleGenerate}
-              disabled={loading === 'coas'}
-            >
-              {loading === 'coas' ? 'Generating...' : state.wave >= 2 ? 'Update Response Plan' : 'Generate Response Plan'}
+          <div className="cos-action-row">
+            <button type="button" className="cos-btn cos-btn-primary" onClick={onGenerateCoas} disabled={loading === 'coas'}>
+              {loading === 'coas' ? 'Generating…' : 'Generate COAs'}
             </button>
+            <button type="button" className="cos-btn" onClick={() => topCoa && onExplain(topCoa.coa_id)} disabled={!topCoa || loading === 'explain'}>
+              Why this plan?
+            </button>
+            <button type="button" className="cos-btn" onClick={() => topCoa && onSimulate(topCoa.coa_id)} disabled={!topCoa || loading === 'simulate'}>
+              Run what-if simulation
+            </button>
+            <button type="button" className="cos-btn cos-btn-warn" onClick={() => topCoa && onApprove(topCoa.coa_id)} disabled={!topCoa || loading === 'approve'}>
+              Approve
+            </button>
+          </div>
 
-            {coas.length === 0 && (
-              <div className="copilot-hint">
-                {state.coa_trigger_pending
-                  ? 'Threat threshold crossed — generate COAs to see response options.'
-                  : 'Start the scenario and wait for threats to appear.'}
-              </div>
-            )}
-
-            {coas.map(coa => (
-              <CoaCard
-                key={coa.coa_id}
-                coa={coa}
-                isSelected={selectedCoa === coa.coa_id}
-                onSelect={() => setSelectedCoa(coa.coa_id === selectedCoa ? null : coa.coa_id)}
-                onExplain={() => handleExplain(coa.coa_id)}
-                onSimulate={() => handleSimulate(coa.coa_id)}
-                onApprove={() => handleApprove(coa.coa_id)}
+          {hasDecisionCard && decisionCard && (
+            <div className="cos-decision-embed">
+              <DecisionCard
+                card={decisionCard}
+                onApprove={onGroupApprove!}
+                onDefer={onGroupDefer!}
+                onOverride={onGroupOverride!}
+                onGenerateCoas={onGenerateCoas}
+                onSimulate={onSimulate}
                 loading={loading}
               />
-            ))}
-          </>
-        )}
+            </div>
+          )}
+        </section>
 
-        {view === 'compare' && compareIds && <CompareView coas={coas} ids={compareIds} />}
-        {view === 'explain' && <ExplainView data={explanation} />}
-        {view === 'simulate' && <SimulateView result={simResult} />}
-        {view === 'audit' && <AuditView decisions={decisions} />}
+        <section className="cos-transcript-section" aria-label="Conversation log">
+          <h2 className="cos-section-label">Command log</h2>
+          <ChatTranscript messages={chatLog} thinking={commandLoading} transcriptEndRef={transcriptEndRef} />
+        </section>
       </div>
 
-      <ChatTranscript messages={chatLog} thinking={commandLoading} />
-
-      {/* Feed / backend suggested quick actions */}
-      {quickActions.length > 0 && (
-        <div className="quick-actions">
-          {quickActions.map((action, i) => (
+      <footer className="cos-chat-footer">
+        <div className="cos-quick-row">
+          {QUICK_PROMPTS.map(q => (
             <button
-              key={i}
+              key={q.cmd}
               type="button"
-              className="quick-action-chip"
-              onClick={() => handleQuickAction(action)}
+              className="cos-quick-chip"
               disabled={commandLoading}
+              onClick={() => void handleSendCommand(q.cmd)}
             >
-              {action}
+              {q.label}
             </button>
           ))}
         </div>
-      )}
 
-      <div className="copilot-command-ribbon" aria-label="Context commands">
-        <span className="cc-ribbon-label">Quick</span>
-        <div className="cc-ribbon-chips">
-          {ribbon.map(r => (
-            <button
-              key={r.cmd}
-              type="button"
-              className="cc-ribbon-chip"
-              onClick={() => void handleSendCommand(r.cmd)}
+        <div className="cos-input-wrap">
+          <div className="cos-input-area">
+            <textarea
+              ref={inputRef}
+              className="cos-input"
+              placeholder={commandLoading ? 'Chief of Staff is responding…' : 'Ask Chief of Staff about the current threat situation…'}
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => { window.setTimeout(() => setInputFocused(false), 160); }}
               disabled={commandLoading}
-              title={r.cmd}
+              autoComplete="off"
+              spellCheck={false}
+              aria-expanded={slashMenuOpen}
+              aria-controls="slash-suggest-cos"
+              rows={2}
+            />
+            <button
+              type="button"
+              className="cos-send"
+              onClick={() => void handleSendCommand()}
+              disabled={commandLoading || !inputText.trim()}
             >
-              {r.label}
+              Send
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Command input + slash autocomplete */}
-      <div className="copilot-input-wrap">
-        <div className="copilot-input-area">
-          <input
-            ref={inputRef}
-            type="text"
-            className="copilot-input"
-            placeholder={commandLoading ? 'Gemma thinking...' : 'Ask Chief of Staff about the current threat situation...'}
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => {
-              window.setTimeout(() => setInputFocused(false), 180);
-            }}
-            disabled={commandLoading}
-            autoComplete="off"
-            spellCheck={false}
-            aria-expanded={slashMenuOpen}
-            aria-controls="slash-suggest"
-          />
-          <button
-            type="button"
-            className="copilot-send"
-            onClick={() => void handleSendCommand()}
-            disabled={commandLoading || !inputText.trim()}
-          >
-            ↵
-          </button>
-        </div>
-
-        {slashMenuOpen && (
-          <div id="slash-suggest" className="slash-suggest" role="listbox">
-            {filteredSlash.map((c, i) => (
-              <div key={c.cmd}>
-                {(i === 0 || filteredSlash[i - 1].category !== c.category) && (
-                  <div className="slash-cat" role="presentation">
-                    {c.category}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={i === slashHighlight}
-                  className={`slash-row ${i === slashHighlight ? 'active' : ''}`}
-                  onMouseDown={e => {
-                    e.preventDefault();
-                    void handleSendCommand(c.cmd);
-                  }}
-                  onMouseEnter={() => setSlashHighlight(i)}
-                >
-                  <span className="slash-cmd">{c.cmd}</span>
-                  <span className="slash-hint">{c.label}</span>
-                </button>
-              </div>
-            ))}
           </div>
-        )}
-      </div>
+
+          {slashMenuOpen && (
+            <div id="slash-suggest-cos" className="slash-suggest" role="listbox">
+              {filteredSlash.map((c, i) => (
+                <div key={c.cmd}>
+                  {(i === 0 || filteredSlash[i - 1].category !== c.category) && (
+                    <div className="slash-cat" role="presentation">{c.category}</div>
+                  )}
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={i === slashHighlight}
+                    className={`slash-row ${i === slashHighlight ? 'active' : ''}`}
+                    onMouseDown={e => { e.preventDefault(); void handleSendCommand(c.cmd); }}
+                    onMouseEnter={() => setSlashHighlight(i)}
+                  >
+                    <span className="slash-cmd">{c.cmd}</span>
+                    <span className="slash-hint">{c.label}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }
@@ -503,388 +426,129 @@ function LatestAssessmentCard({
   onAction: (cmd: string) => void;
 }) {
   const structured = response?.structured;
+  const evidence = evidenceItems(structured);
+  const actions = actionItems(structured);
+  const rawFallback = !structured && (response?.display_text || response?.message);
+
   if (thinking) {
     return (
-      <div className="latest-assessment-card thinking">
-        <div className="assessment-title">Latest Assessment</div>
-        <div className="assessment-bluf">Gemma thinking...</div>
-        <div className="assessment-muted">Building compact current-state packet and querying local Ollama.</div>
-      </div>
+      <section className="cos-assessment cos-assessment-thinking">
+        <h2 className="cos-section-label">Latest assessment</h2>
+        <p className="cos-bluf">Chief of Staff is analyzing current state…</p>
+        <p className="cos-assessment-muted">Querying local Ollama. Deterministic state remains authoritative.</p>
+      </section>
     );
   }
-  if (!structured) {
+
+  if (!response || (!structured && !rawFallback)) {
     return (
-      <div className="latest-assessment-card empty">
-        <div className="assessment-title">Latest Assessment</div>
-        <div className="assessment-bluf">No AI response yet.</div>
-        <div className="assessment-muted">Ask for a brief or start the synthetic feed. Snapshot: {sourceStateId}</div>
-      </div>
+      <section className="cos-assessment cos-assessment-empty">
+        <h2 className="cos-section-label">Latest assessment</h2>
+        <p className="cos-bluf cos-bluf-muted">No assessment yet.</p>
+        <p className="cos-assessment-muted">Start the feed or ask Chief of Staff for a brief. State: {sourceStateId}</p>
+      </section>
     );
   }
+
+  if (rawFallback && !structured) {
+    return (
+      <section className="cos-assessment cos-assessment-raw">
+        <div className="cos-assessment-head">
+          <h2 className="cos-section-label">Latest assessment</h2>
+          <span className="cos-assessment-meta">{response.provider} · {response.model} · {response.parse_status || response.status || 'text'}</span>
+        </div>
+        <pre className="cos-raw-text">{String(rawFallback)}</pre>
+        <div className="cos-assessment-lineage">State {response.source_state_id}</div>
+      </section>
+    );
+  }
+
   return (
-    <div className="latest-assessment-card">
-      <div className="assessment-header">
-        <span className="assessment-title">Latest Assessment</span>
-        <span className="assessment-meta">{response?.provider} · {response?.model}</span>
+    <section className="cos-assessment">
+      <div className="cos-assessment-head">
+        <h2 className="cos-section-label">Latest assessment</h2>
+        <span className="cos-assessment-meta">
+          {response.provider} · {response.model}
+          {response.parse_status ? ` · ${response.parse_status}` : ''}
+          {response.fallback_used ? ' · fallback' : ''}
+        </span>
       </div>
-      <div className="assessment-bluf">BLUF: {structured.bluf}</div>
-      <div className="assessment-section">
-        <span>Current situation</span>
-        <p>{structured.situation}</p>
+      <p className="cos-bluf">{structured!.bluf}</p>
+      <div className="cos-assessment-body">
+        <span className="cos-quiet-label">Current situation</span>
+        <p>{structured!.situation}</p>
       </div>
-      {structured.evidence?.length > 0 && (
-        <div className="assessment-section">
-          <span>Evidence</span>
+      {evidence.length > 0 && (
+        <div className="cos-evidence-block">
+          <span className="cos-quiet-label">Evidence</span>
           <ul>
-            {structured.evidence.slice(0, 4).map((e, i) => (
+            {evidence.slice(0, 6).map((e, i) => (
               <li key={`${e.cited_id}-${i}`}><strong>{e.label}:</strong> {e.detail}</li>
             ))}
           </ul>
         </div>
       )}
-      <div className="assessment-section">
-        <span>Recommendation</span>
-        <p>{structured.recommendation}</p>
+      <div className="cos-recommendation-block">
+        <span className="cos-quiet-label">Recommendation</span>
+        <p>{structured!.recommendation}</p>
       </div>
-      <div className="assessment-actions">
-        {structured.next_actions?.slice(0, 3).map((action) => (
-          <button key={action.command} type="button" onClick={() => onAction(action.command)}>
-            {action.label}
-          </button>
-        ))}
-      </div>
-      <div className="assessment-lineage">State {response?.source_state_id} · {response?.status}</div>
-    </div>
-  );
-}
-
-function ChatTranscript({ messages, thinking }: { messages: AgentChatMessage[]; thinking: boolean }) {
-  if (messages.length === 0 && !thinking) {
-    return <div className="chat-transcript-empty">No AI response yet — ask for a brief or start the feed.</div>;
-  }
-  return (
-    <div className="chat-transcript">
-      {messages.slice(-8).map((m, i) => (
-        <div key={`${m.timestamp}-${i}`} className={`chat-row ${m.role}`}>
-          <div className="chat-meta">
-            {m.role === 'operator' ? 'Operator' : `${m.provider || 'AI'} · ${m.model || ''}`}
-            <span>{new Date(m.timestamp).toLocaleTimeString()}</span>
-          </div>
-          <div className="chat-body">
-            {m.role === 'operator' ? m.message : (m.structured?.bluf || m.display_text || m.message)}
-          </div>
+      {actions.some(a => a.command.startsWith('/')) && (
+        <div className="cos-assessment-actions">
+          {actions.filter(a => a.command.startsWith('/')).slice(0, 4).map(a => (
+            <button key={a.command} type="button" className="cos-action-pill" onClick={() => onAction(a.command)}>
+              {a.label}
+            </button>
+          ))}
         </div>
-      ))}
-      {thinking && <div className="chat-row assistant"><div className="chat-body">Gemma thinking...</div></div>}
-    </div>
+      )}
+      <div className="cos-assessment-lineage">State {response.source_state_id}</div>
+    </section>
   );
 }
 
-function FeedView({
-  items, commandResponse, feedEndRef,
+function ChatTranscript({
+  messages, thinking, transcriptEndRef,
 }: {
-  items: FeedItem[];
-  commandResponse: AgentChatMessage | null;
-  feedEndRef: React.RefObject<HTMLDivElement | null>;
+  messages: AgentChatMessage[];
+  thinking: boolean;
+  transcriptEndRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  if (items.length === 0 && !commandResponse) {
-    return (
-      <div className="copilot-hint">
-        Chief of Staff is monitoring the synthetic feed. Updates will appear here when something material changes.
-        <div className="copilot-hint-sub">
-          Try <span className="copilot-hint-cmd">/brief</span>, <span className="copilot-hint-cmd">/commands</span>, or the Quick ribbon below. Start playback to populate threats.
-        </div>
-      </div>
-    );
+  if (messages.length === 0 && !thinking) {
+    return <div className="cos-transcript-empty">No messages yet — use quick prompts or type below.</div>;
   }
-
   return (
-    <div className="feed-view">
-      {items.map(item => (
-        <div key={item.id} className={`feed-item severity-${item.severity}`}>
-          <div className="feed-item-header">
-            <span className={`feed-severity ${item.severity}`}>{item.severity === 'critical' ? '●' : item.severity === 'warning' ? '▲' : '◆'}</span>
-            <span className="feed-category">{item.category.replace(/_/g, ' ')}</span>
-            <span className="feed-time">{new Date(item.timestamp).toLocaleTimeString()}</span>
+    <div className="cos-transcript">
+      {messages.map((m, i) => (
+        <div key={`${m.timestamp}-${i}`} className={`cos-msg cos-msg-${m.role}`}>
+          <div className="cos-msg-meta">
+            {m.role === 'operator' ? (
+              <span>Operator</span>
+            ) : (
+              <span>{m.provider || 'AI'} · {m.model || '—'}{m.status ? ` · ${m.status}` : ''}</span>
+            )}
+            <time dateTime={m.timestamp}>{new Date(m.timestamp).toLocaleTimeString()}</time>
           </div>
-          <div className="feed-title">{item.title}</div>
-          <div className="feed-body">{item.body}</div>
-          {item.related_ids.length > 0 && (
-            <div className="feed-related">
-              {item.related_ids.map(id => (
-                <span key={id} className="feed-tag">{id}</span>
-              ))}
+          {m.role === 'operator' ? (
+            <div className="cos-msg-body">{m.message}</div>
+          ) : (
+            <div className="cos-msg-body">
+              {m.structured?.bluf || m.display_text || m.message}
+              {m.source_state_id && (
+                <div className="cos-msg-state">State: {m.source_state_id}</div>
+              )}
+              {m.parse_status === 'error' || m.status === 'error' ? (
+                <div className="cos-msg-err">Error — check Ollama or network. Fallback may apply.</div>
+              ) : null}
             </div>
           )}
         </div>
       ))}
-
-      {commandResponse && (
-        <div className="feed-item command-response">
-          <div className="feed-item-header">
-            <span className="feed-severity info">◆</span>
-            <span className="feed-category">copilot response</span>
-          </div>
-          <div className="feed-body">{commandResponse.structured?.bluf || commandResponse.display_text}</div>
+      {thinking && (
+        <div className="cos-msg cos-msg-assistant cos-msg-pending">
+          <div className="cos-msg-body">Chief of Staff responding…</div>
         </div>
       )}
-
-      <div ref={feedEndRef} />
-    </div>
-  );
-}
-
-function CoaCard({
-  coa, isSelected, onSelect, onExplain, onSimulate, onApprove, loading,
-}: {
-  coa: CourseOfAction;
-  isSelected: boolean;
-  onSelect: () => void;
-  onExplain: () => void;
-  onSimulate: () => void;
-  onApprove: () => void;
-  loading: string;
-}) {
-  const riskClass = coa.risk_level === 'high' ? 'risk-high'
-    : coa.risk_level === 'low' ? 'risk-low' : 'risk-medium';
-
-  return (
-    <div className={`coa-card ${isSelected ? 'expanded' : ''}`} onClick={onSelect}>
-      <div className="coa-rank">#{coa.rank}</div>
-      <div className="coa-title">{coa.title}</div>
-      <div className="coa-summary">{coa.summary}</div>
-
-      <div className="coa-metrics">
-        <div className="coa-metric">
-          <span className="metric-label">Readiness Cost</span>
-          <span className="metric-value">{coa.readiness_cost_pct.toFixed(1)}%</span>
-        </div>
-        <div className="coa-metric">
-          <span className="metric-label">Risk</span>
-          <span className={`metric-value ${riskClass}`}>{coa.risk_level}</span>
-        </div>
-        <div className="coa-metric">
-          <span className="metric-label">Assets</span>
-          <span className="metric-value">{coa.actions.length}</span>
-        </div>
-      </div>
-
-      {isSelected && (
-        <div className="coa-expanded" onClick={(e) => e.stopPropagation()}>
-          <div className="coa-section">
-            <div className="section-label">Reserve Posture</div>
-            <div className="section-text">{coa.reserve_posture}</div>
-          </div>
-          <div className="coa-section">
-            <div className="section-label">Expected Outcome</div>
-            <div className="section-text">{coa.estimated_outcome}</div>
-          </div>
-          <div className="coa-section">
-            <div className="section-label">Actions</div>
-            {coa.actions.map((a, i) => (
-              <div key={i} className="coa-action">
-                <span className="action-asset">{a.asset_id}</span>
-                <span className="action-type">{a.action_type}</span>
-                {a.target_track_ids.length > 0 && (
-                  <span className="action-targets">→ {a.target_track_ids.join(', ')}</span>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="coa-section">
-            <div className="section-label">Assumptions</div>
-            <ul className="assumptions-list">
-              {coa.assumptions.map((a, i) => <li key={i}>{a}</li>)}
-            </ul>
-          </div>
-          {coa.source_state_id && (
-            <div className="coa-lineage">Snapshot: {coa.source_state_id}</div>
-          )}
-          <div className="coa-actions-bar">
-            <button onClick={onExplain} disabled={loading === 'explain'}>
-              {loading === 'explain' ? '...' : 'Why?'}
-            </button>
-            <button onClick={onSimulate} disabled={loading === 'simulate'}>
-              {loading === 'simulate' ? '...' : 'Simulate'}
-            </button>
-            <button className="primary" onClick={onApprove} disabled={loading === 'approve'}>
-              {loading === 'approve' ? '...' : 'Approve'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CompareView({ coas, ids }: { coas: CourseOfAction[]; ids: [string, string] }) {
-  const [a, b] = ids.map(id => coas.find(c => c.coa_id === id)!).filter(Boolean);
-  if (!a || !b) return <div className="copilot-hint">Select two COAs to compare.</div>;
-
-  const fields: Array<{ label: string; getA: string; getB: string }> = [
-    { label: 'Readiness Cost', getA: `${a.readiness_cost_pct}%`, getB: `${b.readiness_cost_pct}%` },
-    { label: 'Risk Level', getA: a.risk_level, getB: b.risk_level },
-    { label: 'Assets Committed', getA: `${a.actions.length}`, getB: `${b.actions.length}` },
-    { label: 'Protected', getA: a.protected_objectives.join(', '), getB: b.protected_objectives.join(', ') },
-  ];
-
-  return (
-    <div className="compare-view">
-      <div className="compare-header">
-        <div className="compare-col-header">{a.title}</div>
-        <div className="compare-col-header">{b.title}</div>
-      </div>
-      {fields.map(f => (
-        <div key={f.label} className="compare-row">
-          <div className="compare-label">{f.label}</div>
-          <div className="compare-val">{f.getA}</div>
-          <div className="compare-val">{f.getB}</div>
-        </div>
-      ))}
-      <div className="compare-section">
-        <div className="compare-section-title">Reserve Posture</div>
-        <div className="compare-two-col">
-          <div className="compare-text">{a.reserve_posture}</div>
-          <div className="compare-text">{b.reserve_posture}</div>
-        </div>
-      </div>
-      <div className="compare-section">
-        <div className="compare-section-title">Rationale</div>
-        <div className="compare-two-col">
-          <div className="compare-text">{a.rationale}</div>
-          <div className="compare-text">{b.rationale}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ExplainView({ data }: { data: ExplanationData | null }) {
-  if (!data) return <div className="copilot-hint">Select a COA and click "Why?" to see the explanation.</div>;
-
-  return (
-    <div className="explain-view">
-      <div className="explain-header">
-        <span className="explain-q">"{data.question_received}"</span>
-        <span className="explain-confidence">Confidence: {data.explanation.recommendation_confidence}</span>
-      </div>
-
-      <div className="explain-narration">{data.narration}</div>
-
-      <div className="explain-section-title">Primary Factors</div>
-      {data.explanation.primary_factors.map((f, i) => (
-        <div key={i} className="explain-factor">
-          <div className="factor-name">{f.factor}</div>
-          <div className="factor-detail">{f.detail}</div>
-          {f.data_citation && <div className="factor-citation">{f.data_citation}</div>}
-        </div>
-      ))}
-
-      <div className="explain-section-title">Trade-offs</div>
-      <div className="explain-text">{data.explanation.trade_off_summary}</div>
-
-      {data.explanation.uncertainty_notes.length > 0 && (
-        <>
-          <div className="explain-section-title">Uncertainties</div>
-          <ul className="explain-list">
-            {data.explanation.uncertainty_notes.map((n, i) => <li key={i}>{n}</li>)}
-          </ul>
-        </>
-      )}
-
-      {data.source_state_id && <div className="explain-lineage">Snapshot: {data.source_state_id}</div>}
-    </div>
-  );
-}
-
-function SimulateView({ result }: { result: SimulationResult | null }) {
-  if (!result) return <div className="copilot-hint">Select a COA and click "Simulate" to run a what-if analysis.</div>;
-
-  return (
-    <div className="sim-view">
-      <div className="sim-header">
-        <span className="sim-title">Simulation: {result.coa_id}</span>
-        <span className="sim-seed">Seed: {result.seed}</span>
-      </div>
-
-      <div className="sim-score">
-        <div className="score-ring" style={{ '--score': result.outcome_score } as any}>
-          <span className="score-value">{(result.outcome_score * 100).toFixed(0)}%</span>
-        </div>
-        <span className="score-label">Outcome Score</span>
-      </div>
-
-      <div className="sim-metrics">
-        <div className="sim-metric good">
-          <span className="sm-value">{result.threats_intercepted}</span>
-          <span className="sm-label">Intercepted</span>
-        </div>
-        <div className={`sim-metric ${result.threats_missed > 0 ? 'bad' : 'good'}`}>
-          <span className="sm-value">{result.threats_missed}</span>
-          <span className="sm-label">Missed</span>
-        </div>
-        <div className={`sim-metric ${result.zone_breaches > 0 ? 'bad' : 'good'}`}>
-          <span className="sm-value">{result.zone_breaches}</span>
-          <span className="sm-label">Breaches</span>
-        </div>
-        <div className="sim-metric">
-          <span className="sm-value">{result.readiness_remaining_pct.toFixed(0)}%</span>
-          <span className="sm-label">Readiness</span>
-        </div>
-      </div>
-
-      <div className="sim-narration">{result.narration}</div>
-
-      <div className="sim-timeline-title">Timeline</div>
-      <div className="sim-timeline">
-        {result.timeline.map((e, i) => (
-          <div key={i} className={`sim-event event-${e.event.toLowerCase().includes('breach') ? 'bad' : e.event.toLowerCase().includes('intercept') || e.event.toLowerCase().includes('result') ? 'result' : 'normal'}`}>
-            <span className="se-time">T+{e.t_s.toFixed(0)}s</span>
-            <span className="se-detail">{e.detail}</span>
-          </div>
-        ))}
-      </div>
-
-      {result.source_state_id && <div className="sim-lineage">Snapshot: {result.source_state_id}</div>}
-    </div>
-  );
-}
-
-function AuditView({ decisions }: { decisions: AuditRecord[] }) {
-  if (decisions.length === 0) {
-    return <div className="copilot-hint">No decisions recorded yet. Approve a COA to create an audit entry.</div>;
-  }
-
-  return (
-    <div className="audit-view">
-      <div className="audit-title">DECISION AUDIT LOG</div>
-      {decisions.map(d => (
-        <div key={d.decision_id} className="audit-record">
-          <div className="audit-record-header">
-            <span className="audit-id">{d.decision_id}</span>
-            <span className="audit-wave">Wave {d.wave}</span>
-          </div>
-          <div className="audit-field">
-            <span className="af-label">COA</span>
-            <span className="af-value">{d.coa_id}</span>
-          </div>
-          <div className="audit-field">
-            <span className="af-label">Time</span>
-            <span className="af-value">{new Date(d.timestamp).toLocaleTimeString()}</span>
-          </div>
-          <div className="audit-field">
-            <span className="af-label">Readiness</span>
-            <span className="af-value">{d.readiness_remaining_pct.toFixed(1)}%</span>
-          </div>
-          <div className="audit-field">
-            <span className="af-label">Snapshot</span>
-            <span className="af-value lineage">{d.source_state_id}</span>
-          </div>
-          {d.operator_note && (
-            <div className="audit-note">{d.operator_note}</div>
-          )}
-        </div>
-      ))}
+      <div ref={transcriptEndRef} />
     </div>
   );
 }
