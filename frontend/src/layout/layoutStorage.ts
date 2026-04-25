@@ -26,13 +26,6 @@ const STORAGE_KEY = 'neon-command-layout-v1';
 
 export type BottomBarMode = 'compact' | 'normal' | 'expanded';
 
-export interface StoredLayout {
-  preset: LayoutPresetId;
-  leftPx: number;
-  rightPx: number;
-  bottomMode: BottomBarMode;
-}
-
 const BOTTOM_HEIGHTS: Record<BottomBarMode, number> = {
   compact: 80,
   normal: 118,
@@ -41,6 +34,14 @@ const BOTTOM_HEIGHTS: Record<BottomBarMode, number> = {
 
 export function getBottomHeight(mode: BottomBarMode): number {
   return BOTTOM_HEIGHTS[mode];
+}
+
+export interface StoredLayout {
+  preset: LayoutPresetId;
+  leftPx: number;
+  rightPx: number;
+  /** Timeline row height (optional for older saved layouts) */
+  bottomMode?: BottomBarMode;
 }
 
 /** Clamp rail widths so center stays usable */
@@ -84,13 +85,10 @@ export function loadLayout(): StoredLayout | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const o = JSON.parse(raw) as StoredLayout;
-    if (
-      o &&
-      typeof o.leftPx === 'number' &&
-      typeof o.rightPx === 'number' &&
-      o.preset in LAYOUT_PRESETS &&
-      o.bottomMode in BOTTOM_HEIGHTS
-    ) {
+    if (o && typeof o.leftPx === 'number' && typeof o.rightPx === 'number' && o.preset in LAYOUT_PRESETS) {
+      if (!o.bottomMode || !(o.bottomMode in BOTTOM_HEIGHTS)) {
+        (o as StoredLayout).bottomMode = 'normal';
+      }
       return o;
     }
   } catch {
@@ -107,4 +105,3 @@ export function saveLayout(layout: StoredLayout): void {
   }
 }
 
-export { BOTTOM_HEIGHTS };

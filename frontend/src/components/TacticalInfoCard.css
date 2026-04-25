@@ -2,7 +2,8 @@
   position: absolute;
   top: 60px;
   right: 12px;
-  width: 260px;
+  width: 300px;
+  max-width: min(300px, 42vw);
   background: rgba(5, 10, 7, 0.95);
   border: 1px solid var(--border-bright);
   border-radius: 12px;
@@ -53,6 +54,33 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.tic-ai-brief {
+  background: rgba(0, 255, 100, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.tic-ai-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.tic-ai-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.tic-ai-loading, .tic-ai-unavail {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
 }
 
 .tic-id-row {

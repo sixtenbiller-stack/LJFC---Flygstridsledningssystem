@@ -304,7 +304,7 @@
   min-height: 0;
   position: relative;
 }
-.bottom-bar.collapsed .tl-event-log {
+.bottom-bar.collapsed .tl-demo-strip {
   display: none;
 }
 

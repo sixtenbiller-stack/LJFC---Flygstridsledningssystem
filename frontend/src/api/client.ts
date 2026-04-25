@@ -68,6 +68,9 @@ export const api = {
 
   getCopilotStatus: () => request<any>('/copilot/status'),
 
+  getTrackBrief: (trackId: string) =>
+    request<{ brief: string; provider?: string; error?: string }>(`/ai/track-brief?track_id=${encodeURIComponent(trackId)}`),
+
   // Threat Groups & Responses
   getGroups: () => request<any[]>('/groups'),
 

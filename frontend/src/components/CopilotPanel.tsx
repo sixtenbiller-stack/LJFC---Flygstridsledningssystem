@@ -299,23 +299,6 @@ export function CopilotPanel({
   return (
     <div className="copilot-panel">
 
-      <div className="copilot-sticky" aria-label="Situation summary">
-        <div className="copilot-sticky-row">
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">Scenario</span>
-            <span className="csk-value">{state.scenario_name}</span>
-          </div>
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">Top threat</span>
-            <span className="csk-value">{topThreat?.track_id ?? '—'}</span>
-          </div>
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">Top recommendation</span>
-            <span className="csk-value">{topCoa?.title ?? '—'}</span>
-          </div>
-        </div>
-      </div>
-
       <div className="copilot-content">
         <FeedView
           items={feedItems}

@@ -168,13 +168,22 @@ def _generate_lmstudio(
     if json_mode:
         payload["response_format"] = {"type": "json_object"}
 
+    # Ollama + Gemma 3/4: without this, the model can fill the token budget in `reasoning` and
+    # return an empty `content` on /v1/chat/completions. See ollama/ollama#15288
+    re_eff = os.environ.get("LMSTUDIO_REASONING_EFFORT")
+    if re_eff is not None and re_eff.strip() != "":
+        payload["reasoning_effort"] = re_eff.strip()
+    elif _lmstudio_base_url and ":11434" in _lmstudio_base_url:
+        payload["reasoning_effort"] = "none"
+
     try:
         # Increased timeout to 120.0s for long prompts/local models
         resp = httpx.post(f"{_lmstudio_base_url}/chat/completions", json=payload, timeout=120.0)
         resp.raise_for_status()
         data = resp.json()
-        content = data["choices"][0]["message"]["content"]
-        return _clean_reasoning(content)
+        msg = data["choices"][0]["message"]
+        text = (msg.get("content") or "").strip() or (msg.get("reasoning") or "")
+        return _clean_reasoning(text)
     except Exception:
         logger.exception("LM Studio generation failed")
         return None

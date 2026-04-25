@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { EventLog, TimelineMarker } from '../types';
 import './Timeline.css';
 
@@ -38,17 +38,10 @@ const DEMO_JUMPS = [
 ];
 
 export function Timeline({
-  currentTime, duration, isPlaying, speed, eventsLog, coaTriggerPending,
-  onControl, onReset, onJump, onSeek, markers = [], mode, compact = false,
+  currentTime, duration, isPlaying, speed, eventsLog: _eventsLog, coaTriggerPending,
+  onControl, onReset, onJump, onSeek, markers = [], mode: _mode, compact = false,
 }: Props) {
-  const logRef = useRef<HTMLDivElement>(null);
   const [hoveredMarker, setHoveredMarker] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollLeft = logRef.current.scrollWidth;
-    }
-  }, [eventsLog.length]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -142,15 +135,7 @@ export function Timeline({
         </div>
       )}
 
-      <div className="tl-event-log" ref={logRef}>
-        {eventsLog.slice(-20).map((e, i) => (
-          <div key={i} className={`tl-event ev-${e.type?.toLowerCase().includes('alert') ? 'alert' : e.type?.toLowerCase().includes('track') ? 'track' : e.type?.toLowerCase().includes('group') ? 'group' : 'normal'}`}>
-            <span className="tl-ev-time">{formatTime(e.t_s)}</span>
-            <span className="tl-ev-type">{e.type}</span>
-            <span className="tl-ev-summary">{e.summary}</span>
-          </div>
-        ))}
-      </div>
+      {/* Event text log removed — scenario markers stay on the progress bar above */}
     </div>
   );
 }

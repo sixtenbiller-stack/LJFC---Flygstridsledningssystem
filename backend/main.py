@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -32,6 +33,7 @@ from response_ranking_engine import ResponseRankingEngine
 from data_loader import load_planning_guardrails, load_resource_catalogue
 from scenario_registry import discover as discover_scenarios, load_scenario_raw
 from scenario_runtime import generate_scenario, LiveSession, AVAILABLE_TEMPLATES
+from tactical_ai_narratives import enrich_threat_group_ai, track_tactical_brief
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("neon.main")
@@ -61,6 +63,12 @@ _scenario_template: str = ""
 _scenario_seed: int | None = None
 _source_parent_scenario: str = ""
 
+# LLM narrative caches (Ollama/Gemma); keyed by group composition / track position
+_group_ai_cache: dict[str, tuple[float, ThreatGroup]] = {}
+_GROUP_AI_TTL_S = 18.0
+_track_brief_cache: dict[str, tuple[float, str]] = {}
+_TB_TTL_S = 12.0
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -82,6 +90,7 @@ async def _chief_evaluator_loop():
             continue
         try:
             state = engine.get_state()
+            _enrich_groups_with_llm()
             chief.evaluate(
                 tracks=[t.model_dump() for t in state.tracks],
                 assets=[a.model_dump() for a in state.assets],
@@ -108,6 +117,29 @@ app.add_middleware(
 
 
 # ── State endpoints ──
+
+
+def _enrich_groups_with_llm() -> None:
+    """Attach Gemma/LLM-authored narration to groups; rate-limited per cache key."""
+    global _current_groups, _group_ai_cache
+    if not _current_groups or not engine.geography:
+        return
+    if not ai_provider.is_available():
+        return
+    zones = list(engine.geography.defended_zones)
+    enriched: list[ThreatGroup] = []
+    for g in _current_groups:
+        key = f"{g.group_id}|{','.join(sorted(g.member_track_ids))}|{g.group_type}"
+        now = time.monotonic()
+        cached = _group_ai_cache.get(key)
+        if cached and (now - cached[0] < _GROUP_AI_TTL_S):
+            enriched.append(cached[1])
+            continue
+        members = [engine.tracks[tid] for tid in g.member_track_ids if tid in engine.tracks]
+        new_g = enrich_threat_group_ai(g, members, zones)
+        _group_ai_cache[key] = (now, new_g)
+        enriched.append(new_g)
+    _current_groups = enriched
 
 
 @app.get("/resources")
@@ -183,6 +215,33 @@ def get_alerts() -> list[dict[str, Any]]:
     return enriched
 
 
+@app.get("/ai/track-brief")
+def ai_track_brief(track_id: str) -> dict[str, str]:
+    """LLM assessment paragraph for the track details popup (local Gemma when configured)."""
+    tr = engine.tracks.get(track_id)
+    if tr is None:
+        return {"error": "not_found", "brief": ""}
+    if not ai_provider.is_available():
+        return {"brief": "", "provider": "unavailable"}
+    sc = next((s for s in _current_scores if s.track_id == track_id), None)
+    now = time.monotonic()
+    pos_key = f"{track_id}|{tr.x_km:.1f}|{tr.y_km:.1f}"
+    hit = _track_brief_cache.get(pos_key)
+    if hit and (now - hit[0] < _TB_TTL_S):
+        return {"brief": hit[1], "provider": ai_provider.get_mode()}
+    text = track_tactical_brief(
+        tr,
+        threat_score=sc.total_score if sc else None,
+        priority_band=sc.priority_band if sc else None,
+        nearest_zone_id=sc.nearest_zone_id if sc else None,
+        eta_s=sc.eta_s if sc else None,
+    )
+    if not text:
+        return {"brief": "", "provider": ai_provider.get_mode()}
+    _track_brief_cache[pos_key] = (now, text)
+    return {"brief": text, "provider": ai_provider.get_mode()}
+
+
 @app.get("/coas")
 def get_coas() -> list[dict[str, Any]]:
     return [c.model_dump() for c in _current_coas]
@@ -201,6 +260,7 @@ def _reset_all_state():
     global _runtime_mode, _scenario_origin
     global _scenario_loaded_at, _scenario_source_file, _scenario_template, _scenario_seed
     global _source_parent_scenario
+    global _group_ai_cache, _track_brief_cache
     _current_coas = []
     _current_scores = []
     _current_groups = []
@@ -215,6 +275,8 @@ def _reset_all_state():
     _scenario_template = ""
     _scenario_seed = None
     _source_parent_scenario = ""
+    _group_ai_cache.clear()
+    _track_brief_cache.clear()
     audit.clear()
     chief.clear()
     router.clear()
@@ -764,6 +826,8 @@ def approve_coa(req: ApproveRequest) -> dict[str, Any]:
 
 @app.get("/groups")
 def get_groups() -> list[dict[str, Any]]:
+    # LLM narratives here (not in /state) so 800ms state polls stay snappy
+    _enrich_groups_with_llm()
     return [g.model_dump() for g in _current_groups]
 
 
@@ -775,6 +839,7 @@ def get_group_responses(group_id: str) -> list[dict[str, Any]]:
 @app.get("/groups/{group_id}/decision-card")
 def get_decision_card(group_id: str) -> dict[str, Any]:
     import datetime
+    _enrich_groups_with_llm()
     group = next((g for g in _current_groups if g.group_id == group_id), None)
     if not group:
         return {"error": f"Group {group_id} not found"}

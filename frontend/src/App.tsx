@@ -197,7 +197,7 @@ export default function App() {
       setLeftPx(c.leftPx);
       setRightPx(c.rightPx);
       setLayoutPreset(stored.preset);
-      setBottomMode(stored.bottomMode);
+      if (stored.bottomMode) setBottomMode(stored.bottomMode);
     } else {
       const p = presetToPixels('balanced', w);
       setLeftPx(p.leftPx);
@@ -278,6 +278,31 @@ export default function App() {
 
   const handleControl = async (action: string, speed?: number) => {
     await api.control(action, speed);
+  };
+
+  const handleJump = async (target: string) => {
+    try {
+      await api.jumpTo(target);
+    } catch { /* skip */ }
+  };
+
+  const handleReset = async () => {
+    await api.control('reset');
+    setCoas([]);
+    setExplanation(null);
+    setSimResult(null);
+    setDecisions([]);
+    setCoaWave(0);
+    setFeedItems([]);
+    lastFeedId.current = undefined;
+    geoLoaded.current = false;
+    setFollowTopThreat(false);
+    setGroups([]);
+    setSelectedGroup(null);
+    setDecisionCard(null);
+    setLeftView('tracks');
+    prevGroupCount.current = 0;
+    await refreshSession();
   };
 
   const handleGenerateCoas = async () => {
@@ -380,31 +405,6 @@ export default function App() {
     }
   };
 
-  const handleJump = async (target: string) => {
-    try {
-      await api.jumpTo(target);
-    } catch { /* skip */ }
-  };
-
-  const handleReset = async () => {
-    await api.control('reset');
-    setCoas([]);
-    setExplanation(null);
-    setSimResult(null);
-    setDecisions([]);
-    setCoaWave(0);
-    setFeedItems([]);
-    lastFeedId.current = undefined;
-    geoLoaded.current = false;
-    setFollowTopThreat(false);
-    setGroups([]);
-    setSelectedGroup(null);
-    setDecisionCard(null);
-    setLeftView('tracks');
-    prevGroupCount.current = 0;
-    await refreshSession();
-  };
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
@@ -438,8 +438,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [coas]);
 
-  const bottomH = timelineCollapsed ? 52 : getBottomHeight(bottomMode);
-
   if (!loaded || !state) {
     return (
       <div className="loading-screen">
@@ -449,12 +447,12 @@ export default function App() {
     );
   }
 
+  const bottomH = timelineCollapsed ? 52 : getBottomHeight(bottomMode);
+
   return (
     <div
       className="app-layout"
-      style={{
-        gridTemplateRows: `1fr ${bottomH}px`,
-      }}
+      style={{ gridTemplateRows: `1fr ${bottomH}px` }}
     >
       <div
         className="app-body"
@@ -614,7 +612,7 @@ export default function App() {
           onControl={handleControl}
           onReset={handleReset}
           onJump={handleJump}
-          onSeek={(t: number) => api.seekTo(t)}
+          onSeek={(t: number) => void api.seekTo(t)}
           markers={markers}
           mode={runtimeMode}
           compact={bottomMode === 'compact' || timelineCollapsed}
