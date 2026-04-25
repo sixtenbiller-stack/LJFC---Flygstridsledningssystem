@@ -1,10 +1,8 @@
 {
+  "schema_version": "neon.assets.v1",
   "meta": {
-    "version": "1.0",
-    "description": "Friendly force assets for Boreal Passage scenario",
-    "total_fighters": 11,
-    "total_uavs": 2,
-    "total_sam_batteries": 2
+    "version": "minimal-v1",
+    "description": "Minimal friendly force package for the first NEON COMMAND live build."
   },
   "assets": [
     {
@@ -13,16 +11,25 @@
       "asset_type": "fighter",
       "asset_class": "multirole",
       "home_base_id": "base-north",
-      "current_location": { "x_km": 200, "y_km": 550 },
+      "current_location": {
+        "x_km": 200,
+        "y_km": 540
+      },
       "status": "ready",
       "readiness": 0.95,
       "endurance_min": 120,
       "speed_class": "fast",
-      "response_tags": ["air_intercept", "escort"],
+      "response_tags": [
+        "air_intercept",
+        "escort"
+      ],
       "current_assignment": null,
       "recovery_eta_min": null,
       "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
+      "munitions": {
+        "air_to_air": 4,
+        "decoy": 2
+      }
     },
     {
       "asset_id": "ftr-n2",
@@ -30,241 +37,51 @@
       "asset_type": "fighter",
       "asset_class": "multirole",
       "home_base_id": "base-north",
-      "current_location": { "x_km": 200, "y_km": 550 },
-      "status": "ready",
-      "readiness": 0.95,
-      "endurance_min": 120,
-      "speed_class": "fast",
-      "response_tags": ["air_intercept", "escort"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-n3",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "multirole",
-      "home_base_id": "base-north",
-      "current_location": { "x_km": 200, "y_km": 550 },
+      "current_location": {
+        "x_km": 200,
+        "y_km": 540
+      },
       "status": "ready",
       "readiness": 0.92,
       "endurance_min": 115,
       "speed_class": "fast",
-      "response_tags": ["air_intercept", "strike"],
+      "response_tags": [
+        "air_intercept"
+      ],
       "current_assignment": null,
       "recovery_eta_min": null,
       "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-n4",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "multirole",
-      "home_base_id": "base-north",
-      "current_location": { "x_km": 200, "y_km": 550 },
-      "status": "ready",
-      "readiness": 0.90,
-      "endurance_min": 110,
-      "speed_class": "fast",
-      "response_tags": ["air_intercept", "escort"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-h1",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "multirole",
-      "home_base_id": "base-highridge",
-      "current_location": { "x_km": 300, "y_km": 420 },
-      "status": "ready",
-      "readiness": 0.90,
-      "endurance_min": 110,
-      "speed_class": "fast",
-      "response_tags": ["air_intercept", "strike"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-h2",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "multirole",
-      "home_base_id": "base-highridge",
-      "current_location": { "x_km": 300, "y_km": 420 },
-      "status": "ready",
-      "readiness": 0.88,
-      "endurance_min": 105,
-      "speed_class": "fast",
-      "response_tags": ["air_intercept", "strike"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-h3",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "multirole",
-      "home_base_id": "base-highridge",
-      "current_location": { "x_km": 300, "y_km": 420 },
-      "status": "ready",
-      "readiness": 0.85,
-      "endurance_min": 100,
-      "speed_class": "fast",
-      "response_tags": ["air_intercept", "escort"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "air_to_air": 3, "decoy": 2 }
-    },
-    {
-      "asset_id": "uav-h1",
-      "side": "friendly",
-      "asset_type": "uav",
-      "asset_class": "recon_strike",
-      "home_base_id": "base-highridge",
-      "current_location": { "x_km": 300, "y_km": 420 },
-      "status": "ready",
-      "readiness": 0.85,
-      "endurance_min": 180,
-      "speed_class": "medium",
-      "response_tags": ["recon", "light_strike", "surveillance"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "light_munition": 2 }
-    },
-    {
-      "asset_id": "uav-h2",
-      "side": "friendly",
-      "asset_type": "uav",
-      "asset_class": "recon_strike",
-      "home_base_id": "base-highridge",
-      "current_location": { "x_km": 300, "y_km": 420 },
-      "status": "ready",
-      "readiness": 0.82,
-      "endurance_min": 175,
-      "speed_class": "medium",
-      "response_tags": ["recon", "light_strike", "surveillance"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "light_munition": 2 }
-    },
-    {
-      "asset_id": "ftr-s1",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "multirole",
-      "home_base_id": "base-south",
-      "current_location": { "x_km": 280, "y_km": 150 },
-      "status": "standby",
-      "readiness": 0.70,
-      "endurance_min": 100,
-      "speed_class": "fast",
-      "response_tags": ["air_intercept"],
-      "current_assignment": null,
-      "recovery_eta_min": 15,
-      "availability_reason": "standby_readiness",
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-s2",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "multirole",
-      "home_base_id": "base-south",
-      "current_location": { "x_km": 280, "y_km": 150 },
-      "status": "standby",
-      "readiness": 0.68,
-      "endurance_min": 95,
-      "speed_class": "fast",
-      "response_tags": ["air_intercept"],
-      "current_assignment": null,
-      "recovery_eta_min": 15,
-      "availability_reason": "standby_readiness",
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-sp1",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "interceptor",
-      "home_base_id": "base-spear",
-      "current_location": { "x_km": 350, "y_km": 200 },
-      "status": "alert",
-      "readiness": 1.0,
-      "endurance_min": 90,
-      "speed_class": "fast",
-      "response_tags": ["qra_intercept", "air_intercept"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
-    },
-    {
-      "asset_id": "ftr-sp2",
-      "side": "friendly",
-      "asset_type": "fighter",
-      "asset_class": "interceptor",
-      "home_base_id": "base-spear",
-      "current_location": { "x_km": 350, "y_km": 200 },
-      "status": "alert",
-      "readiness": 1.0,
-      "endurance_min": 90,
-      "speed_class": "fast",
-      "response_tags": ["qra_intercept", "air_intercept"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "air_to_air": 4, "decoy": 2 }
+      "munitions": {
+        "air_to_air": 4,
+        "decoy": 1
+      }
     },
     {
       "asset_id": "sam-fw",
       "side": "friendly",
       "asset_type": "sam_battery",
-      "asset_class": "medium_range",
+      "asset_class": "medium_range_synthetic",
       "home_base_id": "sam-firewatch",
-      "current_location": { "x_km": 220, "y_km": 370 },
-      "status": "active",
-      "readiness": 0.95,
+      "current_location": {
+        "x_km": 230,
+        "y_km": 360
+      },
+      "status": "ready",
+      "readiness": 0.88,
       "endurance_min": null,
       "speed_class": null,
-      "response_tags": ["area_defence", "sam_engage"],
+      "response_tags": [
+        "area_defense",
+        "protect_city"
+      ],
       "current_assignment": null,
       "recovery_eta_min": null,
       "availability_reason": null,
-      "munitions": { "sam_missile": 12 },
-      "coverage_radius_km": 80,
-      "engagement_ceiling_m": 20000
-    },
-    {
-      "asset_id": "sam-er",
-      "side": "friendly",
-      "asset_type": "sam_battery",
-      "asset_class": "short_range",
-      "home_base_id": "sam-eastern",
-      "current_location": { "x_km": 370, "y_km": 280 },
-      "status": "active",
-      "readiness": 0.90,
-      "endurance_min": null,
-      "speed_class": null,
-      "response_tags": ["point_defence", "sam_engage"],
-      "current_assignment": null,
-      "recovery_eta_min": null,
-      "availability_reason": null,
-      "munitions": { "sam_missile": 8 },
-      "coverage_radius_km": 50,
-      "engagement_ceiling_m": 12000
+      "munitions": {
+        "sam_missile": 8
+      },
+      "coverage_radius_km": 120,
+      "engagement_ceiling_m": 10000
     }
   ]
 }

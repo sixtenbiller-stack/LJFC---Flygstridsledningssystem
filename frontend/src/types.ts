@@ -212,6 +212,39 @@ export interface ScenarioState {
   scenario_origin?: string;
   scenario_meta?: Record<string, unknown>;
   sensor_states?: Record<string, unknown>;
+  threat_groups?: ThreatGroup[];
+  feed_status?: FeedStatus;
+  feed_source?: string;
+  last_feed_event?: FeedEvent | null;
+  recommendation_status?: string;
+  ai_provider_status?: AIProviderStatus;
+}
+
+export interface FeedEvent {
+  feed_time_s: number;
+  event_id: string;
+  event_type: string;
+  source: string;
+  data: Record<string, unknown>;
+}
+
+export interface FeedStatus {
+  feed_id: string;
+  label: string;
+  status: string;
+  current_time_s: number;
+  duration_s: number;
+  speed_multiplier: number;
+  source_file: string;
+  last_event?: FeedEvent | null;
+}
+
+export interface AIProviderStatus {
+  provider: string;
+  model: string;
+  status: string;
+  label: string;
+  last_error?: string;
 }
 
 export interface ScenarioEntry {
@@ -304,12 +337,40 @@ export interface CopilotResponse {
   suggested_actions: string[];
 }
 
+export interface AgentChatMessage {
+  id?: string;
+  role: 'operator' | 'assistant';
+  message?: string;
+  operator_message?: string;
+  timestamp: string;
+  source_state_id: string;
+  provider?: string;
+  model?: string;
+  status?: string;
+  parse_status?: string;
+  fallback_used?: boolean;
+  structured?: {
+    schema_version: string;
+    response_type: string;
+    bluf: string;
+    situation: string;
+    evidence: Array<{ label: string; detail: string; cited_id: string }>;
+    recommendation: string;
+    next_actions: Array<{ label: string; command: string }>;
+    confidence: 'low' | 'medium' | 'high';
+    warnings: string[];
+    cited_ids: string[];
+  };
+  display_text?: string;
+}
+
 export interface CopilotStatusData {
   provider: string;
   model: string;
   scenario_id: string;
   feed_count: number;
   session_commands: number;
+  ai_status?: AIProviderStatus;
 }
 
 // ── Threat Groups & Responses ──

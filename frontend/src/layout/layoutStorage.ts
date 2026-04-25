@@ -11,16 +11,16 @@ export const LAYOUT_PRESETS: Record<
   LayoutPresetId,
   { label: string; leftPct: number; rightPct: number }
 > = {
-  balanced: { label: 'Balanced', leftPct: 22, rightPct: 32 },
-  'copilot-focus': { label: 'Copilot Focus', leftPct: 20, rightPct: 42 },
-  'threat-focus': { label: 'Threat Focus', leftPct: 30, rightPct: 28 },
-  'map-focus': { label: 'Map Focus', leftPct: 18, rightPct: 26 },
-  briefing: { label: 'Briefing Mode', leftPct: 24, rightPct: 42 },
+  balanced: { label: 'Balanced', leftPct: 25, rightPct: 35 },
+  'copilot-focus': { label: 'Copilot Focus', leftPct: 23, rightPct: 40 },
+  'threat-focus': { label: 'Threat Focus', leftPct: 30, rightPct: 33 },
+  'map-focus': { label: 'Map Focus', leftPct: 21, rightPct: 30 },
+  briefing: { label: 'Briefing Mode', leftPct: 26, rightPct: 38 },
 };
 
-const MIN_LEFT = 280;
-const MIN_RIGHT = 360;
-const MIN_CENTER = 420;
+const MIN_LEFT = 340;
+const MIN_RIGHT = 460;
+const MIN_CENTER = 360;
 const RESIZER = 6;
 const STORAGE_KEY = 'neon-command-layout-v1';
 
@@ -34,9 +34,9 @@ export interface StoredLayout {
 }
 
 const BOTTOM_HEIGHTS: Record<BottomBarMode, number> = {
-  compact: 80,
-  normal: 118,
-  expanded: 168,
+  compact: 72,
+  normal: 108,
+  expanded: 148,
 };
 
 export function getBottomHeight(mode: BottomBarMode): number {

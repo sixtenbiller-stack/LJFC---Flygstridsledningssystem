@@ -148,9 +148,13 @@ class ThreatGroupEngine:
         creation_times: dict[str, float],
     ) -> ThreatGroup:
         member_ids = sorted([t.track_id for t in cluster])
-        gid = "grp-" + "-".join(tid.replace("trk-", "") for tid in member_ids[:3])
-        if len(member_ids) > 3:
-            gid += f"+{len(member_ids) - 3}"
+        seed_groups = sorted({t.group_seed_id for t in cluster if t.group_seed_id})
+        if len(seed_groups) == 1:
+            gid = seed_groups[0]
+        else:
+            gid = "grp-" + "-".join(tid.replace("trk-", "") for tid in member_ids[:3])
+            if len(member_ids) > 3:
+                gid += f"+{len(member_ids) - 3}"
 
         # Coordination score (0-1): how many affinity signals across all pairs
         pair_count = max(len(cluster) * (len(cluster) - 1) // 2, 1)

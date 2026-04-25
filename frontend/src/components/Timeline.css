@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 6px 12px;
-  gap: 4px;
+  padding: 8px 14px;
+  gap: 6px;
 }
 
 .timeline-controls {
@@ -14,8 +14,8 @@
 }
 
 .tl-btn {
-  width: 32px;
-  height: 28px;
+  width: 30px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -40,9 +40,9 @@
   color: var(--text-dim);
 }
 .speed-btn.active {
-  color: var(--neon-green);
-  background: rgba(57, 255, 20, 0.1);
-  border-color: var(--neon-green);
+  color: var(--green-bright);
+  background: rgba(155, 212, 106, 0.08);
+  border-color: rgba(155, 212, 106, 0.45);
 }
 
 .tl-time {
@@ -54,9 +54,9 @@
 .tl-time-value {
   font-family: var(--font-mono);
   font-size: 16px;
-  color: var(--neon-green);
+  color: var(--green-bright);
   font-weight: 700;
-  text-shadow: var(--glow-green);
+  text-shadow: none;
 }
 .tl-time-label {
   font-family: var(--font-mono);
@@ -66,17 +66,17 @@
 
 .tl-progress-bar {
   flex: 1;
-  height: 4px;
-  background: var(--border);
+  height: 5px;
+  background: #18221c;
   border-radius: 2px;
   position: relative;
   min-width: 100px;
 }
 .tl-progress-fill {
   height: 100%;
-  background: var(--neon-green);
+  background: var(--green-dim);
   border-radius: 2px;
-  box-shadow: 0 0 6px rgba(57, 255, 20, 0.4);
+  box-shadow: none;
   transition: width 0.3s ease;
 }
 .tl-progress-marker {
@@ -84,8 +84,8 @@
   top: -3px;
   width: 2px;
   height: 10px;
-  background: var(--neon-green);
-  box-shadow: var(--glow-green);
+  background: var(--green-bright);
+  box-shadow: none;
   transition: left 0.3s ease;
 }
 
@@ -124,15 +124,15 @@
 /* Demo strip */
 .tl-demo-strip {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
   padding: 2px 0;
 }
 .tl-demo-btn {
-  background: #21262d;
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--border);
   border-radius: 3px;
-  color: var(--text-dim, #6e7681);
+  color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 600;
@@ -142,9 +142,9 @@
   letter-spacing: 0.04em;
 }
 .tl-demo-btn:hover {
-  background: #30363d;
-  color: var(--neon-cyan, #79c0ff);
-  border-color: rgba(121, 192, 255, 0.4);
+  background: var(--surface-hover);
+  color: var(--green-bright);
+  border-color: var(--border-bright);
 }
 
 .tl-event.ev-group {
@@ -158,7 +158,7 @@
   padding: 3px 8px;
   border: 1px solid var(--amber-dim);
   border-radius: var(--radius);
-  animation: pulse 1s infinite;
+  animation: none;
   white-space: nowrap;
 }
 
@@ -178,7 +178,7 @@
   flex-direction: column;
   gap: 1px;
   padding: 4px 8px;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.025);
   border-radius: var(--radius);
   border-left: 2px solid var(--border-bright);
   min-width: 140px;

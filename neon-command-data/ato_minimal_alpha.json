@@ -1,0 +1,68 @@
+{
+  "schema_version": "neon.ato.v1",
+  "ato_id": "ato_minimal_alpha",
+  "name": "Minimal Alpha ATO-lite",
+  "description": "Synthetic ATO-lite planning input for the Minimal Two-Track Decision demo. Not a real NATO, USMTF, or ADatP-3 ATO.",
+  "valid_from_s": 0,
+  "valid_to_s": 180,
+  "planning_intent": {
+    "primary_defended_object_ids": [
+      "city-arktholm"
+    ],
+    "commander_intent": "Protect Arktholm while preserving at least one fighter for follow-on uncertainty.",
+    "reserve_policy": {
+      "min_fighter_reserve": 1
+    }
+  },
+  "missions": [
+    {
+      "mission_id": "msn-cap-arktholm-01",
+      "mission_type": "cap",
+      "name": "Arktholm CAP",
+      "assigned_asset_ids": [
+        "ftr-n1"
+      ],
+      "status": "active",
+      "defended_object_ids": [
+        "city-arktholm"
+      ],
+      "notes": "Synthetic defensive patrol allocation for the demo."
+    },
+    {
+      "mission_id": "msn-qra-reserve-01",
+      "mission_type": "qra_reserve",
+      "name": "Northern QRA Reserve",
+      "assigned_asset_ids": [
+        "ftr-n2"
+      ],
+      "status": "reserve",
+      "defended_object_ids": [
+        "city-arktholm"
+      ],
+      "notes": "Reserve fighter retained for uncertainty and follow-on pressure."
+    },
+    {
+      "mission_id": "msn-gbad-firewatch-01",
+      "mission_type": "gbad_coverage",
+      "name": "Firewatch GBAD Coverage",
+      "assigned_asset_ids": [
+        "sam-fw"
+      ],
+      "status": "active",
+      "defended_object_ids": [
+        "city-arktholm"
+      ],
+      "notes": "Synthetic ground-based air defence coverage for Arktholm."
+    }
+  ],
+  "authority": {
+    "approval_required": true,
+    "approval_role": "air_defence_battle_manager",
+    "auto_execution_allowed": false
+  },
+  "notes": [
+    "Synthetic hackathon data only.",
+    "No real call signs, real-world weapon performance, or classified operational details.",
+    "ATO-lite is a planning constraint input, not a standards-compliant military message."
+  ]
+}

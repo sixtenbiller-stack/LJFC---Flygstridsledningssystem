@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://peace-keeper.app/schemas/llm/chief_of_staff_response.schema.json",
+  "title": "NEON COMMAND Chief of Staff Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "response_type",
+    "bluf",
+    "situation",
+    "evidence",
+    "recommendation",
+    "next_actions",
+    "confidence",
+    "warnings",
+    "cited_ids"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "neon.llm.chief_of_staff_response.v1" },
+    "response_type": { "type": "string", "enum": ["brief", "answer", "recommendation", "warning", "error"] },
+    "bluf": { "type": "string" },
+    "situation": { "type": "string" },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "detail", "cited_id"],
+        "properties": {
+          "label": { "type": "string" },
+          "detail": { "type": "string" },
+          "cited_id": { "type": "string" }
+        }
+      }
+    },
+    "recommendation": { "type": "string" },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "command"],
+        "properties": {
+          "label": { "type": "string" },
+          "command": { "type": "string" }
+        }
+      }
+    },
+    "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "cited_ids": { "type": "array", "items": { "type": "string" } }
+  }
+}

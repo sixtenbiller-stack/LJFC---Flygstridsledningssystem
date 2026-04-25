@@ -138,6 +138,304 @@
   background: rgba(57, 255, 20, 0.03);
 }
 
+/* Operator decision-support pass */
+.copilot-panel {
+  background: transparent;
+}
+
+.copilot-header {
+  padding: 12px 14px 8px;
+  border-bottom-color: rgba(64, 84, 71, 0.55);
+}
+
+.copilot-title {
+  color: var(--text-muted);
+  text-shadow: none;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.copilot-provider,
+.copilot-provider.gemini,
+.copilot-provider.ollama,
+.copilot-provider.mock {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.copilot-ai-state {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  padding: 2px 5px;
+}
+
+.copilot-ai-state.online,
+.copilot-ai-state.busy {
+  color: var(--green-bright);
+  border-color: rgba(155, 212, 106, 0.45);
+}
+
+.copilot-ai-state.error,
+.copilot-ai-state.fallback {
+  color: var(--amber);
+  border-color: rgba(214, 168, 79, 0.45);
+}
+
+.latest-assessment-card {
+  margin: 10px 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(155, 212, 106, 0.32);
+  background: rgba(155, 212, 106, 0.045);
+  border-radius: 4px;
+}
+
+.latest-assessment-card.thinking {
+  border-color: rgba(214, 168, 79, 0.45);
+}
+
+.latest-assessment-card.empty {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.assessment-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.assessment-title {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.assessment-meta,
+.assessment-lineage,
+.assessment-muted {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.assessment-bluf {
+  margin-top: 8px;
+  color: var(--text-bright);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.assessment-section {
+  margin-top: 10px;
+}
+
+.assessment-section span {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.assessment-section p,
+.assessment-section li {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.assessment-section ul {
+  margin: 5px 0 0 16px;
+}
+
+.assessment-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.assessment-actions button {
+  padding: 5px 8px;
+  font-size: 9px;
+}
+
+.chat-transcript,
+.chat-transcript-empty {
+  margin: 0 12px 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.14);
+  border-radius: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.chat-transcript-empty {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.chat-row {
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(64, 84, 71, 0.35);
+}
+
+.chat-row:last-child {
+  border-bottom: 0;
+}
+
+.chat-row.operator .chat-body {
+  color: var(--text-dim);
+}
+
+.chat-row.assistant .chat-body {
+  color: var(--text-bright);
+}
+
+.chat-meta {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  margin-bottom: 4px;
+}
+
+.chat-body {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.copilot-sticky,
+.copilot-context-card,
+.copilot-ato-card {
+  margin: 10px 12px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 4px;
+}
+
+.copilot-sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.copilot-sticky-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.csk-label,
+.cc-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.csk-value,
+.cc-val {
+  color: var(--text-bright);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.csk-highlight {
+  color: var(--green-bright);
+}
+
+.copilot-card-heading {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+
+.copilot-ato-name {
+  color: var(--green-bright);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.copilot-ato-intent {
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.copilot-ato-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 12px;
+  font-size: 11px;
+}
+
+.copilot-ato-grid span {
+  color: var(--text-muted);
+}
+
+.copilot-ato-grid strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.copilot-tabs {
+  margin: 10px 12px 0;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.copilot-tabs .tab {
+  padding: 7px 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.copilot-tabs .tab.active {
+  background: rgba(155, 212, 106, 0.08);
+  color: var(--green-bright);
+  border-bottom-color: transparent;
+}
+
+.copilot-tabs .compare-tab,
+.quick-actions {
+  display: none;
+}
+
+.copilot-content {
+  padding: 10px 12px;
+}
+
+.generate-btn.primary {
+  width: 100%;
+  color: var(--green-bright);
+  border-color: rgba(155, 212, 106, 0.45);
+  background: rgba(155, 212, 106, 0.07);
+}
+
+.copilot-command-ribbon {
+  margin: 0 12px 10px;
+}
+
 .feed-item-header {
   display: flex;
   align-items: center;

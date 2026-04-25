@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import os
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -10,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 import gemini_provider
@@ -32,9 +34,17 @@ from response_ranking_engine import ResponseRankingEngine
 from data_loader import load_planning_guardrails
 from scenario_registry import discover as discover_scenarios, load_scenario_raw
 from scenario_runtime import generate_scenario, LiveSession, AVAILABLE_TEMPLATES
+from live_feed import DATA_DIR, DEFAULT_FEED_ID, SyntheticLiveFeedSource
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("neon.main")
+
+MINIMAL_SCENARIO_ID = "scenario_minimal_alpha"
+ENABLE_EXTENDED_SCENARIOS = os.getenv("NEON_ENABLE_EXTENDED_SCENARIOS", "false").lower() in {"1", "true", "yes", "on"}
+ENABLE_LIVE_MUTATION = os.getenv("NEON_ENABLE_LIVE_MUTATION", "false").lower() in {"1", "true", "yes", "on"}
+ENABLE_SCENARIO_GENERATOR = os.getenv("NEON_ENABLE_SCENARIO_GENERATOR", "false").lower() in {"1", "true", "yes", "on"}
+ENABLE_SCENARIO_LAB = os.getenv("NEON_ENABLE_SCENARIO_LAB", "false").lower() in {"1", "true", "yes", "on"}
+ENABLE_REPLAY_UI = os.getenv("NEON_ENABLE_REPLAY_UI", "false").lower() in {"1", "true", "yes", "on"}
 
 engine = ScenarioEngine()
 scorer = ThreatScorer()
@@ -60,12 +70,19 @@ _scenario_source_file: str = ""
 _scenario_template: str = ""
 _scenario_seed: int | None = None
 _source_parent_scenario: str = ""
+_feed_source: SyntheticLiveFeedSource | None = None
+_feed_id: str = DEFAULT_FEED_ID
+_agent_transcript: list[dict[str, Any]] = []
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     mode = gemini_provider.init_provider()
     logger.info("AI provider mode: %s (model: %s)", mode, gemini_provider.get_model())
+    try:
+        _load_synthetic_feed(DEFAULT_FEED_ID)
+    except Exception:
+        logger.exception("Failed to load default synthetic feed")
 
     ticker = asyncio.create_task(engine.start_ticker(interval=0.1))
     evaluator = asyncio.create_task(_chief_evaluator_loop())
@@ -147,6 +164,12 @@ def get_state(include_geo: bool = False) -> dict[str, Any]:
     result["mode"] = _runtime_mode
     result["runtime_mode"] = _runtime_mode
     result["scenario_origin"] = _scenario_origin
+    result["threat_groups"] = [g.model_dump() for g in _current_groups]
+    result["feed_status"] = _feed_status()
+    result["feed_source"] = _feed_id
+    result["last_feed_event"] = _last_feed_event()
+    result["recommendation_status"] = "available" if state.coa_trigger_pending else "monitoring"
+    result["ai_provider_status"] = gemini_provider.get_status()
     return result
 
 
@@ -217,12 +240,152 @@ def _reset_all_state():
     ranker.reset()
 
 
+def _load_synthetic_feed(feed_id: str = DEFAULT_FEED_ID) -> dict[str, Any]:
+    """Load the synthetic live feed through the existing operational engine."""
+    from datetime import datetime, timezone
+    global _feed_source, _feed_id, _runtime_mode, _scenario_origin
+    global _scenario_loaded_at, _scenario_source_file, _scenario_template, _scenario_seed
+    _reset_all_state()
+    _feed_id = feed_id
+    _feed_source = SyntheticLiveFeedSource(feed_id)
+    raw = _feed_source.to_scenario_raw()
+    engine.load_from_data(feed_id, raw)
+    _runtime_mode = "feed"
+    _scenario_origin = "synthetic_feed"
+    _scenario_loaded_at = datetime.now(timezone.utc).isoformat()
+    _scenario_source_file = str(_feed_source.path)
+    _scenario_template = ""
+    _scenario_seed = None
+    chief.add_event_item(
+        category="feed",
+        severity="info",
+        title="Synthetic feed loaded",
+        body=f"{feed_id} is ready. Start feed to ingest synthetic observations.",
+        source_state_id=engine.source_state_id,
+        suggested_actions=["/brief", "/feed"],
+        related_ids=[feed_id],
+    )
+    return _feed_status()
+
+
+def _ensure_feed_loaded() -> None:
+    if _feed_source is None or engine._scenario_id != _feed_id:
+        _load_synthetic_feed(_feed_id)
+
+
+def _feed_status() -> dict[str, Any]:
+    source = _feed_source
+    duration = source.duration_s if source else engine.scenario_meta.get("duration_s", 0)
+    status = "running" if engine.is_playing else ("paused" if engine.current_time_s > 0 else "stopped")
+    return {
+        "feed_id": _feed_id,
+        "label": "Synthetic Feed: Minimal Alpha",
+        "status": status,
+        "current_time_s": round(engine.current_time_s, 1),
+        "duration_s": duration,
+        "speed_multiplier": engine.speed_multiplier,
+        "source_file": str(source.path) if source else "",
+        "last_event": _last_feed_event(),
+    }
+
+
+def _last_feed_event() -> dict[str, Any] | None:
+    if not _feed_source:
+        return None
+    return _feed_source.last_event(engine.current_time_s)
+
+
+def _load_minimal_ato_context() -> dict[str, Any]:
+    path = DATA_DIR / "ato_minimal_alpha.json"
+    try:
+        raw = json.loads(path.read_text())
+        intent = raw.get("planning_intent", {})
+        authority = raw.get("authority", {})
+        return {
+            "ato_id": raw.get("ato_id", "ato_minimal_alpha"),
+            "commander_intent": intent.get("commander_intent", ""),
+            "primary_defended_object_ids": intent.get("primary_defended_object_ids", ["city-arktholm"]),
+            "reserve_policy": intent.get("reserve_policy", {"min_fighter_reserve": 1}),
+            "approval_required": authority.get("approval_required", True),
+            "approval_role": authority.get("approval_role", "air_defence_battle_manager"),
+        }
+    except Exception:
+        return {
+            "ato_id": "ato_minimal_alpha",
+            "commander_intent": "Protect Arktholm while preserving at least one fighter for follow-on uncertainty.",
+            "primary_defended_object_ids": ["city-arktholm"],
+            "reserve_policy": {"min_fighter_reserve": 1},
+            "approval_required": True,
+            "approval_role": "air_defence_battle_manager",
+        }
+
+
 @app.get("/scenarios")
 def list_scenarios() -> dict[str, Any]:
     return {
         "scenarios": discover_scenarios(),
-        "templates": AVAILABLE_TEMPLATES,
+        "templates": AVAILABLE_TEMPLATES if ENABLE_SCENARIO_GENERATOR else [],
+        "feature_flags": {
+            "extended_scenarios": ENABLE_EXTENDED_SCENARIOS,
+            "live_mutation": ENABLE_LIVE_MUTATION,
+            "scenario_generator": ENABLE_SCENARIO_GENERATOR,
+            "scenario_lab": ENABLE_SCENARIO_LAB,
+            "generator": ENABLE_SCENARIO_GENERATOR,
+            "runtime_mutation": ENABLE_LIVE_MUTATION,
+            "replay_ui": ENABLE_REPLAY_UI,
+        },
     }
+
+
+@app.get("/feed/status")
+def get_feed_status() -> dict[str, Any]:
+    _ensure_feed_loaded()
+    return _feed_status()
+
+
+@app.get("/feed/events")
+def get_feed_events() -> list[dict[str, Any]]:
+    _ensure_feed_loaded()
+    return _feed_source.events_up_to(engine.current_time_s) if _feed_source else []
+
+
+@app.post("/feed/load")
+def load_feed_endpoint(body: dict[str, Any] | None = None) -> dict[str, Any]:
+    body = body or {}
+    return _load_synthetic_feed(str(body.get("feed_id") or DEFAULT_FEED_ID))
+
+
+@app.post("/feed/control")
+def feed_control(body: dict[str, Any]) -> dict[str, Any]:
+    _ensure_feed_loaded()
+    action = str(body.get("action", "")).lower()
+    if action in {"start", "play"}:
+        engine.play()
+    elif action == "pause":
+        engine.pause()
+    elif action == "reset":
+        return _load_synthetic_feed(_feed_id)
+    elif action == "speed":
+        engine.set_speed(float(body.get("speed") or body.get("value") or 1.0))
+    elif action == "step":
+        next_t = _feed_source.next_time_after(engine.current_time_s) if _feed_source else None
+        if next_t is not None:
+            engine.current_time_s = next_t
+            engine._apply_events()
+            engine._interpolate_tracks()
+    elif action == "latest":
+        if _feed_source:
+            engine.current_time_s = _feed_source.duration_s
+            engine._apply_events()
+            engine._interpolate_tracks()
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported feed control action: {action}")
+    return _feed_status()
+
+
+@app.post("/feed/step")
+def feed_step() -> dict[str, Any]:
+    return feed_control({"action": "step"})
 
 
 @app.post("/scenario/load")
@@ -231,7 +394,12 @@ def load_scenario_endpoint(req: ScenarioLoadRequest) -> dict[str, Any]:
     global _scenario_loaded_at, _scenario_source_file, _runtime_mode, _scenario_origin
     global _scenario_template, _scenario_seed
     _reset_all_state()
-    sid = req.scenario_id
+    sid = req.scenario_id or MINIMAL_SCENARIO_ID
+    if not ENABLE_EXTENDED_SCENARIOS and sid.replace("-", "_") != MINIMAL_SCENARIO_ID:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Extended scenarios are disabled. Active scenario is {MINIMAL_SCENARIO_ID}.",
+        )
     file_id = sid.replace("-", "_")
     try:
         engine.load(sid)
@@ -275,6 +443,8 @@ def control_scenario(req: ScenarioControlRequest) -> dict[str, Any]:
 
 @app.post("/scenario/generate")
 def generate_scenario_endpoint(body: dict[str, Any]) -> dict[str, Any]:
+    if not ENABLE_SCENARIO_GENERATOR:
+        raise HTTPException(status_code=403, detail="Scenario generator is disabled for the minimal build.")
     template = body.get("template", "swarm_pressure")
     seed = body.get("seed")
     duration = body.get("duration_s", 300)
@@ -286,6 +456,8 @@ def generate_scenario_endpoint(body: dict[str, Any]) -> dict[str, Any]:
 
 @app.post("/scenario/live/start")
 def start_live_session(body: dict[str, Any]) -> dict[str, Any]:
+    if not ENABLE_LIVE_MUTATION:
+        raise HTTPException(status_code=403, detail="Live mutation is disabled for the minimal build.")
     from datetime import datetime, timezone
     global _live_session, _runtime_mode, _scenario_origin, _scenario_loaded_at
     global _scenario_source_file, _source_parent_scenario
@@ -551,22 +723,22 @@ def get_scenario_markers() -> list[dict[str, Any]]:
     raw_end_t: float | None = None
 
     for ev in events:
-        if ev.event_type == "TRACK_CREATED" and raw_first_track_t is None:
+        if ev.event_type in {"TRACK_CREATED", "TRACK_OBSERVED"} and raw_first_track_t is None:
             raw_first_track_t = ev.t_s
-        elif ev.event_type == "GROUP_FORMED":
+        elif ev.event_type in {"GROUP_FORMED", "GROUP_DETECTED"}:
             if raw_first_group_t is None:
                 raw_first_group_t = ev.t_s
             elif raw_second_group_t is None and ev.t_s > raw_first_group_t + 15:
                 raw_second_group_t = ev.t_s
-        elif ev.event_type == "COA_TRIGGER" and raw_coa_trigger_t is None:
+        elif ev.event_type in {"COA_TRIGGER", "RECOMMENDATION_TRIGGERED"} and raw_coa_trigger_t is None:
             raw_coa_trigger_t = ev.t_s
-        elif ev.event_type == "SENSOR_DEGRADED" and raw_sensor_deg_t is None:
+        elif ev.event_type in {"SENSOR_DEGRADED", "SENSOR_CONFIDENCE_CHANGED"} and raw_sensor_deg_t is None:
             raw_sensor_deg_t = ev.t_s
-        elif ev.event_type == "SCENARIO_END":
+        elif ev.event_type in {"SCENARIO_END", "FEED_END"}:
             raw_end_t = ev.t_s
 
     markers: list[dict[str, Any]] = [
-        {"t_s": 0, "type": "start", "label": "Scenario Start"},
+        {"t_s": 0, "type": "start", "label": "Feed Start"},
     ]
 
     if raw_first_track_t is not None:
@@ -578,7 +750,7 @@ def get_scenario_markers() -> list[dict[str, Any]]:
         if raw_first_track_t is not None and raw_first_group_t < raw_first_track_t:
             visible_t = raw_first_track_t + 5
         markers.append({"t_s": visible_t, "type": "first_group",
-                         "label": "First Group Visible"})
+                         "label": "Group Detected"})
 
     decision_t = raw_coa_trigger_t
     if decision_t is None and raw_first_group_t is not None:
@@ -592,7 +764,7 @@ def get_scenario_markers() -> list[dict[str, Any]]:
         if decision_t < first_contact_t:
             decision_t = first_contact_t + 8
         markers.append({"t_s": decision_t, "type": "first_decision",
-                         "label": "Decision Point"})
+                         "label": "Recommendation"})
 
     if raw_second_group_t is not None:
         markers.append({"t_s": raw_second_group_t, "type": "second_wave",
@@ -600,10 +772,10 @@ def get_scenario_markers() -> list[dict[str, Any]]:
 
     if raw_sensor_deg_t is not None:
         markers.append({"t_s": raw_sensor_deg_t, "type": "sensor_degraded",
-                         "label": "Sensor Degraded"})
+                         "label": "Confidence Update"})
 
     if raw_end_t is not None:
-        markers.append({"t_s": raw_end_t, "type": "end", "label": "Scenario End"})
+        markers.append({"t_s": raw_end_t, "type": "end", "label": "Feed End"})
 
     markers.sort(key=lambda m: m["t_s"])
     return markers
@@ -796,6 +968,33 @@ def get_decision_card(group_id: str) -> dict[str, Any]:
     return card.model_dump()
 
 
+@app.get("/llm/situation-brief/input")
+def get_llm_situation_brief_input() -> dict[str, Any]:
+    """Compact state snapshot for local LLM situation briefs."""
+    state = get_state()
+    selected_group = _current_groups[0] if _current_groups else None
+    group_payload = None
+    if selected_group:
+        group_payload = {
+            "group_id": selected_group.group_id,
+            "group_type": selected_group.group_type,
+            "member_track_ids": selected_group.member_track_ids,
+            "confidence": selected_group.confidence,
+            "most_at_risk_object_id": selected_group.most_at_risk_object_id,
+        }
+    return {
+        "schema_version": "neon.llm_input.v1",
+        "task": "situation_brief",
+        "source_state_id": engine.source_state_id,
+        "scenario": {
+            "scenario_id": engine._scenario_id or state.get("scenario_id", MINIMAL_SCENARIO_ID),
+            "current_time_s": state.get("current_time_s", engine.current_time_s),
+        },
+        "selected_group": group_payload,
+        "operator_question": "Give me the commander brief.",
+    }
+
+
 @app.post("/groups/{group_id}/approve")
 def approve_group_response(group_id: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
     import datetime
@@ -844,6 +1043,190 @@ def approve_group_response(group_id: str, body: dict[str, Any] | None = None) ->
     )
 
     return record.model_dump()
+
+
+CHIEF_OF_STAFF_SYSTEM_PROMPT = """You are the Chief of Staff agent for NEON COMMAND, a synthetic air-defence monitoring and decision-support prototype.
+
+Your job is to help the operator understand the current threat situation from the current operational state.
+
+Rules:
+- Be concise.
+- Use BLUF first: the most important conclusion in one sentence.
+- Ground every answer in current state, ATO constraints, track IDs, group IDs, asset IDs, and state IDs where available.
+- Do not invent tracks, assets, ATO rules, or recommendations.
+- If data is missing, say what is missing.
+- Do not claim real-world weapon performance.
+- Do not issue autonomous engagement instructions.
+- The operator approves all decisions.
+- Prefer operational clarity over conversational style.
+- Keep responses short enough to read in a command console.
+
+Return JSON only with schema_version neon.llm.chief_of_staff_response.v1 and fields:
+response_type, bluf, situation, evidence, recommendation, next_actions, confidence, warnings, cited_ids."""
+
+
+def _compact_current_state_packet(operator_question: str) -> dict[str, Any]:
+    state = get_state()
+    top_group = _current_groups[0] if _current_groups else None
+    tracks = []
+    for t in state.get("tracks", [])[:6]:
+        tracks.append({
+            "track_id": t.get("track_id"),
+            "class_label": t.get("class_label"),
+            "confidence": t.get("confidence"),
+            "speed_class": t.get("speed_class"),
+            "corridor_id": t.get("corridor_id"),
+            "decoy_probability": t.get("decoy_probability"),
+            "source_disagreement": t.get("source_disagreement"),
+        })
+    return {
+        "schema_version": "neon.llm_input.v1",
+        "task": "current_threat_brief",
+        "source_state_id": engine.source_state_id,
+        "feed": {
+            "feed_id": _feed_id,
+            "status": _feed_status().get("status"),
+            "current_time_s": round(engine.current_time_s, 1),
+            "last_event_type": (_last_feed_event() or {}).get("event_type"),
+        },
+        "ato_context": _load_minimal_ato_context(),
+        "current_threat_situation": {
+            "top_group_id": top_group.group_id if top_group else None,
+            "group_type": top_group.group_type if top_group else None,
+            "member_track_ids": top_group.member_track_ids if top_group else [],
+            "confidence": top_group.confidence if top_group else None,
+            "urgency": top_group.recommended_lane if top_group else "monitoring",
+            "most_at_risk_object_id": top_group.most_at_risk_object_id if top_group else None,
+        },
+        "tracks": tracks,
+        "top_recommendation": (
+            _current_responses.get(top_group.group_id, [None])[0].model_dump()
+            if top_group and _current_responses.get(top_group.group_id)
+            else None
+        ),
+        "operator_question": operator_question,
+    }
+
+
+def _template_chief_response(packet: dict[str, Any], response_type: str = "brief") -> dict[str, Any]:
+    threat = packet.get("current_threat_situation", {})
+    ato = packet.get("ato_context", {})
+    tracks = packet.get("tracks", [])
+    top_group_id = threat.get("top_group_id") or "no group yet"
+    primary = ", ".join(ato.get("primary_defended_object_ids", []) or ["city-arktholm"])
+    cited = [x for x in [top_group_id, ato.get("ato_id"), primary, packet.get("source_state_id")] if x and x != "no group yet"]
+    evidence = [
+        {"label": "Feed", "detail": f"{packet['feed']['status']} at t={packet['feed']['current_time_s']}s; last event {packet['feed'].get('last_event_type') or 'none'}.", "cited_id": packet["feed"]["feed_id"]},
+        {"label": "ATO", "detail": f"Approval required by {ato.get('approval_role')}; reserve policy {ato.get('reserve_policy')}.", "cited_id": ato.get("ato_id", "ato_minimal_alpha")},
+    ]
+    for t in tracks[:2]:
+        evidence.append({
+            "label": str(t.get("track_id")),
+            "detail": f"{t.get('class_label')} confidence {t.get('confidence')}; corridor {t.get('corridor_id')}.",
+            "cited_id": str(t.get("track_id")),
+        })
+    return {
+        "schema_version": "neon.llm.chief_of_staff_response.v1",
+        "response_type": response_type,
+        "bluf": f"{top_group_id} is the current primary threat picture for {primary}." if threat.get("top_group_id") else "No formed threat group is visible yet; continue monitoring the synthetic feed.",
+        "situation": f"Current air picture has {len(tracks)} hostile track(s). ATO intent remains: {ato.get('commander_intent')}",
+        "evidence": evidence,
+        "recommendation": "Generate bounded COAs when the recommendation trigger is active; preserve one fighter reserve unless the operator accepts the trade-off.",
+        "next_actions": [
+            {"label": "Brief", "command": "/brief"},
+            {"label": "Top threat", "command": "/top-threat"},
+            {"label": "Generate COAs", "command": "/recommend"},
+        ],
+        "confidence": "medium" if tracks else "low",
+        "warnings": ["Template fallback used; deterministic state remains authoritative."],
+        "cited_ids": cited,
+    }
+
+
+def _coerce_chief_response(raw: Any, packet: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            fallback = _template_chief_response(packet)
+            fallback["situation"] = raw.strip() or fallback["situation"]
+            fallback["warnings"].append("Gemma response was raw text, rendered as fallback.")
+            return fallback, "raw_text"
+    if not isinstance(raw, dict):
+        return _template_chief_response(packet), "fallback"
+    required = {"schema_version", "response_type", "bluf", "situation", "evidence", "recommendation", "next_actions", "confidence", "warnings", "cited_ids"}
+    if not required.issubset(raw):
+        repaired = _template_chief_response(packet)
+        repaired.update({k: raw.get(k, repaired[k]) for k in repaired if isinstance(raw, dict) and k in raw})
+        repaired["warnings"].append("Structured response was incomplete; repaired locally.")
+        return repaired, "repaired"
+    return raw, "structured"
+
+
+@app.get("/agent/status")
+def agent_status() -> dict[str, Any]:
+    status = gemini_provider.get_status()
+    return {**status, "transcript_count": len(_agent_transcript)}
+
+
+@app.post("/agent/chat")
+def agent_chat(body: dict[str, Any]) -> dict[str, Any]:
+    import datetime
+    message = str(body.get("message") or body.get("input") or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+    packet = _compact_current_state_packet(message)
+    provider_before = gemini_provider.get_status()
+    prompt = (
+        "Current compact NEON COMMAND state follows. Answer the operator question using only this state.\n\n"
+        f"{json.dumps(packet, indent=2)}"
+    )
+    raw = gemini_provider.generate_json(
+        prompt=prompt,
+        system_instruction=CHIEF_OF_STAFF_SYSTEM_PROMPT,
+        max_tokens=900,
+        temperature=0.15,
+    )
+    parse_status = "structured"
+    if raw is None:
+        text = gemini_provider.generate(
+            prompt=prompt,
+            system_instruction=CHIEF_OF_STAFF_SYSTEM_PROMPT,
+            max_tokens=700,
+            temperature=0.15,
+        )
+        raw = text
+    structured, parse_status = _coerce_chief_response(raw, packet)
+    provider_after = gemini_provider.get_status()
+    fallback_used = provider_after.get("provider") == "mock" or parse_status in {"fallback", "raw_text", "repaired"}
+    display_text = (
+        f"BLUF: {structured['bluf']}\n\n"
+        f"Current situation: {structured['situation']}\n\n"
+        f"Recommendation: {structured['recommendation']}"
+    )
+    entry = {
+        "id": f"chat-{len(_agent_transcript) + 1:04d}",
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "role": "assistant",
+        "operator_message": message,
+        "source_state_id": packet["source_state_id"],
+        "provider": provider_after.get("provider", provider_before.get("provider")),
+        "model": provider_after.get("model", provider_before.get("model")),
+        "status": provider_after.get("label"),
+        "parse_status": parse_status,
+        "fallback_used": fallback_used,
+        "structured": structured,
+        "display_text": display_text,
+    }
+    _agent_transcript.append({"role": "operator", "message": message, "timestamp": entry["timestamp"], "source_state_id": packet["source_state_id"]})
+    _agent_transcript.append(entry)
+    del _agent_transcript[:-40]
+    return entry
+
+
+@app.get("/agent/transcript")
+def agent_transcript() -> list[dict[str, Any]]:
+    return _agent_transcript[-40:]
 
 
 @app.get("/after-action")
@@ -993,10 +1376,12 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
 
 @app.get("/copilot/status")
 def copilot_status() -> dict[str, Any]:
-    return CopilotStatus(
+    status = CopilotStatus(
         provider=gemini_provider.get_mode(),
         model=gemini_provider.get_model(),
         scenario_id=engine._scenario_id,
         feed_count=len(chief.feed),
         session_commands=router.session_commands,
     ).model_dump()
+    status["ai_status"] = gemini_provider.get_status()
+    return status

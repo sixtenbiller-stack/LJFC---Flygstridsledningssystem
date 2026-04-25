@@ -5,7 +5,7 @@ import type {
   ScenarioState, ThreatAlert, CourseOfAction, SimulationResult,
   ExplanationData, AuditRecord, Geography, FeedItem, CopilotResponse,
   CopilotStatusData, ThreatGroup, DecisionCard as DecisionCardType,
-  ScenarioSession, TimelineMarker,
+  ScenarioSession, TimelineMarker, AgentChatMessage,
 } from './types';
 import { TacticalMap } from './components/TacticalMap';
 import { AlertQueue } from './components/AlertQueue';
@@ -19,7 +19,6 @@ import {
   saveLayout,
   clampRails,
   presetToPixels,
-  LAYOUT_PRESETS,
   getBottomHeight,
   type LayoutPresetId,
   type BottomBarMode,
@@ -179,7 +178,7 @@ export default function App() {
   }, [refreshSession]);
 
   useEffect(() => {
-    api.loadScenario('scenario-alpha').then(() => setLoaded(true));
+    api.loadFeed('live_feed_minimal_alpha').then(() => setLoaded(true));
     api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
     refreshSession();
   }, [refreshSession]);
@@ -227,14 +226,6 @@ export default function App() {
     saveLayout(layout);
   }, [layoutPreset, leftPx, rightPx, bottomMode]);
 
-  const applyPreset = useCallback((id: LayoutPresetId) => {
-    const w = bodyRef.current?.clientWidth ?? window.innerWidth;
-    const p = presetToPixels(id, w);
-    setLeftPx(p.leftPx);
-    setRightPx(p.rightPx);
-    setLayoutPreset(id);
-  }, []);
-
   const onDividerMouseDown = (side: 'left' | 'right') => (e: React.MouseEvent) => {
     e.preventDefault();
     dragRef.current = side;
@@ -269,7 +260,13 @@ export default function App() {
     };
   }, [leftPx, rightPx]);
 
-  const onDividerDoubleClick = () => applyPreset('balanced');
+  const onDividerDoubleClick = () => {
+    const w = bodyRef.current?.clientWidth ?? window.innerWidth;
+    const p = presetToPixels('balanced', w);
+    setLeftPx(p.leftPx);
+    setRightPx(p.rightPx);
+    setLayoutPreset('balanced');
+  };
 
   const handleControl = async (action: string, speed?: number) => {
     await api.control(action, speed);
@@ -318,16 +315,9 @@ export default function App() {
     }
   };
 
-  const handleSendCommand = async (input: string): Promise<CopilotResponse | null> => {
+  const handleSendCommand = async (input: string): Promise<AgentChatMessage | null> => {
     try {
-      const resp = await api.sendCommand(input, state?.source_state_id);
-      if (resp.type === 'coas' && resp.data?.coas) {
-        setCoas(resp.data.coas as CourseOfAction[]);
-        setCoaWave((resp.data.wave as number) || state?.wave || 0);
-        setExplanation(null);
-        setSimResult(null);
-      }
-      return resp;
+      return await api.sendAgentChat(input);
     } catch {
       return null;
     }
@@ -411,8 +401,8 @@ export default function App() {
         void api.control(s?.is_playing ? 'pause' : 'play');
       }
       if (typing) return;
-      if (['Digit1', 'Digit2', 'Digit4', 'Digit8'].includes(e.code) && !e.ctrlKey && !e.metaKey) {
-        const map: Record<string, number> = { Digit1: 1, Digit2: 2, Digit4: 4, Digit8: 8 };
+      if (['Digit1', 'Digit2'].includes(e.code) && !e.ctrlKey && !e.metaKey) {
+        const map: Record<string, number> = { Digit1: 1, Digit2: 2 };
         const sp = map[e.code];
         if (sp) void api.control('speed', sp);
       }
@@ -448,41 +438,27 @@ export default function App() {
     <div
       className="app-layout"
       style={{
-        gridTemplateRows: `48px 1fr ${bottomH}px`,
+        gridTemplateRows: `44px 1fr ${bottomH}px`,
       }}
     >
       <header className="app-header">
         <div className="header-left">
-          <span className="header-logo">◆</span>
           <span className="header-title">NEON COMMAND</span>
-          <span className="header-sub">Smart Stridsledning</span>
+          <span className="header-sub">Current Air Picture</span>
         </div>
         <div className="header-center">
-          <span className="header-scenario">{state.scenario_name || 'No Scenario'}</span>
-          <span className={`header-mode-badge mode-${runtimeMode}`}>{runtimeMode.toUpperCase()}</span>
-          <span className={`header-origin-badge origin-${scenarioOrigin}`}>{scenarioOrigin.toUpperCase().replace('_', ' ')}</span>
-          {state.wave > 0 && (
-            <span className={`header-wave ${state.wave >= 2 ? 'wave-critical' : ''}`}>
-              WAVE {state.wave}
-            </span>
-          )}
+          <span className="header-scenario">Synthetic Live Feed</span>
+          <span className="header-feed-clock">T+{Math.round(state.current_time_s)}s</span>
+          {runtimeMode !== 'replay' && <span className={`header-mode-badge mode-${runtimeMode}`}>{runtimeMode.toUpperCase()}</span>}
+          {scenarioOrigin !== 'builtin' && <span className={`header-origin-badge origin-${scenarioOrigin}`}>{scenarioOrigin.toUpperCase().replace('_', ' ')}</span>}
+          <span className={`header-status ${state.is_playing ? 'running' : 'paused'}`}>
+            FEED {state.is_playing ? 'RUNNING' : state.current_time_s > 0 ? 'PAUSED' : 'ONLINE'}
+          </span>
+          <span className={`header-ai-status ${state.ai_provider_status?.status || copilotStatus?.ai_status?.status || 'fallback'}`}>
+            {state.ai_provider_status?.label || copilotStatus?.ai_status?.label || 'LOCAL AI'}
+          </span>
         </div>
         <div className="header-right">
-          <div className="layout-presets" title="Layout presets">
-            {(Object.keys(LAYOUT_PRESETS) as LayoutPresetId[]).map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={`layout-preset-btn ${layoutPreset === id ? 'active' : ''}`}
-                onClick={() => applyPreset(id)}
-              >
-                {LAYOUT_PRESETS[id].label}
-              </button>
-            ))}
-            <button type="button" className="layout-reset-btn" onClick={() => applyPreset('balanced')}>
-              Reset layout
-            </button>
-          </div>
           <span className="header-state-id">{state.source_state_id}</span>
         </div>
       </header>
@@ -503,6 +479,7 @@ export default function App() {
             session={session}
             onScenarioLoaded={handleScenarioLoaded}
           />
+          <div className="rail-section-title">CURRENT THREAT SITUATION</div>
           <div className="left-view-toggle">
             <button
               type="button"
@@ -607,12 +584,7 @@ export default function App() {
       </div>
 
       <footer className={`bottom-bar ${timelineCollapsed ? 'collapsed' : ''}`}>
-        <div className="timeline-size-controls">
-          <button type="button" className={bottomMode === 'compact' ? 'active' : ''} onClick={() => { setBottomMode('compact'); setTimelineCollapsed(false); }}>S</button>
-          <button type="button" className={bottomMode === 'normal' ? 'active' : ''} onClick={() => { setBottomMode('normal'); setTimelineCollapsed(false); }}>M</button>
-          <button type="button" className={bottomMode === 'expanded' ? 'active' : ''} onClick={() => { setBottomMode('expanded'); setTimelineCollapsed(false); }}>L</button>
-          <button type="button" title="Collapse timeline" onClick={() => setTimelineCollapsed(c => !c)}>▾</button>
-        </div>
+        <div className="feed-log-title">FEED LOG / MISSION CLOCK</div>
         <Timeline
           currentTime={state.current_time_s}
           duration={session?.duration_s ?? 240}

@@ -1,11 +1,14 @@
-"""Tests for scenario synchronization, mode/origin separation, operator markers, and session management."""
-import sys
-import pytest
+"""Tests for the minimal one-scenario NEON COMMAND path."""
 from pathlib import Path
+import json
+import sys
+
+import pytest
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "neon-command-engine"))
+
+from data_validation import validate_assets_data, validate_geography_data, validate_scenario_data, validate_scoring_params_data
 
 
 @pytest.fixture(scope="module")
@@ -14,215 +17,87 @@ def client():
     return TestClient(app)
 
 
-class TestModeOriginSeparation:
-    """runtime_mode and scenario_origin must be separate concepts."""
+def _load(name: str) -> dict:
+    return json.loads((Path(__file__).resolve().parent.parent / "neon-command-data" / name).read_text())
 
-    def test_alpha_is_replay_builtin(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        s = client.get("/scenario/session").json()
-        assert s["runtime_mode"] == "replay"
-        assert s["scenario_origin"] == "builtin"
 
-    def test_swarm_beta_is_replay_generated(self, client):
-        """swarm_beta has generator metadata — origin is generated, but mode is replay."""
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        s = client.get("/scenario/session").json()
-        assert s["runtime_mode"] == "replay", "Should be replay, not 'generated'"
-        assert s["scenario_origin"] == "generated"
+class TestMinimalValidation:
+    def test_minimal_geography_validates(self):
+        validate_geography_data(_load("geography.json"))
 
-    def test_raid_gamma_is_replay_generated(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-raid-gamma"})
-        s = client.get("/scenario/session").json()
-        assert s["runtime_mode"] == "replay"
-        assert s["scenario_origin"] == "generated"
+    def test_minimal_assets_validates(self):
+        validate_assets_data(_load("assets.json"))
 
-    def test_live_session_is_live_runtime_copy(self, client):
-        client.post("/scenario/live/start", json={"file_id": "scenario_swarm_beta"})
-        s = client.get("/scenario/session").json()
-        assert s["runtime_mode"] == "live"
-        assert s["scenario_origin"] == "runtime_copy"
-        assert s["source_parent_scenario"] == "scenario_swarm_beta"
-        assert s["runtime_session_id"] is not None
+    def test_minimal_scoring_validates(self):
+        validate_scoring_params_data(_load("scoring_params.json"))
 
-    def test_state_endpoint_also_has_both_fields(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
+    def test_minimal_scenario_validates(self):
+        validate_scenario_data(_load("scenario_minimal_alpha.json"))
+
+
+class TestMinimalScenarioRuntime:
+    def test_scenarios_default_only_minimal(self, client):
+        res = client.get("/scenarios").json()
+        assert res["feature_flags"]["extended_scenarios"] is False
+        assert res["feature_flags"]["live_mutation"] is False
+        assert res["feature_flags"]["scenario_generator"] is False
+        assert [s["file_id"] for s in res["scenarios"]] == ["scenario_minimal_alpha"]
+
+    def test_extended_scenario_rejected_by_default(self, client):
+        res = client.post("/scenario/load", json={"scenario_id": "scenario_swarm_beta"})
+        assert res.status_code == 403
+
+    def test_minimal_scenario_loads(self, client):
+        res = client.post("/scenario/load", json={"scenario_id": "scenario_minimal_alpha"})
+        assert res.status_code == 200
+        session = client.get("/scenario/session").json()
+        assert session["scenario_id"] == "scenario_minimal_alpha"
+        assert session["scenario_label"] == "Minimal Two-Track Decision"
+        assert session["runtime_mode"] == "replay"
+        assert session["scenario_origin"] == "builtin"
+
+    def test_minimal_reaches_two_tracks(self, client):
+        client.post("/scenario/load", json={"scenario_id": "scenario_minimal_alpha"})
+        jump = client.post("/scenario/seek", json={"time_s": 35}).json()
+        assert jump["tracks_at_target"] == 2
         state = client.get("/state").json()
-        assert state["runtime_mode"] == "replay"
-        assert state["scenario_origin"] == "generated"
-        assert state["mode"] == "replay"
+        assert len(state["tracks"]) == 2
+        assert state["coa_trigger_pending"] is True
 
-    def test_live_to_replay_resets_origin(self, client):
-        client.post("/scenario/live/start", json={"file_id": "scenario_swarm_beta"})
-        s1 = client.get("/scenario/session").json()
-        assert s1["runtime_mode"] == "live"
-        assert s1["scenario_origin"] == "runtime_copy"
+    def test_group_grp_min_01_forms(self, client):
+        client.post("/scenario/load", json={"scenario_id": "scenario_minimal_alpha"})
+        client.post("/scenario/seek", json={"time_s": 35})
+        client.get("/state")
+        groups = client.get("/groups").json()
+        ids = [g["group_id"] for g in groups]
+        assert "grp-min-01" in ids
 
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        s2 = client.get("/scenario/session").json()
-        assert s2["runtime_mode"] == "replay"
-        assert s2["scenario_origin"] == "builtin"
-        assert s2["runtime_session_id"] is None
-        assert s2["source_parent_scenario"] is None
-
-
-class TestOperatorMomentMarkers:
-    """Markers must reflect operator-visible moments, not raw event order."""
-
-    def test_first_group_visible_not_before_first_contact(self, client):
-        """In swarm_beta, GROUP_FORMED is at t=12 but TRACK_CREATED at t=18.
-        first_group marker must be >= first_contact marker."""
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
+    def test_markers_match_minimal_timeline(self, client):
+        client.post("/scenario/load", json={"scenario_id": "scenario_minimal_alpha"})
         markers = client.get("/scenario/markers").json()
         by_type = {m["type"]: m for m in markers}
-        assert "first_contact" in by_type
-        assert "first_group" in by_type
-        assert by_type["first_group"]["t_s"] >= by_type["first_contact"]["t_s"], \
-            f"first_group ({by_type['first_group']['t_s']}) should be >= first_contact ({by_type['first_contact']['t_s']})"
+        assert by_type["first_contact"]["t_s"] == 10
+        assert by_type["first_group"]["t_s"] == 25
+        assert by_type["first_decision"]["t_s"] == 35
 
-    def test_first_decision_not_before_first_contact(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        markers = client.get("/scenario/markers").json()
-        by_type = {m["type"]: m for m in markers}
-        if "first_decision" in by_type and "first_contact" in by_type:
-            assert by_type["first_decision"]["t_s"] >= by_type["first_contact"]["t_s"]
-
-    def test_alpha_markers_in_order(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        markers = client.get("/scenario/markers").json()
-        times = [m["t_s"] for m in markers]
-        assert times == sorted(times), "Markers must be sorted by time"
-        types = [m["type"] for m in markers]
-        assert "first_contact" in types
-
-    def test_swarm_beta_has_sensor_degraded(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        markers = client.get("/scenario/markers").json()
-        types = [m["type"] for m in markers]
-        assert "sensor_degraded" in types
+    def test_live_and_generator_disabled(self, client):
+        assert client.post("/scenario/generate", json={"template": "swarm_pressure"}).status_code == 403
+        assert client.post("/scenario/live/start", json={"file_id": "scenario_minimal_alpha"}).status_code == 403
 
 
-class TestJumpLandsOnMeaningfulState:
+class TestLocalLlmPath:
+    def test_llm_situation_brief_input_is_compact(self, client):
+        client.post("/scenario/load", json={"scenario_id": "scenario_minimal_alpha"})
+        client.post("/scenario/seek", json={"time_s": 35})
+        client.get("/state")
+        snap = client.get("/llm/situation-brief/input").json()
+        assert snap["schema_version"] == "neon.llm_input.v1"
+        assert snap["task"] == "situation_brief"
+        assert snap["scenario"]["scenario_id"] == "scenario_minimal_alpha"
+        assert snap["selected_group"]["group_id"] == "grp-min-01"
+        assert "events" not in snap
 
-    def test_jump_first_contact_has_tracks(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        r = client.post("/scenario/jump", json={"target": "first_contact"}).json()
-        assert r["status"] == "jumped"
-        assert r["tracks_at_target"] > 0
-
-    def test_jump_first_group_has_tracks(self, client):
-        """After jumping to first_group, tracks should be visible."""
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        r = client.post("/scenario/jump", json={"target": "first_group"}).json()
-        assert r["status"] == "jumped"
-        assert r["tracks_at_target"] > 0, "first_group jump should land after first tracks are visible"
-
-    def test_jump_uses_derived_markers_not_raw(self, client):
-        """Jump to first_group should use the derived marker time, not the raw GROUP_FORMED time."""
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        markers = client.get("/scenario/markers").json()
-        by_type = {m["type"]: m for m in markers}
-        r = client.post("/scenario/jump", json={"target": "first_group"}).json()
-        assert r["time_s"] == by_type["first_group"]["t_s"]
-
-    def test_jump_invalid_target(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        r = client.post("/scenario/jump", json={"target": "nonexistent"}).json()
-        assert "error" in r
-
-
-class TestSeek:
-
-    def test_seek_to_middle(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        r = client.post("/scenario/seek", json={"time_s": 60}).json()
-        assert r["status"] == "seeked"
-        assert r["time_s"] == 60.0
-        assert r["tracks_at_target"] > 0
-
-    def test_seek_clamped_to_duration(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        r = client.post("/scenario/seek", json={"time_s": 9999}).json()
-        assert r["time_s"] <= 240
-
-
-class TestScenarioSwitchClearsState:
-
-    def test_switch_clears_stale_data(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        client.post("/scenario/jump", json={"target": "first_contact"})
-
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        state = client.get("/state").json()
-        assert state["scenario_id"] == "scenario-swarm-beta"
-        assert state["current_time_s"] == 0.0
-
-    def test_source_state_id_resets(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        client.post("/scenario/jump", json={"target": "first_contact"})
-        sid1 = client.get("/scenario/session").json()["source_state_id"]
-
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        sid2 = client.get("/scenario/session").json()["source_state_id"]
-        assert "scenario-swarm-beta" in sid2
-        assert sid1 != sid2
-
-
-class TestCopilotScenarioCommands:
-
-    def test_scenario_command_shows_mode_and_origin(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        r = client.post("/copilot/command", json={"input": "/scenario"}).json()
-        assert "REPLAY" in r["message"]
-        assert "GENERATED" in r["message"]
-
-    def test_mode_command_shows_replay(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        r = client.post("/copilot/command", json={"input": "/mode"}).json()
-        assert "REPLAY" in r["message"]
-        assert "BUILTIN" in r["message"]
-
-    def test_live_status_when_not_live(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        r = client.post("/copilot/command", json={"input": "/live-status"}).json()
-        assert "not" in r["message"].lower() or "Not" in r["message"]
-
-    def test_jump_command(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        r = client.post("/copilot/command", json={"input": "/jump first-contact"}).json()
-        assert "Jump" in r["message"] or "jump" in r["message"]
-
-
-class TestMutationLog:
-
-    def test_mutation_log_in_session(self, client):
-        client.post("/scenario/live/start", json={"file_id": "scenario_swarm_beta"})
-        s = client.get("/scenario/session").json()
-        assert "mutation_log" in s
-        assert isinstance(s["mutation_log"], list)
-
-
-class TestSessionMetadata:
-
-    def test_session_has_all_required_fields(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        s = client.get("/scenario/session").json()
-        required = ["scenario_id", "scenario_label", "source_file", "runtime_mode",
-                     "scenario_origin", "source_state_id", "duration_s", "current_time_s",
-                     "status", "is_playing", "track_count", "group_count",
-                     "extended_schema_present", "loaded_at", "wave"]
-        for f in required:
-            assert f in s, f"Missing field: {f}"
-
-    def test_extended_schema_present_for_beta(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-swarm-beta"})
-        s = client.get("/scenario/session").json()
-        assert s["extended_schema_present"] is True
-
-    def test_no_extended_schema_for_alpha(self, client):
-        client.post("/scenario/load", json={"scenario_id": "scenario-alpha"})
-        s = client.get("/scenario/session").json()
-        assert s["extended_schema_present"] is False
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+    def test_llm_situation_brief_output_schema_shape(self):
+        schema = json.loads((Path(__file__).resolve().parent.parent / "schemas" / "llm" / "situation_brief.schema.json").read_text())
+        assert schema["additionalProperties"] is False
+        assert set(schema["required"]) == {"schema_version", "summary", "why_it_matters", "recommended_next_action", "confidence", "cited_ids"}

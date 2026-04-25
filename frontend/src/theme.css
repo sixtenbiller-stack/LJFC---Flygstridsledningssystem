@@ -1,26 +1,26 @@
 :root {
-  /* App shell — keep neon identity */
-  --bg-primary: #050806;
-  --bg-secondary: #0B110D;
-  --surface: #0A0F0A;
-  --surface-hover: #0F160F;
-  --border: #1C3A22;
-  --border-bright: #2A4F2A;
+  --bg-primary: #050706;
+  --bg-secondary: #0b100d;
+  --surface: #0d1210;
+  --surface-hover: #121915;
+  --surface-raised: #111814;
+  --border: #26352d;
+  --border-bright: #405447;
 
-  --neon-green: #39FF14;
-  --green-dim: #1ED760;
-  --green-bright: #7CFFB2;
-  --green-muted: #0D4F1C;
+  --neon-green: #9bd46a;
+  --green-dim: #6f9a58;
+  --green-bright: #c7f0a4;
+  --green-muted: #334b38;
 
-  --amber: #FFC857;
-  --amber-dim: #B8923E;
-  --red: #FF5A5F;
-  --red-dim: #A63B3E;
+  --amber: #d6a84f;
+  --amber-dim: #8f733d;
+  --red: #d56c54;
+  --red-dim: #854538;
 
-  --text: #E0E0E0;
-  --text-dim: #9AA79C;
-  --text-bright: #FFFFFF;
-  --text-muted: #6B7A6D;
+  --text: #d8ded7;
+  --text-dim: #9aa69c;
+  --text-bright: #f2f5ef;
+  --text-muted: #6f7a70;
 
   /* Map base — darker, less saturated */
   --map-bg: #060908;
@@ -30,23 +30,23 @@
   --map-water: #09110D;
 
   /* Semantic layers — distinct hues */
-  --friendly: #7CFFB2;
-  --friendly-secondary: #5BE39A;
-  --defended-zone: #4CFFB5;
-  --selected: #F1FF7A;
-  --warning: #FFC857;
-  --hostile-medium: #FF9A3D;
-  --hostile-critical: #FF5A5F;
+  --friendly: #78bdb4;
+  --friendly-secondary: #8bbf95;
+  --defended-zone: #789f82;
+  --selected: #d8d58e;
+  --warning: #d6a84f;
+  --hostile-medium: #c68650;
+  --hostile-critical: #d56c54;
   --neutral-label: #B7C4B8;
 
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+  --font-mono: 'Roboto Condensed', 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --glow-green: 0 0 8px rgba(57, 255, 20, 0.3);
-  --glow-green-strong: 0 0 16px rgba(57, 255, 20, 0.5);
-  --glow-amber: 0 0 8px rgba(255, 200, 87, 0.3);
-  --glow-red: 0 0 8px rgba(255, 90, 95, 0.3);
-  --glow-selected: 0 0 10px rgba(241, 255, 122, 0.4);
+  --glow-green: 0 0 8px rgba(155, 212, 106, 0.16);
+  --glow-green-strong: 0 0 14px rgba(155, 212, 106, 0.24);
+  --glow-amber: 0 0 8px rgba(214, 168, 79, 0.18);
+  --glow-red: 0 0 8px rgba(213, 108, 84, 0.18);
+  --glow-selected: 0 0 10px rgba(216, 213, 142, 0.2);
 
   --radius: 4px;
   --radius-lg: 8px;
@@ -71,9 +71,9 @@ html, body, #root {
 
 body {
   background-image:
-    linear-gradient(rgba(57, 255, 20, 0.01) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(57, 255, 20, 0.01) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(rgba(155, 212, 106, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(155, 212, 106, 0.012) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
 ::-webkit-scrollbar {
@@ -107,7 +107,7 @@ button {
 button:hover {
   background: var(--surface-hover);
   border-color: var(--neon-green);
-  box-shadow: var(--glow-green);
+  box-shadow: none;
 }
 button:active {
   transform: scale(0.97);

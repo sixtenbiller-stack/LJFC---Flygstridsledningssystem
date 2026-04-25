@@ -1,14 +1,14 @@
 .scenario-lab {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  background: var(--panel-bg, #0d1117);
-  border-bottom: 1px solid var(--border, #1e2a3a);
+  gap: 8px;
+  padding: 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
   font-family: var(--font-mono, 'JetBrains Mono', monospace);
   font-size: clamp(10px, 0.65vw + 0.3rem, 12px);
   color: var(--text-normal, #c9d1d9);
-  max-height: 50vh;
+  max-height: none;
   overflow-y: auto;
 }
 .slab-collapsed {
@@ -36,8 +36,8 @@
 .slab-title {
   font-weight: 700;
   font-size: clamp(11px, 0.7vw + 0.35rem, 14px);
-  color: var(--neon-cyan, #79c0ff);
-  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  letter-spacing: 0.16em;
 }
 .slab-collapse-btn {
   background: none;
@@ -58,8 +58,9 @@
   white-space: nowrap;
 }
 .slab-badge-mode.mode-replay {
-  background: rgba(57, 255, 20, 0.15);
-  color: var(--neon-green, #38d39f);
+  background: rgba(155, 212, 106, 0.08);
+  color: var(--green-bright);
+  border: 1px solid rgba(155, 212, 106, 0.28);
 }
 .slab-badge-mode.mode-live {
   background: #f85149;
@@ -86,10 +87,10 @@
 .slab-active-session {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 5px 8px;
-  background: rgba(121, 192, 255, 0.06);
-  border: 1px solid rgba(121, 192, 255, 0.15);
+  gap: 5px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
   border-radius: 4px;
 }
 .slab-active-label {
@@ -99,18 +100,18 @@
   color: var(--neon-cyan, #79c0ff);
 }
 .slab-active-name {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-normal, #c9d1d9);
+  color: var(--text-bright);
 }
 .slab-active-meta {
-  font-size: 9px;
-  color: var(--text-dim, #6e7681);
+  font-size: 10px;
+  color: var(--text-dim);
 }
 .slab-active-desc {
-  font-size: 9px;
-  color: var(--text-dim, #8b949e);
-  line-height: 1.35;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.45;
 }
 .slab-active-demo {
   font-size: 9px;
@@ -156,7 +157,7 @@
 .slab-section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .slab-row {
   flex-direction: row;
@@ -168,7 +169,7 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-dim, #6e7681);
+  color: var(--text-muted);
 }
 .slab-select {
   background: #161b22;

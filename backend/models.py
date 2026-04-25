@@ -395,7 +395,7 @@ class ScenarioEvent(BaseModel):
 # ── API Request/Response ──
 
 class ScenarioLoadRequest(BaseModel):
-    scenario_id: str = "scenario-alpha"
+    scenario_id: str = "scenario_minimal_alpha"
 
 
 class ScenarioControlRequest(BaseModel):

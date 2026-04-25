@@ -19,16 +19,31 @@ export const api = {
 
   getDecisions: () => request<any[]>('/decisions'),
 
-  loadScenario: (scenarioId = 'scenario-alpha') =>
+  loadScenario: (scenarioId = 'scenario_minimal_alpha') =>
     request<any>('/scenario/load', {
       method: 'POST',
       body: JSON.stringify({ scenario_id: scenarioId }),
     }),
 
   control: (action: string, speed?: number) =>
-    request<any>('/scenario/control', {
+    request<any>('/feed/control', {
       method: 'POST',
       body: JSON.stringify({ action, speed }),
+    }),
+
+  loadFeed: (feedId = 'live_feed_minimal_alpha') =>
+    request<any>('/feed/load', {
+      method: 'POST',
+      body: JSON.stringify({ feed_id: feedId }),
+    }),
+
+  getFeedStatus: () => request<any>('/feed/status'),
+
+  getFeedEvents: () => request<any[]>('/feed/events'),
+
+  stepFeed: () =>
+    request<any>('/feed/step', {
+      method: 'POST',
     }),
 
   generateCoas: (wave?: number) =>
@@ -65,6 +80,16 @@ export const api = {
     }),
 
   getCopilotStatus: () => request<any>('/copilot/status'),
+
+  sendAgentChat: (message: string) =>
+    request<any>('/agent/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+
+  getAgentStatus: () => request<any>('/agent/status'),
+
+  getAgentTranscript: () => request<any[]>('/agent/transcript'),
 
   // Threat Groups & Responses
   getGroups: () => request<any[]>('/groups'),

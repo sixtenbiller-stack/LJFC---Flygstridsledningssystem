@@ -18,7 +18,7 @@ interface Props {
   compact?: boolean;
 }
 
-const SPEEDS = [1, 2, 4, 8];
+const SPEEDS = [0.5, 1, 2];
 
 const MARKER_COLORS: Record<string, string> = {
   start: '#6e7681',
@@ -32,9 +32,8 @@ const MARKER_COLORS: Record<string, string> = {
 
 const DEMO_JUMPS = [
   { target: 'first_contact', label: 'First Contact' },
-  { target: 'first_group', label: 'First Group' },
+  { target: 'first_group', label: 'Group Formed' },
   { target: 'first_decision', label: 'Decision' },
-  { target: 'second_wave', label: '2nd Wave' },
 ];
 
 export function Timeline({
@@ -85,7 +84,7 @@ export function Timeline({
               className={`speed-btn ${speed === s ? 'active' : ''}`}
               onClick={() => onControl('speed', s)}
             >
-              ×{s}
+              {s}x
             </button>
           ))}
         </div>
@@ -123,7 +122,7 @@ export function Timeline({
         </div>
 
         {coaTriggerPending && (
-          <div className="tl-coa-alert">COA RECOMMENDED</div>
+          <div className="tl-coa-alert">RECOMMENDATION READY</div>
         )}
       </div>
 

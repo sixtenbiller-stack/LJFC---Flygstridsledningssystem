@@ -33,12 +33,12 @@ def load_assets() -> list[Asset]:
     return [Asset(**a) for a in raw["assets"]]
 
 
-def load_scenario(scenario_id: str = "scenario-alpha") -> dict[str, Any]:
+def load_scenario(scenario_id: str = "scenario_minimal_alpha") -> dict[str, Any]:
     filename = f"{scenario_id.replace('-', '_')}.json"
     return _load_json(filename)
 
 
-def load_scenario_events(scenario_id: str = "scenario-alpha") -> list[ScenarioEvent]:
+def load_scenario_events(scenario_id: str = "scenario_minimal_alpha") -> list[ScenarioEvent]:
     data = load_scenario(scenario_id)
     return [ScenarioEvent(**e) for e in data["events"]]
 

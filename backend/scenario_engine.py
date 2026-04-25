@@ -22,7 +22,7 @@ class ScenarioEngine:
 
         self.current_time_s: float = 0.0
         self.is_playing: bool = False
-        self.speed_multiplier: float = 1.0
+        self.speed_multiplier: float = 0.5
 
         self.tracks: dict[str, Track] = {}
         self.assets: dict[str, Asset] = {}
@@ -66,7 +66,7 @@ class ScenarioEngine:
     def scenario_meta(self) -> dict:
         return dict(self._scenario_meta)
 
-    def load(self, scenario_id: str = "scenario-alpha") -> None:
+    def load(self, scenario_id: str = "scenario_minimal_alpha") -> None:
         raw = load_scenario(scenario_id)
         self._load_from_raw(scenario_id, raw)
 
@@ -97,7 +97,7 @@ class ScenarioEngine:
         self._committed_assets = set()
         self._sensor_states = {}
         self.is_playing = False
-        self.speed_multiplier = 1.0
+        self.speed_multiplier = 0.5
         self._last_tick = time.monotonic()
 
     def reset(self) -> None:
@@ -112,7 +112,7 @@ class ScenarioEngine:
         self.is_playing = False
 
     def set_speed(self, speed: float) -> None:
-        self.speed_multiplier = max(0.5, min(speed, 8.0))
+        self.speed_multiplier = max(0.5, min(speed, 2.0))
 
     def commit_assets(self, asset_ids: list[str]) -> None:
         """Mark assets as committed after COA approval."""
@@ -155,10 +155,10 @@ class ScenarioEngine:
         log_entry = {"t_s": ev.t_s, "type": etype, "summary": data.get("message", data.get("notes", etype))}
         self.events_log.append(log_entry)
 
-        if etype == "SCENARIO_START":
+        if etype in {"SCENARIO_START", "FEED_START"}:
             self._wave = 0
 
-        elif etype == "TRACK_CREATED":
+        elif etype in {"TRACK_CREATED", "TRACK_OBSERVED"}:
             predicted = [PathPoint(**p) for p in data.get("predicted_path", [])]
             track = Track(
                 track_id=data["track_id"],
@@ -188,11 +188,13 @@ class ScenarioEngine:
             if ev.t_s >= 90 and self._wave < 2:
                 self._wave = 2
 
-        elif etype == "TRACK_UPDATED":
+        elif etype in {"TRACK_UPDATED", "TRACK_CLASSIFIED", "SENSOR_CONFIDENCE_CHANGED"}:
             tid = data["track_id"]
             if tid in self.tracks:
                 t = self.tracks[tid]
                 updates = data.get("updates", {})
+                if not updates:
+                    updates = {k: v for k, v in data.items() if k not in {"track_id", "message", "notes", "feed_event_id", "feed_source"}}
                 if "confidence" in updates:
                     t.confidence = updates["confidence"]
                 if "x_km" in updates:
@@ -203,6 +205,23 @@ class ScenarioEngine:
                     t.altitude_band = updates["altitude_band"]
                 if "class_label" in updates:
                     t.class_label = updates["class_label"]
+                for key in [
+                    "corridor_id",
+                    "group_seed_id",
+                    "formation_hint",
+                    "decoy_probability",
+                    "signature_hint",
+                    "payload_known",
+                    "payload_type",
+                    "rf_emitting",
+                    "maneuver_pattern",
+                    "source_disagreement",
+                    "speed_class",
+                    "heading_deg",
+                    "status",
+                ]:
+                    if key in updates:
+                        setattr(t, key, updates[key])
                 if data.get("notes"):
                     t.notes = data["notes"]
 
@@ -218,12 +237,12 @@ class ScenarioEngine:
             )
             self.alerts.append(alert)
 
-        elif etype == "COA_TRIGGER":
+        elif etype in {"COA_TRIGGER", "RECOMMENDATION_TRIGGERED"}:
             self._coa_trigger_pending = True
             if self._wave < 1:
                 self._wave = 1
 
-        elif etype == "GROUP_FORMED":
+        elif etype in {"GROUP_FORMED", "GROUP_DETECTED", "THREAT_ASSESSMENT_UPDATED", "ATO_LOADED", "ATO_CONSTRAINT_RELEVANT", "FEED_HEARTBEAT"}:
             pass  # groups tracked via track metadata + ThreatGroupEngine
 
         elif etype == "SENSOR_DEGRADED":
@@ -250,7 +269,7 @@ class ScenarioEngine:
                         a.recovery_eta_min = 25
                         a.availability_reason = "wave_1_recovery"
 
-        elif etype == "SCENARIO_END":
+        elif etype in {"SCENARIO_END", "FEED_END"}:
             self.is_playing = False
 
     def _interpolate_tracks(self) -> None:

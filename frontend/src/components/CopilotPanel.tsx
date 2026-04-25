@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import type {
   ScenarioState, CourseOfAction, ExplanationData, SimulationResult,
   AuditRecord, FeedItem, CopilotResponse, ThreatAlert, ThreatGroup,
-  DecisionCard as DecisionCardType,
+  DecisionCard as DecisionCardType, AgentChatMessage, CopilotStatusData,
 } from '../types';
 import { ALL_COMMANDS, type CommandDef } from '../copilotCommands';
 import './CopilotPanel.css';
@@ -16,7 +16,7 @@ interface Props {
   decisions: AuditRecord[];
   loading: string;
   feedItems: FeedItem[];
-  copilotStatus: { provider: string; model: string } | null;
+  copilotStatus: CopilotStatusData | null;
   alerts: ThreatAlert[];
   selectedTrack: string | null;
   groups?: ThreatGroup[];
@@ -28,7 +28,7 @@ interface Props {
   onExplain: (coaId: string) => void;
   onSimulate: (coaId: string) => void;
   onApprove: (coaId: string) => void;
-  onSendCommand: (input: string) => Promise<CopilotResponse | null>;
+  onSendCommand: (input: string) => Promise<AgentChatMessage | null>;
 }
 
 function ribbonCommands(args: {
@@ -37,43 +37,21 @@ function ribbonCommands(args: {
   wave: number;
   decisionCount: number;
 }): Array<{ cmd: string; label: string }> {
-  const { alertCount, coaCount, wave, decisionCount } = args;
-  if (alertCount === 0) {
+  const { alertCount, coaCount } = args;
+  if (coaCount > 0) {
     return [
-      { cmd: '/brief', label: 'Brief' },
-      { cmd: '/summary', label: 'Summary' },
+      { cmd: '/why top', label: 'Why top plan?' },
+      { cmd: '/simulate top', label: 'Simulate' },
+      { cmd: '/audit', label: 'Audit' },
       { cmd: '/commands', label: 'Commands' },
     ];
   }
-  if (decisionCount > 0 && coaCount > 0) {
-    return [
-      { cmd: '/decision-log', label: 'Decision log' },
-      { cmd: '/brief', label: 'Brief' },
-      { cmd: '/state-id', label: 'State ID' },
-      { cmd: '/simulate top', label: 'Simulate' },
-    ];
-  }
-  if (wave >= 2 && coaCount > 0) {
-    return [
-      { cmd: '/what-changed', label: 'What changed' },
-      { cmd: '/replan', label: 'Replan' },
-      { cmd: '/recommend', label: 'Recommend' },
-      { cmd: '/simulate top', label: 'Simulate' },
-    ];
-  }
-  if (coaCount > 0) {
-    return [
-      { cmd: '/compare top2', label: 'Compare' },
-      { cmd: '/why top', label: 'Why top' },
-      { cmd: '/simulate top', label: 'Simulate' },
-      { cmd: '/show-readiness', label: 'Readiness' },
-    ];
-  }
   return [
-    { cmd: '/top-threats', label: 'Top threats' },
-    { cmd: '/most-dangerous', label: 'Most dangerous' },
-    { cmd: '/generate-coas', label: 'Generate COAs' },
     { cmd: '/brief', label: 'Brief' },
+    { cmd: '/summary', label: 'Summary' },
+    { cmd: alertCount > 0 ? '/top-threat' : '/threats', label: 'Top threat' },
+    { cmd: '/recommend', label: 'Recommend' },
+    { cmd: '/commands', label: 'Commands' },
   ];
 }
 
@@ -90,7 +68,8 @@ export function CopilotPanel({
   const [selectedCoa, setSelectedCoa] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [commandLoading, setCommandLoading] = useState(false);
-  const [commandResponse, setCommandResponse] = useState<CopilotResponse | null>(null);
+  const [commandResponse, setCommandResponse] = useState<AgentChatMessage | null>(null);
+  const [chatLog, setChatLog] = useState<AgentChatMessage[]>([]);
   const [quickActions, setQuickActions] = useState<string[]>([]);
   const [slashHighlight, setSlashHighlight] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
@@ -201,11 +180,10 @@ export function CopilotPanel({
       const resp = await onSendCommand(cmd);
       if (resp) {
         setCommandResponse(resp);
-        if (resp.suggested_actions?.length) {
-          setQuickActions(resp.suggested_actions);
-        }
-        if (resp.type === 'coas') {
-          setView('plans');
+        const operatorMessage: AgentChatMessage = { role: 'operator', message: cmd, timestamp: new Date().toISOString(), source_state_id: state.source_state_id };
+        setChatLog(prev => [...prev, operatorMessage, resp].slice(-20));
+        if (resp.structured?.next_actions?.length) {
+          setQuickActions(resp.structured.next_actions.map(action => action.label));
         }
       }
     } finally {
@@ -270,24 +248,34 @@ export function CopilotPanel({
     <div className="copilot-panel">
       <div className="copilot-header">
         <div className="copilot-header-left">
-          <span className="copilot-title">UNIFIED COPILOT</span>
+          <span className="copilot-title">CHIEF OF STAFF</span>
           {copilotStatus && (
             <span className={`copilot-provider ${copilotStatus.provider}`}>
-              {copilotStatus.provider === 'gemini' ? '◆ GEMINI' : '○ MOCK'}
+              {copilotStatus.provider === 'ollama' ? 'LOCAL GEMMA' : copilotStatus.provider === 'gemini' ? 'GEMINI' : 'FALLBACK'}
             </span>
           )}
+          <span className={`copilot-ai-state ${commandLoading ? 'busy' : copilotStatus?.ai_status?.status || 'fallback'}`}>
+            {commandLoading ? 'LOCAL GEMMA BUSY' : copilotStatus?.ai_status?.label || 'TEMPLATE FALLBACK'}
+          </span>
         </div>
         {coaWave > 0 && <span className="copilot-wave">W{coaWave}</span>}
       </div>
 
+      <LatestAssessmentCard
+        response={commandResponse}
+        thinking={commandLoading}
+        sourceStateId={state.source_state_id}
+        onAction={(cmd) => void handleSendCommand(cmd)}
+      />
+
       <div className="copilot-sticky" aria-label="Situation summary">
         <div className="copilot-sticky-row">
           <div className="copilot-sticky-cell">
-            <span className="csk-label">Scenario</span>
-            <span className="csk-value">{state.scenario_name}</span>
+            <span className="csk-label">Feed</span>
+            <span className="csk-value">Synthetic Live Feed</span>
           </div>
           <div className="copilot-sticky-cell">
-            <span className="csk-label">{scenarioMode ? scenarioMode.toUpperCase() : 'REPLAY'} · {scenarioOrigin ? scenarioOrigin.toUpperCase().replace('_', ' ') : 'BUILTIN'}</span>
+            <span className="csk-label">Current State</span>
             <span className="csk-value csk-mono" title={state.source_state_id}>
               {state.source_state_id.length > 18 ? `${state.source_state_id.slice(0, 18)}…` : state.source_state_id}
             </span>
@@ -334,12 +322,25 @@ export function CopilotPanel({
         </div>
       </div>
 
+      <div className="copilot-ato-card" aria-label="ATO and mission constraints">
+        <div className="copilot-card-heading">ATO / MISSION CONSTRAINTS</div>
+        <div className="copilot-ato-name">ato_minimal_alpha</div>
+        <div className="copilot-ato-intent">
+          Protect Arktholm while preserving at least one fighter for follow-on uncertainty.
+        </div>
+        <div className="copilot-ato-grid">
+          <span>Primary defended</span><strong>city-arktholm</strong>
+          <span>Reserve rule</span><strong>Keep 1 fighter</strong>
+          <span>Approval</span><strong>Air defence battle manager</strong>
+        </div>
+      </div>
+
       <div className="copilot-tabs">
         <button className={view === 'feed' ? 'tab active' : 'tab'} onClick={() => setView('feed')}>
           Feed{feedItems.length > 0 ? ` (${feedItems.length})` : ''}
         </button>
-        <button className={view === 'plans' ? 'tab active' : 'tab'} onClick={() => setView('plans')}>Plans</button>
-        <button className={view === 'compare' ? 'tab active' : 'tab'} onClick={handleCompare} disabled={coas.length < 2}>Compare</button>
+        <button className={view === 'plans' ? 'tab active' : 'tab'} onClick={() => setView('plans')}>Plan</button>
+        <button className="tab compare-tab" onClick={handleCompare} disabled={coas.length < 2}>Compare</button>
         <button className={view === 'explain' ? 'tab active' : 'tab'} onClick={() => setView('explain')} disabled={!explanation}>Why?</button>
         <button className={view === 'simulate' ? 'tab active' : 'tab'} onClick={() => setView('simulate')} disabled={!simResult}>Sim</button>
         <button className={view === 'audit' ? 'tab active' : 'tab'} onClick={() => setView('audit')}>Audit</button>
@@ -361,7 +362,7 @@ export function CopilotPanel({
               onClick={handleGenerate}
               disabled={loading === 'coas'}
             >
-              {loading === 'coas' ? 'Generating...' : state.wave >= 2 ? '↻ Re-plan COAs' : '◆ Generate COAs'}
+              {loading === 'coas' ? 'Generating...' : state.wave >= 2 ? 'Update Response Plan' : 'Generate Response Plan'}
             </button>
 
             {coas.length === 0 && (
@@ -392,6 +393,8 @@ export function CopilotPanel({
         {view === 'simulate' && <SimulateView result={simResult} />}
         {view === 'audit' && <AuditView decisions={decisions} />}
       </div>
+
+      <ChatTranscript messages={chatLog} thinking={commandLoading} />
 
       {/* Feed / backend suggested quick actions */}
       {quickActions.length > 0 && (
@@ -435,7 +438,7 @@ export function CopilotPanel({
             ref={inputRef}
             type="text"
             className="copilot-input"
-            placeholder={commandLoading ? 'Processing...' : '/command or ask a question...'}
+            placeholder={commandLoading ? 'Gemma thinking...' : 'Ask Chief of Staff about the current threat situation...'}
             value={inputText}
             onChange={e => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -491,17 +494,103 @@ export function CopilotPanel({
   );
 }
 
+function LatestAssessmentCard({
+  response, thinking, sourceStateId, onAction,
+}: {
+  response: AgentChatMessage | null;
+  thinking: boolean;
+  sourceStateId: string;
+  onAction: (cmd: string) => void;
+}) {
+  const structured = response?.structured;
+  if (thinking) {
+    return (
+      <div className="latest-assessment-card thinking">
+        <div className="assessment-title">Latest Assessment</div>
+        <div className="assessment-bluf">Gemma thinking...</div>
+        <div className="assessment-muted">Building compact current-state packet and querying local Ollama.</div>
+      </div>
+    );
+  }
+  if (!structured) {
+    return (
+      <div className="latest-assessment-card empty">
+        <div className="assessment-title">Latest Assessment</div>
+        <div className="assessment-bluf">No AI response yet.</div>
+        <div className="assessment-muted">Ask for a brief or start the synthetic feed. Snapshot: {sourceStateId}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="latest-assessment-card">
+      <div className="assessment-header">
+        <span className="assessment-title">Latest Assessment</span>
+        <span className="assessment-meta">{response?.provider} · {response?.model}</span>
+      </div>
+      <div className="assessment-bluf">BLUF: {structured.bluf}</div>
+      <div className="assessment-section">
+        <span>Current situation</span>
+        <p>{structured.situation}</p>
+      </div>
+      {structured.evidence?.length > 0 && (
+        <div className="assessment-section">
+          <span>Evidence</span>
+          <ul>
+            {structured.evidence.slice(0, 4).map((e, i) => (
+              <li key={`${e.cited_id}-${i}`}><strong>{e.label}:</strong> {e.detail}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="assessment-section">
+        <span>Recommendation</span>
+        <p>{structured.recommendation}</p>
+      </div>
+      <div className="assessment-actions">
+        {structured.next_actions?.slice(0, 3).map((action) => (
+          <button key={action.command} type="button" onClick={() => onAction(action.command)}>
+            {action.label}
+          </button>
+        ))}
+      </div>
+      <div className="assessment-lineage">State {response?.source_state_id} · {response?.status}</div>
+    </div>
+  );
+}
+
+function ChatTranscript({ messages, thinking }: { messages: AgentChatMessage[]; thinking: boolean }) {
+  if (messages.length === 0 && !thinking) {
+    return <div className="chat-transcript-empty">No AI response yet — ask for a brief or start the feed.</div>;
+  }
+  return (
+    <div className="chat-transcript">
+      {messages.slice(-8).map((m, i) => (
+        <div key={`${m.timestamp}-${i}`} className={`chat-row ${m.role}`}>
+          <div className="chat-meta">
+            {m.role === 'operator' ? 'Operator' : `${m.provider || 'AI'} · ${m.model || ''}`}
+            <span>{new Date(m.timestamp).toLocaleTimeString()}</span>
+          </div>
+          <div className="chat-body">
+            {m.role === 'operator' ? m.message : (m.structured?.bluf || m.display_text || m.message)}
+          </div>
+        </div>
+      ))}
+      {thinking && <div className="chat-row assistant"><div className="chat-body">Gemma thinking...</div></div>}
+    </div>
+  );
+}
+
 function FeedView({
   items, commandResponse, feedEndRef,
 }: {
   items: FeedItem[];
-  commandResponse: CopilotResponse | null;
+  commandResponse: AgentChatMessage | null;
   feedEndRef: React.RefObject<HTMLDivElement | null>;
 }) {
   if (items.length === 0 && !commandResponse) {
     return (
       <div className="copilot-hint">
-        Chief of Staff is monitoring the scenario. Updates will appear here when something material changes.
+        Chief of Staff is monitoring the synthetic feed. Updates will appear here when something material changes.
         <div className="copilot-hint-sub">
           Try <span className="copilot-hint-cmd">/brief</span>, <span className="copilot-hint-cmd">/commands</span>, or the Quick ribbon below. Start playback to populate threats.
         </div>
@@ -536,7 +625,7 @@ function FeedView({
             <span className="feed-severity info">◆</span>
             <span className="feed-category">copilot response</span>
           </div>
-          <div className="feed-body">{commandResponse.message}</div>
+          <div className="feed-body">{commandResponse.structured?.bluf || commandResponse.display_text}</div>
         </div>
       )}
 

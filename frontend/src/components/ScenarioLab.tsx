@@ -27,7 +27,12 @@ const ORIGIN_LABELS: Record<string, string> = {
 
 export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isPlaying, session, onScenarioLoaded }: Props) {
   const [scenarios, setScenarios] = useState<ScenarioEntry[]>([]);
-  const [selectedFileId, setSelectedFileId] = useState('scenario_swarm_beta');
+  const [selectedFileId, setSelectedFileId] = useState('scenario_minimal_alpha');
+  const [featureFlags, setFeatureFlags] = useState({
+    extended_scenarios: false,
+    live_mutation: false,
+    scenario_generator: false,
+  });
   const [mode, setMode] = useState<'replay' | 'live'>('replay');
   const [genTemplate, setGenTemplate] = useState('swarm_pressure');
   const [genSeed, setGenSeed] = useState('');
@@ -42,6 +47,11 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
     try {
       const res = await api.getScenarios();
       setScenarios(res.scenarios || []);
+      setFeatureFlags({
+        extended_scenarios: Boolean(res.feature_flags?.extended_scenarios),
+        live_mutation: Boolean(res.feature_flags?.live_mutation),
+        scenario_generator: Boolean(res.feature_flags?.scenario_generator),
+      });
     } catch { /* skip */ }
   }, []);
 
@@ -61,7 +71,7 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
 
   const handleLoad = async () => {
     if (mode === 'replay') {
-      const sid = selectedFileId.replace(/_/g, '-');
+      const sid = selectedFileId;
       await api.loadScenario(sid);
       flash(`Loaded ${selectedFileId} (replay)`);
     } else {
@@ -91,7 +101,7 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
       const seed = genSeed ? parseInt(genSeed) : undefined;
       const dur = parseInt(genDuration) || 300;
       const res = await api.generateScenario(genTemplate, seed, dur);
-      const sid = res.file_id.replace(/_/g, '-');
+      const sid = res.file_id;
       await api.loadScenario(sid);
       flash(`Generated & loaded: ${res.file_id}`);
       await fetchScenarios();
@@ -115,8 +125,7 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
   if (!expanded) {
     return (
       <div className="slab-collapsed" onClick={() => setExpanded(true)}>
-        <span className="slab-collapsed-icon">⚗</span>
-        <span className="slab-collapsed-label">SCENARIO LAB</span>
+        <span className="slab-collapsed-label">MISSION</span>
         <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>
       </div>
     );
@@ -125,9 +134,11 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
   return (
     <div className="scenario-lab">
       <div className="slab-header">
-        <span className="slab-title">⚗ SCENARIO LAB</span>
+        <span className="slab-title">FEED STATUS</span>
         <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>
-        <span className={`slab-badge slab-badge-origin origin-${currentOrigin}`}>{ORIGIN_LABELS[currentOrigin] || currentOrigin.toUpperCase()}</span>
+        {currentOrigin !== 'builtin' && (
+          <span className={`slab-badge slab-badge-origin origin-${currentOrigin}`}>{ORIGIN_LABELS[currentOrigin] || currentOrigin.toUpperCase()}</span>
+        )}
         <button className="slab-collapse-btn" onClick={() => setExpanded(false)} title="Collapse">—</button>
       </div>
 
@@ -137,19 +148,21 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
       {session && session.scenario_id && (
         <div className="slab-active-session">
           <div className="slab-active-top">
-            <span className="slab-active-name">{session.scenario_label}</span>
+            <span className="slab-active-name">Synthetic Feed: Minimal Alpha</span>
           </div>
           {session.description && (
             <span className="slab-active-desc">{session.description.length > 120 ? session.description.slice(0, 120) + '…' : session.description}</span>
           )}
           <span className="slab-active-meta">
-            {session.track_count} tracks · {session.group_count} groups · {session.duration_s}s
-            {session.extended_schema_present && ' · extended'}
+            Status {session.status} · t={Math.round(session.current_time_s)}s / {session.duration_s}s · {session.speed_multiplier}x
           </span>
-          {session.seed != null && (
+          {typeof session.scenario_meta?.ato_ref === 'string' && (
+            <span className="slab-active-meta">ATO: {String(session.scenario_meta.ato_ref)}</span>
+          )}
+          {featureFlags.extended_scenarios && session.seed != null && (
             <span className="slab-active-meta">Seed: {session.seed}{session.template_name ? ` · Template: ${session.template_name}` : ''}</span>
           )}
-          {session.runtime_session_id && (
+          {featureFlags.live_mutation && session.runtime_session_id && (
             <span className="slab-active-meta">Session: {session.runtime_session_id.slice(0, 24)}</span>
           )}
           {session.source_parent_scenario && (
@@ -162,7 +175,7 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
       )}
 
       {/* Mutation log for live mode */}
-      {liveActive && session?.mutation_log && session.mutation_log.length > 0 && (
+      {featureFlags.live_mutation && liveActive && session?.mutation_log && session.mutation_log.length > 0 && (
         <div className="slab-mutation-log">
           <span className="slab-label">Mutation Log</span>
           <div className="slab-mutation-list">
@@ -177,6 +190,7 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
       )}
 
       {/* Scenario selector */}
+      {featureFlags.extended_scenarios && (
       <div className="slab-section">
         <label className="slab-label">Scenario</label>
         <select
@@ -206,8 +220,28 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
           })()}
         </div>
       </div>
+      )}
+
+      <div className="slab-section slab-feed-controls">
+        <label className="slab-label">Synthetic Feed Controls</label>
+        <div className="slab-live-row">
+          <button className="slab-btn slab-btn-primary" onClick={() => api.control(isPlaying ? 'pause' : 'play').then(onScenarioLoaded)}>
+            {isPlaying ? 'Pause Feed' : 'Start Feed'}
+          </button>
+          <button className="slab-btn" onClick={() => api.control('step').then(onScenarioLoaded)}>Step</button>
+          <button className="slab-btn" onClick={() => api.control('reset').then(onScenarioLoaded)}>Reset</button>
+        </div>
+        <div className="slab-live-row">
+          {[0.5, 1, 2].map(speed => (
+            <button key={speed} className="slab-btn" onClick={() => api.control('speed', speed)}>
+              {speed}x
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Mode selector + load */}
+      {featureFlags.extended_scenarios && (
       <div className="slab-section slab-row">
         <div className="slab-mode-toggle">
           <button
@@ -223,8 +257,10 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
           Load
         </button>
       </div>
+      )}
 
       {/* Generator */}
+      {featureFlags.scenario_generator && (
       <div className="slab-section">
         <label className="slab-label">Generate Scenario</label>
         <div className="slab-gen-row">
@@ -259,9 +295,10 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
           </button>
         </div>
       </div>
+      )}
 
       {/* Live controls */}
-      {liveActive && (
+      {featureFlags.live_mutation && liveActive && (
         <div className="slab-section slab-live-controls">
           <label className="slab-label">Live Controls</label>
           <div className="slab-live-row">
