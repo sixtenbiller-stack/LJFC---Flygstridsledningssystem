@@ -967,6 +967,23 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
     def _tool_get_after_action() -> list[dict[str, Any]]:
         return [r.model_dump() for r in _after_action]
 
+    # Log the command to the feed
+    chief.add_event_item(
+        category="operator_command",
+        severity="info",
+        title="",
+        body=f"{cmd.input}",
+        source_state_id=state.source_state_id,
+    )
+
+    # Get recent history from chief
+    history_items = chief.feed[-15:]
+    history_ctx = []
+    for h in history_items:
+        role = "user" if h.category == "operator_command" else "assistant"
+        history_ctx.append({"role": role, "content": h.body})
+
+    # Prepare tools
     tools = {
         "get_state_summary": _tool_get_state_summary,
         "get_top_threats": _tool_get_top_threats,
@@ -985,16 +1002,7 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
         "jump_to": lambda target: jump_to_event({"target": target}),
     }
 
-    response = router.route(cmd.input, state_summary=state_dict, tools=tools)
-
-    # Log the command and response to the feed
-    chief.add_event_item(
-        category="operator_command",
-        severity="info",
-        title="",
-        body=f"{cmd.input}",
-        source_state_id=state.source_state_id,
-    )
+    response = router.route(cmd.input, state_summary=state_dict, tools=tools, history=history_ctx)
 
     if response.type == "coas" and response.data.get("coas"):
         pass  # COAs already set by tool
