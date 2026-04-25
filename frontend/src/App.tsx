@@ -25,6 +25,7 @@ import {
   type BottomBarMode,
   type StoredLayout,
 } from './layout/layoutStorage';
+import { ResourceViewer } from './components/ResourceViewer';
 import './App.css';
 
 const BAND_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
@@ -45,7 +46,8 @@ export default function App() {
   const [groups, setGroups] = useState<ThreatGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [decisionCard, setDecisionCard] = useState<DecisionCardType | null>(null);
-  const [leftView, setLeftView] = useState<'tracks' | 'groups'>('tracks');
+  const [leftView, setLeftView] = useState<'tracks' | 'groups' | 'resources'>('tracks');
+  const [resources, setResources] = useState<any | null>(null);
   const [runtimeMode, setRuntimeMode] = useState<string>('replay');
   const [scenarioOrigin, setScenarioOrigin] = useState<string>('builtin');
   const [session, setSession] = useState<ScenarioSession | null>(null);
@@ -181,6 +183,8 @@ export default function App() {
   useEffect(() => {
     api.loadScenario('scenario-alpha').then(() => setLoaded(true));
     api.getCopilotStatus().then(setCopilotStatus).catch(() => {});
+    api.getResources().then(setResources).catch(() => {});
+
     refreshSession();
   }, [refreshSession]);
 
@@ -482,6 +486,13 @@ export default function App() {
             >
               GROUPS{groups.length > 0 ? ` (${groups.length})` : ''}
             </button>
+            <button
+              type="button"
+              className={`lv-tab ${leftView === 'resources' ? 'active' : ''}`}
+              onClick={() => setLeftView('resources')}
+            >
+              RESOURCES
+            </button>
           </div>
           {leftView === 'tracks' ? (
             <AlertQueue
@@ -490,12 +501,14 @@ export default function App() {
               selectedTrack={selectedTrack}
               onAlertClick={handleAlertClick}
             />
-          ) : (
+          ) : leftView === 'groups' ? (
             <GroupQueue
               groups={groups}
               selectedGroup={selectedGroup}
               onGroupClick={handleGroupClick}
             />
+          ) : (
+            <ResourceViewer resources={resources} />
           )}
         </aside>
 

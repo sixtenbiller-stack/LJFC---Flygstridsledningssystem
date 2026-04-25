@@ -16,6 +16,8 @@ export const api = {
   getAlerts: () => request<any[]>('/alerts'),
 
   getCoas: () => request<any>('/coas'),
+  getResources: () => request<any>('/resources'),
+
 
   getDecisions: () => request<any[]>('/decisions'),
 
