@@ -976,13 +976,6 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
         source_state_id=state.source_state_id,
     )
 
-    # Get recent history from chief
-    history_items = chief.feed[-15:]
-    history_ctx = []
-    for h in history_items:
-        role = "user" if h.category == "operator_command" else "assistant"
-        history_ctx.append({"role": role, "content": h.body})
-
     # Prepare tools
     tools = {
         "get_state_summary": _tool_get_state_summary,
@@ -1002,7 +995,8 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
         "jump_to": lambda target: jump_to_event({"target": target}),
     }
 
-    response = router.route(cmd.input, state_summary=state_dict, tools=tools, history=history_ctx)
+    # Each prompt is treated as a new context (history=None)
+    response = router.route(cmd.input, state_summary=state_dict, tools=tools, history=None)
 
     if response.type == "coas" and response.data.get("coas"):
         pass  # COAs already set by tool
