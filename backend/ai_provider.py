@@ -185,6 +185,16 @@ def _clean_reasoning(text: str | None) -> str | None:
         return text
         
     import re
+
+    # Handle cases where thoughts are presented as a numbered list before the final response
+    # This often follows a pattern like "1. Analyze...", "2. Analyze...", etc.
+    # and ends with something like "<channel|>" or "Response:"
+    if "<|channel|>" in text:
+        text = text.split("<|channel|>")[-1]
+    elif "<channel|>" in text:
+        # User's example has "<channel|>"
+        text = text.split("<channel|>")[-1]
+        
     # Remove <thought>...</thought> or <thinking>...</thinking> blocks
     text = re.sub(r"<(thought|thinking)>.*?</\1>", "", text, flags=re.DOTALL | re.IGNORECASE)
     
