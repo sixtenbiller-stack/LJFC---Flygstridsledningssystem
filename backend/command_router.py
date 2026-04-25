@@ -4,17 +4,29 @@ from __future__ import annotations
 import re
 from typing import Any, Callable
 
-import gemini_provider
+import ai_provider
 from models import CopilotResponse
 
 
 SYSTEM_INSTRUCTION = """You are the Unified Copilot for LJFC COMMAND. You answer operator questions about the current tactical situation.
+
+[TACTICAL CONTEXT SCHEMA]
+The provided state contains:
+- tracks: {id, side, class, pos[x,y], speed, alt, threat_score, eta_s}
+- assets: {id, type, status, readiness, pos[x,y], munitions}
+- zones: {id, priority, location}
+
+[DECISION OUTPUT SCHEMA]
+If recommending tactical actions, prioritize concise text but ALWAYS include a structured decision block in the response 'data' field.
+A decision should contain:
+{"action": "INTERCEPT|MONITOR|REDEPLOY", "actor_id": "asset_id", "target_ids": ["track_id"], "priority": "high|medium|low", "rationale": "why"}
+
 Rules:
 - Be concise and direct — 1-3 paragraphs max
-- Reference specific track IDs, asset IDs, zone names, scores, and ETAs
+- Reference specific IDs (tracks, assets, zones)
 - Never issue orders — recommend and inform only
 - Ground all answers in the provided state data
-- If asked about a topic not in the data, say so clearly"""
+- CRITICAL: Do NOT show your thinking process. Output ONLY the response."""
 
 SLASH_COMMANDS = {
     "/summary": "summary",
@@ -236,29 +248,79 @@ class CommandRouter:
 
         return "freeform", []
 
+    def _build_tactical_context_str(self, state: dict) -> str:
+        """Create a compact, stable tactical context for the LLM prompt."""
+        import json
+        tracks = state.get("tracks", [])
+        assets = state.get("assets", [])
+        threat_map = {s.get("track_id"): s for s in state.get("threat_scores", [])}
+        
+        ctx = {
+            "tracks": [],
+            "assets": [],
+            "zones": state.get("zones", [])
+        }
+        
+        for t in tracks:
+            tid = t.get("track_id")
+            sc = threat_map.get(tid, {})
+            ctx["tracks"].append({
+                "id": tid,
+                "side": t.get("side"),
+                "class": t.get("class_label"),
+                "pos": [t.get("x_km"), t.get("y_km")],
+                "speed": t.get("speed_class"),
+                "alt": t.get("altitude_band"),
+                "threat_score": sc.get("total_score", 0),
+                "eta_s": sc.get("eta_s")
+            })
+            
+        for a in assets:
+            ctx["assets"].append({
+                "id": a.get("asset_id"),
+                "type": a.get("asset_type"),
+                "status": a.get("status"),
+                "readiness": a.get("readiness"),
+                "pos": [a.get("current_location", {}).get("x", 0), a.get("current_location", {}).get("y", 0)],
+                "munitions": a.get("munitions")
+            })
+            
+        return json.dumps(ctx, indent=None)
+
     def _handle_summary(self, state: dict, tools: dict, sid: str) -> CopilotResponse:
         summary_fn = tools.get("get_state_summary")
-        if summary_fn:
-            data = summary_fn()
-        else:
-            data = self._build_basic_summary(state)
+        data = summary_fn() if summary_fn else self._build_basic_summary(state)
+        tactical_ctx = self._build_tactical_context_str(state)
 
         prompt = (
-            f"Current state data:\n{_fmt(data)}\n\n"
-            "Provide a concise situation summary for the operator."
+            f"Tactical context: {tactical_ctx}\n"
+            f"Current state data: {json.dumps(data)}\n\n"
+            "Provide a concise situation summary and recommend structured tactical decisions if applicable."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = self._format_summary_fallback(data)
 
+        extra_data = {"context": data}
+        if msg and "{" in msg and "}" in msg:
+            try:
+                import json
+                start = msg.find("{")
+                end = msg.rfind("}") + 1
+                parsed = json.loads(msg[start:end])
+                if "decisions" in parsed:
+                    extra_data["decisions"] = parsed["decisions"]
+            except: pass
+
         return CopilotResponse(
-            type="text", message=msg, data=data, source_state_id=sid,
+            type="text", message=msg, data=extra_data, source_state_id=sid,
             suggested_actions=self._suggest_from_state(state),
         )
 
     def _handle_top_threats(self, state: dict, tools: dict, sid: str) -> CopilotResponse:
         get_threats = tools.get("get_top_threats")
         threats = get_threats(5) if get_threats else []
+        tactical_ctx = self._build_tactical_context_str(state)
 
         if not threats:
             return CopilotResponse(
@@ -267,10 +329,11 @@ class CommandRouter:
             )
 
         prompt = (
-            f"Current threat assessment:\n{_fmt(threats)}\n\n"
-            "Summarize the top threats for the operator. Reference track IDs, scores, zones, and ETAs."
+            f"Tactical context: {tactical_ctx}\n"
+            f"Current threat assessment: {json.dumps(threats)}\n\n"
+            "Summarize the top threats and recommend structured tactical decisions if applicable."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             lines = []
             for t in threats[:5]:
@@ -282,8 +345,19 @@ class CommandRouter:
                     )
             msg = "Top threats:\n" + "\n".join(lines) if lines else "No detailed threat data."
 
+        extra_data = {"threats": threats}
+        if msg and "{" in msg and "}" in msg:
+            try:
+                import json
+                start = msg.find("{")
+                end = msg.rfind("}") + 1
+                parsed = json.loads(msg[start:end])
+                if "decisions" in parsed:
+                    extra_data["decisions"] = parsed["decisions"]
+            except: pass
+
         return CopilotResponse(
-            type="text", message=msg, data={"threats": threats}, source_state_id=sid,
+            type="text", message=msg, data=extra_data, source_state_id=sid,
             suggested_actions=["Generate COAs"],
         )
 
@@ -401,7 +475,7 @@ class CommandRouter:
             f"Recent events:\n{_fmt(recent)}\n\n"
             "Summarize what changed recently for the operator."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
         if not msg:
             if recent:
                 lines = [f"• T+{e.get('t_s', 0):.0f}s: {e.get('summary', e.get('type', '?'))}" for e in recent]
@@ -430,7 +504,7 @@ class CommandRouter:
             f"Current COAs:\n{_fmt(coas[:3])}\n\n"
             "Recommend the best option and explain why in 2-3 sentences."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
         if not msg:
             title = top.get("title", "Option A") if isinstance(top, dict) else "Option A"
             msg = f"Recommended: {title}. It offers the best balance of protection and readiness preservation."
@@ -466,7 +540,7 @@ class CommandRouter:
             "Cover: situation, threat picture, current plan status, readiness, and recommended next steps. "
             "Keep it to 3-5 paragraphs."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=600)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=600)
         if not msg:
             msg = self._format_summary_fallback(summary)
             if coas:
@@ -506,7 +580,7 @@ class CommandRouter:
             "Answer the operator's question based on the current tactical situation. "
             "Be concise and direct."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = (
                 "I can help with tactical questions. Try commands like /summary, /top-threats, "
@@ -549,7 +623,7 @@ class CommandRouter:
             "Summarize this threat group for the operator: what it is, why the system classified it this way, "
             "what is most at risk, urgency, confidence, and recommended lane."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = g.get("short_narration", "No narration available.")
             if g.get("rationale"):
@@ -572,7 +646,7 @@ class CommandRouter:
             "Answer why this group was classified this way. Reference coordination score, member tracks, "
             "heading alignment, timing, and uncertainty flags."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             ev = g.get("evidence", [])
             lines = [f"• {e.get('factor', '?')}: {e.get('value', 0)} — {e.get('detail', '')}" for e in ev]
@@ -623,7 +697,7 @@ class CommandRouter:
             f"Top response option:\n{_fmt(top)}\n\n"
             "Explain why this is the recommended response. Reference effectiveness, cost, authority, and trade-offs."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             rationale = top.get("rationale", [])
             msg = f"Recommended: {top.get('title', '?')}\n" + "\n".join(f"• {r}" for r in rationale) if rationale else f"Recommended: {top.get('title', '?')}"
@@ -643,7 +717,7 @@ class CommandRouter:
             f"Option A:\n{_fmt(a)}\n\nOption B:\n{_fmt(b)}\n\n"
             "Compare these two response options. Highlight key trade-offs in effectiveness, cost, reversibility, and authority."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = (f"#{a.get('rank')}: {a.get('title')} — {a.get('expected_effectiveness', 0):.0%} effective, "
                    f"{a.get('readiness_cost_pct', 0):.0f}% cost, {a.get('reversibility', '?')} reversibility\n"

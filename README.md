@@ -34,10 +34,12 @@ cp .env.example .env
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GEMINI_API_KEY` | For AI mode | Google Gemini API key |
-| `GEMINI_MODEL` | No | Override model (default: `gemini-2.5-flash`) |
+| `LMSTUDIO_BASE_URL` | For local mode | Local LM Studio server URL (e.g., `http://localhost:1234/v1`) |
+| `LMSTUDIO_MODEL` | No | LM Studio model name (default: `local-model`) |
+| `GEMINI_API_KEY` | For internet mode | Google Gemini API key |
+| `GEMINI_MODEL` | No | Override model (default: `gemini-2.0-flash`) |
 
-Also accepts `GOOGLE_AI_STUDIO_KEY` or `GOOGLE_API_KEY`. Without a key, the system runs in mock mode with deterministic fallback responses.
+Also accepts `GOOGLE_AI_STUDIO_KEY` or `GOOGLE_API_KEY`. If `LMSTUDIO_BASE_URL` is set, it takes precedence over Gemini. Without a key or URL, the system runs in mock mode with deterministic fallback responses.
 
 ## Architecture
 
@@ -51,7 +53,7 @@ Also accepts `GOOGLE_AI_STUDIO_KEY` or `GOOGLE_API_KEY`. Without a key, the syst
 
 | Service | Purpose |
 |---------|---------|
-| `gemini_provider` | AI provider abstraction with Gemini SDK + fallback |
+| `ai_provider` | AI provider abstraction with Gemini & LM Studio support |
 | `chief_of_staff_service` | Proactive feed with materiality scoring |
 | `command_router` | Slash command + NL intent parsing |
 | `copilot_service` | COA generation, explanation, simulation |
@@ -81,8 +83,9 @@ Also accepts `GOOGLE_AI_STUDIO_KEY` or `GOOGLE_API_KEY`. Without a key, the syst
 
 | Mode | When | Description |
 |------|------|-------------|
-| **Gemini** | `GEMINI_API_KEY` set | Full AI: proactive updates, NL answers, grounded explanations |
-| **Mock** | No key or Gemini fails | Deterministic JSON responses, structured fallback summaries |
+| **LM Studio** | `LMSTUDIO_BASE_URL` set | Local AI: Privacy-first, offline-capable, runs on your own hardware |
+| **Gemini** | `GEMINI_API_KEY` set | Cloud AI: High performance, internet-connected grounded explanations |
+| **Mock** | No key/URL or AI fails | Deterministic JSON responses, structured fallback summaries |
 
 The demo works fully offline in mock mode. All COA generation, explanation, simulation, and approval flows work in both modes.
 
