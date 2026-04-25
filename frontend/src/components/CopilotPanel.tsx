@@ -5,6 +5,7 @@ import type {
   DecisionCard as DecisionCardType,
 } from '../types';
 import { ALL_COMMANDS, type CommandDef } from '../copilotCommands';
+import { sanitizeDisplayText } from '../utils/sanitizeDisplayText';
 import './CopilotPanel.css';
 
 interface Props {
@@ -457,7 +458,9 @@ function FeedView({
               </div>
             )}
             {!isUser && !isAiResponse && item.title && <div className="feed-title">{item.title}</div>}
-            <div className="feed-body">{item.body}</div>
+            <div className="feed-body">
+              {isAiResponse ? sanitizeDisplayText(item.body) : item.body}
+            </div>
             {!isUser && !isAiResponse && item.related_ids.length > 0 && (
               <div className="feed-related">
                 {item.related_ids.map(id => (

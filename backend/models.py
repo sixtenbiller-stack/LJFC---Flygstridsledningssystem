@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Side(str, Enum):
@@ -467,6 +467,18 @@ class CopilotResponse(BaseModel):
     data: dict[str, Any] = {}
     source_state_id: str = ""
     suggested_actions: list[str] = []
+
+    @model_validator(mode="after")
+    def _sanitize_copilot_text(self) -> CopilotResponse:
+        from copilot_text import sanitize_copilot_message
+
+        m = (self.message or "").strip()
+        if not m:
+            return self
+        clean = sanitize_copilot_message(self.message)
+        if clean == self.message:
+            return self
+        return self.model_copy(update={"message": clean})
 
 
 class CopilotStatus(BaseModel):
