@@ -14,6 +14,14 @@ interface Props {
   onFollowTopThreatChange: (v: boolean) => void;
   topThreatTrackId: string | null;
   highlightTrackIds?: string[];
+  // Props for MapToolbar hamburger
+  scenarioName?: string;
+  runtimeMode: string;
+  scenarioOrigin: string;
+  wave: number;
+  stateId: string;
+  layoutPreset: string;
+  onApplyPreset: (id: any) => void;
 }
 
 const BOUNDS = { xMin: 0, xMax: 400, yMin: 0, yMax: 600 };
@@ -53,11 +61,12 @@ const DEFAULT_LAYERS: MapLayerToggles = {
   defendedZones: true,
 };
 
-export function TacticalMap({
-  geography, tracks, assets, selectedTrack, onSelectTrack, coas,
-  followTopThreat, onFollowTopThreatChange, topThreatTrackId,
-  highlightTrackIds = [],
-}: Props) {
+export function TacticalMap(props: Props) {
+  const {
+    geography, tracks, assets, selectedTrack, onSelectTrack, coas,
+    followTopThreat, onFollowTopThreatChange, topThreatTrackId,
+    highlightTrackIds = [],
+  } = props;
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [layers, setLayers] = useState<MapLayerToggles>(DEFAULT_LAYERS);
@@ -155,14 +164,17 @@ export function TacticalMap({
     >
       <MapToolbar
         zoomPct={zoomPct}
-        followTopThreat={followTopThreat}
         layers={layers}
-        onFitTheater={fitTheater}
-        onFocusSelection={focusSelection}
-        onToggleFollow={() => onFollowTopThreatChange(!followTopThreat)}
         onZoomIn={() => setZoom(z => Math.min(2.5, z * 1.12))}
         onZoomOut={() => setZoom(z => Math.max(0.45, z / 1.12))}
         onLayerToggle={toggleLayer}
+        scenarioName={props.scenarioName}
+        runtimeMode={props.runtimeMode}
+        scenarioOrigin={props.scenarioOrigin}
+        wave={props.wave}
+        stateId={props.stateId}
+        layoutPreset={props.layoutPreset}
+        onApplyPreset={props.onApplyPreset}
       />
       <div
         className="map-transform-layer"

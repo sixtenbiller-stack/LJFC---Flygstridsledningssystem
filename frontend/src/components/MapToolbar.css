@@ -1,31 +1,45 @@
 .map-toolbar {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  top: 8px;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
   z-index: 5;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding: 8px 10px;
-  background: rgba(5, 8, 6, 0.92);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  pointer-events: auto;
-  font-size: clamp(12px, 0.85vw, 14px);
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px;
+  pointer-events: none; /* Allow clicks to pass through to map by default */
+}
+
+.map-toolbar-left,
+.map-toolbar-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto; /* Re-enable clicks for items */
+}
+
+.map-toolbar-right {
+  align-items: flex-end;
 }
 
 .map-toolbar-group {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  padding: 6px 8px;
+  background: rgba(5, 8, 6, 0.9);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(4px);
 }
 
 .map-toolbar-group.layers {
-  margin-left: auto;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
 }
 
 .map-tb-btn {
@@ -36,36 +50,150 @@
 }
 
 .map-tb-btn.icon {
-  min-width: 32px;
-  padding: 4px 8px;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.map-tb-btn.active {
-  background: rgba(57, 255, 20, 0.15);
-  border-color: var(--neon-green);
-  color: var(--neon-green);
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
 }
 
 .map-zoom-readout {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-dim);
-  min-width: 42px;
+  min-width: 40px;
   text-align: center;
 }
 
 .map-tb-check {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: clamp(11px, 0.78vw, 13px);
+  gap: 8px;
+  font-size: 12px;
   color: var(--text-dim);
   cursor: pointer;
   user-select: none;
+  width: 100%;
+}
+
+.map-tb-check:hover {
+  color: var(--text-main);
 }
 
 .map-tb-check input {
   accent-color: var(--neon-green);
+}
+
+/* Hamburger specific overrides when inside MapToolbar */
+.map-toolbar .hamburger-menu {
+  position: relative;
+  pointer-events: auto;
+}
+
+.map-toolbar .hamburger-btn {
+  background: rgba(5, 8, 6, 0.9);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.map-toolbar .hamburger-btn:hover {
+  border-color: var(--neon-green);
+  box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+}
+
+.map-toolbar .hamburger-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 240px;
+  background: rgba(5, 10, 7, 0.98);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: var(--shadow-xl);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dropdown-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dropdown-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.dropdown-scenario-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dropdown-scenario-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.dropdown-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.layout-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.layout-preset-btn, .layout-reset-btn {
+  padding: 6px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-main);
+  text-align: center;
+}
+
+.layout-preset-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.layout-preset-btn.active {
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+}
+
+.layout-reset-btn {
+  grid-column: span 2;
+  margin-top: 4px;
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+
+.header-state-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  word-break: break-all;
 }
