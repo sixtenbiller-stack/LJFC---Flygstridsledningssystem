@@ -1,0 +1,2353 @@
+{
+  "meta": {
+    "scenario_id": "scenario-gen-1966980968",
+    "name": "Escalating Probe to Full Attack",
+    "description": "Starts with ambiguous recon tracks, escalates through EW activity to full swarm. Tests slow-lane-to-fast-lane transition and progressive confidence building.",
+    "version": "2.0",
+    "duration_s": 360,
+    "seed": 1966980968,
+    "template": "escalating_probe",
+    "generator": "neon_command_scenario_generator_v1",
+    "total_events": 45,
+    "group_aware": true,
+    "extended_fields": [
+      "corridor_id",
+      "signature_hint",
+      "decoy_probability",
+      "formation_hint",
+      "source_disagreement",
+      "group_seed_id",
+      "payload_known",
+      "payload_type",
+      "rf_emitting",
+      "maneuver_pattern"
+    ]
+  },
+  "initial_state": {
+    "posture": "peacetime",
+    "alert_level": "normal",
+    "notes": "All assets at baseline readiness. Sensors nominal."
+  },
+  "events": [
+    {
+      "t_s": 0,
+      "event_type": "SCENARIO_START",
+      "data": {
+        "message": "Scenario initiated: Escalating Probe to Full Attack. Seed: 1966980968.",
+        "posture": "peacetime"
+      }
+    },
+    {
+      "t_s": 16,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h01",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.48,
+        "x_km": 91.7,
+        "y_km": 589.6,
+        "heading_deg": 192.0,
+        "speed_class": "slow",
+        "altitude_band": "low",
+        "detected_by": [
+          "sensor-boreal"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 16,
+            "x_km": 91.7,
+            "y_km": 589.6
+          },
+          {
+            "t_s": 52,
+            "x_km": 69.2,
+            "y_km": 695.2
+          },
+          {
+            "t_s": 88,
+            "x_km": 46.8,
+            "y_km": 800.9
+          },
+          {
+            "t_s": 124,
+            "x_km": 24.3,
+            "y_km": 906.5
+          },
+          {
+            "t_s": 160,
+            "x_km": 1.9,
+            "y_km": 1012.2
+          },
+          {
+            "t_s": 196,
+            "x_km": -20.6,
+            "y_km": 1117.8
+          }
+        ],
+        "notes": "Recon probe element 1. Group: probe-3d762b.",
+        "corridor_id": "corridor-nw",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.16,
+        "formation_hint": "loose_spread",
+        "source_disagreement": false,
+        "group_seed_id": "probe-3d762b",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "loiter_advance"
+      }
+    },
+    {
+      "t_s": 17,
+      "event_type": "GROUP_FORMED",
+      "data": {
+        "group_type": "recon_or_decoy_screen",
+        "corridor": "corridor-nw",
+        "track_count": 3,
+        "recommended_lane": "SLOW",
+        "notes": "Recon probe detected. Low confidence. Slow lane."
+      }
+    },
+    {
+      "t_s": 19,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h02",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.65,
+        "x_km": 85.4,
+        "y_km": 582.3000000000001,
+        "heading_deg": 182.7,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 19,
+            "x_km": 85.4,
+            "y_km": 582.3
+          },
+          {
+            "t_s": 55,
+            "x_km": 80.3,
+            "y_km": 690.2
+          },
+          {
+            "t_s": 91,
+            "x_km": 75.2,
+            "y_km": 798.1
+          },
+          {
+            "t_s": 127,
+            "x_km": 70.1,
+            "y_km": 905.9
+          },
+          {
+            "t_s": 163,
+            "x_km": 65.1,
+            "y_km": 1013.8
+          },
+          {
+            "t_s": 199,
+            "x_km": 60.0,
+            "y_km": 1121.7
+          }
+        ],
+        "notes": "Recon probe element 2. Group: probe-3d762b.",
+        "corridor_id": "corridor-nw",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.1,
+        "formation_hint": "loose_spread",
+        "source_disagreement": false,
+        "group_seed_id": "probe-3d762b",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": false,
+        "maneuver_pattern": "loiter_advance"
+      }
+    },
+    {
+      "t_s": 24,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h03",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.42,
+        "x_km": 65.19999999999999,
+        "y_km": 583.6999999999999,
+        "heading_deg": 193.1,
+        "speed_class": "slow",
+        "altitude_band": "low",
+        "detected_by": [
+          "sensor-boreal"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 24,
+            "x_km": 65.2,
+            "y_km": 583.7
+          },
+          {
+            "t_s": 60,
+            "x_km": 40.7,
+            "y_km": 688.9
+          },
+          {
+            "t_s": 96,
+            "x_km": 16.2,
+            "y_km": 794.1
+          },
+          {
+            "t_s": 132,
+            "x_km": -8.2,
+            "y_km": 899.3
+          },
+          {
+            "t_s": 168,
+            "x_km": -32.7,
+            "y_km": 1004.5
+          },
+          {
+            "t_s": 204,
+            "x_km": -57.2,
+            "y_km": 1109.6
+          }
+        ],
+        "notes": "Recon probe element 3. Group: probe-3d762b.",
+        "corridor_id": "corridor-nw",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.34,
+        "formation_hint": "loose_spread",
+        "source_disagreement": true,
+        "group_seed_id": "probe-3d762b",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": false,
+        "maneuver_pattern": "loiter_advance"
+      }
+    },
+    {
+      "t_s": 47,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h05",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.56,
+        "x_km": 330.6,
+        "y_km": 602.3000000000001,
+        "heading_deg": 195.0,
+        "speed_class": "slow",
+        "altitude_band": "low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 47,
+            "x_km": 330.6,
+            "y_km": 602.3
+          },
+          {
+            "t_s": 83,
+            "x_km": 302.6,
+            "y_km": 706.6
+          },
+          {
+            "t_s": 119,
+            "x_km": 274.7,
+            "y_km": 810.9
+          },
+          {
+            "t_s": 155,
+            "x_km": 246.7,
+            "y_km": 915.3
+          },
+          {
+            "t_s": 191,
+            "x_km": 218.8,
+            "y_km": 1019.6
+          },
+          {
+            "t_s": 227,
+            "x_km": 190.8,
+            "y_km": 1123.9
+          }
+        ],
+        "notes": "Recon probe element 2. Group: probe-ce8bd9.",
+        "corridor_id": "corridor-ne",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.25,
+        "formation_hint": "loose_spread",
+        "source_disagreement": false,
+        "group_seed_id": "probe-ce8bd9",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "loiter_advance"
+      }
+    },
+    {
+      "t_s": 47,
+      "event_type": "GROUP_FORMED",
+      "data": {
+        "group_type": "recon_or_decoy_screen",
+        "corridor": "corridor-ne",
+        "track_count": 3,
+        "recommended_lane": "SLOW",
+        "notes": "Recon probe detected. Low confidence. Slow lane."
+      }
+    },
+    {
+      "t_s": 49,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h04",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.44,
+        "x_km": 336.2,
+        "y_km": 589.4,
+        "heading_deg": 212.7,
+        "speed_class": "slow",
+        "altitude_band": "low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 49,
+            "x_km": 336.2,
+            "y_km": 589.4
+          },
+          {
+            "t_s": 85,
+            "x_km": 277.9,
+            "y_km": 680.3
+          },
+          {
+            "t_s": 121,
+            "x_km": 219.5,
+            "y_km": 771.2
+          },
+          {
+            "t_s": 157,
+            "x_km": 161.2,
+            "y_km": 862.0
+          },
+          {
+            "t_s": 193,
+            "x_km": 102.8,
+            "y_km": 952.9
+          },
+          {
+            "t_s": 229,
+            "x_km": 44.5,
+            "y_km": 1043.8
+          }
+        ],
+        "notes": "Recon probe element 1. Group: probe-ce8bd9.",
+        "corridor_id": "corridor-ne",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.37,
+        "formation_hint": "loose_spread",
+        "source_disagreement": false,
+        "group_seed_id": "probe-ce8bd9",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": false,
+        "maneuver_pattern": "loiter_advance"
+      }
+    },
+    {
+      "t_s": 54,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h06",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.3,
+        "x_km": 391.9,
+        "y_km": 573.6,
+        "heading_deg": 228.9,
+        "speed_class": "slow",
+        "altitude_band": "low",
+        "detected_by": [
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 54,
+            "x_km": 391.9,
+            "y_km": 573.6
+          },
+          {
+            "t_s": 90,
+            "x_km": 310.5,
+            "y_km": 644.6
+          },
+          {
+            "t_s": 126,
+            "x_km": 229.1,
+            "y_km": 715.6
+          },
+          {
+            "t_s": 162,
+            "x_km": 147.7,
+            "y_km": 786.6
+          },
+          {
+            "t_s": 198,
+            "x_km": 66.4,
+            "y_km": 857.6
+          },
+          {
+            "t_s": 234,
+            "x_km": -15.0,
+            "y_km": 928.6
+          }
+        ],
+        "notes": "Recon probe element 3. Group: probe-ce8bd9.",
+        "corridor_id": "corridor-ne",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.14,
+        "formation_hint": "loose_spread",
+        "source_disagreement": true,
+        "group_seed_id": "probe-ce8bd9",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": false,
+        "maneuver_pattern": "loiter_advance"
+      }
+    },
+    {
+      "t_s": 90,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h07",
+        "side": "hostile",
+        "class_label": "ew-jammer",
+        "confidence": 0.69,
+        "x_km": 239.5,
+        "y_km": 594.4,
+        "heading_deg": 188.3,
+        "speed_class": "medium",
+        "altitude_band": "medium",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 90,
+            "x_km": 239.5,
+            "y_km": 594.4
+          },
+          {
+            "t_s": 126,
+            "x_km": 203.1,
+            "y_km": 843.8
+          },
+          {
+            "t_s": 162,
+            "x_km": 166.7,
+            "y_km": 1093.1
+          },
+          {
+            "t_s": 198,
+            "x_km": 130.4,
+            "y_km": 1342.5
+          },
+          {
+            "t_s": 234,
+            "x_km": 94.0,
+            "y_km": 1591.8
+          },
+          {
+            "t_s": 270,
+            "x_km": 57.6,
+            "y_km": 1841.2
+          }
+        ],
+        "notes": "EW jammer platform. Group: ew-2b33cc.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "strong_rf_emitter",
+        "decoy_probability": null,
+        "formation_hint": "standoff",
+        "source_disagreement": false,
+        "group_seed_id": "ew-2b33cc",
+        "payload_known": true,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "orbit"
+      }
+    },
+    {
+      "t_s": 93,
+      "event_type": "GROUP_FORMED",
+      "data": {
+        "group_type": "recon_or_decoy_screen",
+        "corridor": "corridor-n",
+        "track_count": 2,
+        "recommended_lane": "SLOW",
+        "notes": "EW screen activity detected. Possible precursor to main attack."
+      }
+    },
+    {
+      "t_s": 95,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h08",
+        "side": "hostile",
+        "class_label": "decoy-suspected",
+        "confidence": 0.3,
+        "x_km": 228.70000000000002,
+        "y_km": 591.9,
+        "heading_deg": 182.0,
+        "speed_class": "slow",
+        "altitude_band": "low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 95,
+            "x_km": 228.7,
+            "y_km": 591.9
+          },
+          {
+            "t_s": 131,
+            "x_km": 224.9,
+            "y_km": 699.8
+          },
+          {
+            "t_s": 167,
+            "x_km": 221.2,
+            "y_km": 807.8
+          },
+          {
+            "t_s": 203,
+            "x_km": 217.4,
+            "y_km": 915.7
+          },
+          {
+            "t_s": 239,
+            "x_km": 213.6,
+            "y_km": 1023.6
+          },
+          {
+            "t_s": 275,
+            "x_km": 209.9,
+            "y_km": 1131.6
+          }
+        ],
+        "notes": "EW escort decoy 1. Group: ew-2b33cc.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "rf_emitter_no_propulsion_match",
+        "decoy_probability": 0.6,
+        "formation_hint": "ew_escort",
+        "source_disagreement": true,
+        "group_seed_id": "ew-2b33cc",
+        "payload_known": true,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "erratic"
+      }
+    },
+    {
+      "t_s": 130,
+      "event_type": "SENSOR_DEGRADED",
+      "data": {
+        "sensor_id": "sensor-spear",
+        "severity": "partial",
+        "detection_range_multiplier": 0.69,
+        "reason": "electronic_attack",
+        "estimated_recovery_s": 49,
+        "notes": "Sensor sensor-spear degraded \u2014 partial."
+      }
+    },
+    {
+      "t_s": 150,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h25",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.65,
+        "x_km": 268.5,
+        "y_km": 600.0,
+        "heading_deg": 181.7,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 150,
+            "x_km": 268.5,
+            "y_km": 600.0
+          },
+          {
+            "t_s": 186,
+            "x_km": 265.3,
+            "y_km": 708.0
+          },
+          {
+            "t_s": 222,
+            "x_km": 262.1,
+            "y_km": 815.9
+          },
+          {
+            "t_s": 258,
+            "x_km": 258.9,
+            "y_km": 923.9
+          },
+          {
+            "t_s": 294,
+            "x_km": 255.7,
+            "y_km": 1031.8
+          },
+          {
+            "t_s": 330,
+            "x_km": 252.5,
+            "y_km": 1139.8
+          }
+        ],
+        "notes": "Swarm element 17/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.13,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 150,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h27",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.74,
+        "x_km": 268.2,
+        "y_km": 601.6,
+        "heading_deg": 189.5,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 150,
+            "x_km": 268.2,
+            "y_km": 601.6
+          },
+          {
+            "t_s": 186,
+            "x_km": 250.4,
+            "y_km": 708.1
+          },
+          {
+            "t_s": 222,
+            "x_km": 232.5,
+            "y_km": 814.6
+          },
+          {
+            "t_s": 258,
+            "x_km": 214.7,
+            "y_km": 921.2
+          },
+          {
+            "t_s": 294,
+            "x_km": 196.9,
+            "y_km": 1027.7
+          },
+          {
+            "t_s": 330,
+            "x_km": 179.1,
+            "y_km": 1134.2
+          }
+        ],
+        "notes": "Swarm element 19/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.08,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 151,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h11",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.66,
+        "x_km": 307.5,
+        "y_km": 583.6999999999999,
+        "heading_deg": 195.3,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 151,
+            "x_km": 307.5,
+            "y_km": 583.7
+          },
+          {
+            "t_s": 187,
+            "x_km": 279.0,
+            "y_km": 687.9
+          },
+          {
+            "t_s": 223,
+            "x_km": 250.5,
+            "y_km": 792.0
+          },
+          {
+            "t_s": 259,
+            "x_km": 222.0,
+            "y_km": 896.2
+          },
+          {
+            "t_s": 295,
+            "x_km": 193.5,
+            "y_km": 1000.4
+          },
+          {
+            "t_s": 331,
+            "x_km": 165.0,
+            "y_km": 1104.6
+          }
+        ],
+        "notes": "Swarm element 3/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.1,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 151,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h19",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.46,
+        "x_km": 283.2,
+        "y_km": 598.0,
+        "heading_deg": 201.2,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 151,
+            "x_km": 283.2,
+            "y_km": 598.0
+          },
+          {
+            "t_s": 187,
+            "x_km": 244.1,
+            "y_km": 698.7
+          },
+          {
+            "t_s": 223,
+            "x_km": 205.1,
+            "y_km": 799.4
+          },
+          {
+            "t_s": 259,
+            "x_km": 166.0,
+            "y_km": 900.1
+          },
+          {
+            "t_s": 295,
+            "x_km": 127.0,
+            "y_km": 1000.8
+          },
+          {
+            "t_s": 331,
+            "x_km": 87.9,
+            "y_km": 1101.5
+          }
+        ],
+        "notes": "Swarm element 11/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.14,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 152,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h15",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.73,
+        "x_km": 193.9,
+        "y_km": 590.2,
+        "heading_deg": 198.7,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 152,
+            "x_km": 193.9,
+            "y_km": 590.2
+          },
+          {
+            "t_s": 188,
+            "x_km": 159.3,
+            "y_km": 692.5
+          },
+          {
+            "t_s": 224,
+            "x_km": 124.6,
+            "y_km": 794.8
+          },
+          {
+            "t_s": 260,
+            "x_km": 90.0,
+            "y_km": 897.1
+          },
+          {
+            "t_s": 296,
+            "x_km": 55.4,
+            "y_km": 999.4
+          },
+          {
+            "t_s": 332,
+            "x_km": 20.8,
+            "y_km": 1101.7
+          }
+        ],
+        "notes": "Swarm element 7/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.09,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 152,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h28",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.71,
+        "x_km": 301.6,
+        "y_km": 587.9,
+        "heading_deg": 198.4,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 152,
+            "x_km": 301.6,
+            "y_km": 587.9
+          },
+          {
+            "t_s": 188,
+            "x_km": 267.5,
+            "y_km": 690.4
+          },
+          {
+            "t_s": 224,
+            "x_km": 233.4,
+            "y_km": 792.9
+          },
+          {
+            "t_s": 260,
+            "x_km": 199.3,
+            "y_km": 895.3
+          },
+          {
+            "t_s": 296,
+            "x_km": 165.2,
+            "y_km": 997.8
+          },
+          {
+            "t_s": 332,
+            "x_km": 131.1,
+            "y_km": 1100.3
+          }
+        ],
+        "notes": "Swarm element 20/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.05,
+        "formation_hint": "trailing",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 153,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h21",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.54,
+        "x_km": 196.8,
+        "y_km": 582.4,
+        "heading_deg": 190.0,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 153,
+            "x_km": 196.8,
+            "y_km": 582.4
+          },
+          {
+            "t_s": 189,
+            "x_km": 178.0,
+            "y_km": 688.8
+          },
+          {
+            "t_s": 225,
+            "x_km": 159.3,
+            "y_km": 795.1
+          },
+          {
+            "t_s": 261,
+            "x_km": 140.5,
+            "y_km": 901.5
+          },
+          {
+            "t_s": 297,
+            "x_km": 121.8,
+            "y_km": 1007.8
+          },
+          {
+            "t_s": 333,
+            "x_km": 103.0,
+            "y_km": 1114.2
+          }
+        ],
+        "notes": "Swarm element 13/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.13,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 153,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h26",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.66,
+        "x_km": 233.7,
+        "y_km": 592.1,
+        "heading_deg": 179.3,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 153,
+            "x_km": 233.7,
+            "y_km": 592.1
+          },
+          {
+            "t_s": 189,
+            "x_km": 235.0,
+            "y_km": 700.1
+          },
+          {
+            "t_s": 225,
+            "x_km": 236.3,
+            "y_km": 808.1
+          },
+          {
+            "t_s": 261,
+            "x_km": 237.7,
+            "y_km": 916.1
+          },
+          {
+            "t_s": 297,
+            "x_km": 239.0,
+            "y_km": 1024.1
+          },
+          {
+            "t_s": 333,
+            "x_km": 240.3,
+            "y_km": 1132.1
+          }
+        ],
+        "notes": "Swarm element 18/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.01,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 153,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h29",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.6,
+        "x_km": 251.5,
+        "y_km": 598.3,
+        "heading_deg": 182.8,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 153,
+            "x_km": 251.5,
+            "y_km": 598.3
+          },
+          {
+            "t_s": 189,
+            "x_km": 246.2,
+            "y_km": 706.2
+          },
+          {
+            "t_s": 225,
+            "x_km": 240.9,
+            "y_km": 814.0
+          },
+          {
+            "t_s": 261,
+            "x_km": 235.7,
+            "y_km": 921.9
+          },
+          {
+            "t_s": 297,
+            "x_km": 230.4,
+            "y_km": 1029.8
+          },
+          {
+            "t_s": 333,
+            "x_km": 225.1,
+            "y_km": 1137.7
+          }
+        ],
+        "notes": "Swarm element 21/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.09,
+        "formation_hint": "trailing",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 154,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h10",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.65,
+        "x_km": 195.1,
+        "y_km": 583.9,
+        "heading_deg": 178.8,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 154,
+            "x_km": 195.1,
+            "y_km": 583.9
+          },
+          {
+            "t_s": 190,
+            "x_km": 197.4,
+            "y_km": 691.9
+          },
+          {
+            "t_s": 226,
+            "x_km": 199.6,
+            "y_km": 799.9
+          },
+          {
+            "t_s": 262,
+            "x_km": 201.9,
+            "y_km": 907.8
+          },
+          {
+            "t_s": 298,
+            "x_km": 204.1,
+            "y_km": 1015.8
+          },
+          {
+            "t_s": 334,
+            "x_km": 206.4,
+            "y_km": 1123.8
+          }
+        ],
+        "notes": "Swarm element 2/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.03,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 154,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h13",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.58,
+        "x_km": 259.2,
+        "y_km": 595.6,
+        "heading_deg": 171.7,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 154,
+            "x_km": 259.2,
+            "y_km": 595.6
+          },
+          {
+            "t_s": 190,
+            "x_km": 274.8,
+            "y_km": 702.5
+          },
+          {
+            "t_s": 226,
+            "x_km": 290.4,
+            "y_km": 809.3
+          },
+          {
+            "t_s": 262,
+            "x_km": 306.0,
+            "y_km": 916.2
+          },
+          {
+            "t_s": 298,
+            "x_km": 321.6,
+            "y_km": 1023.1
+          },
+          {
+            "t_s": 334,
+            "x_km": 337.2,
+            "y_km": 1129.9
+          }
+        ],
+        "notes": "Swarm element 5/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.04,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 155,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h09",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.65,
+        "x_km": 207.5,
+        "y_km": 597.4000000000001,
+        "heading_deg": 177.3,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 155,
+            "x_km": 207.5,
+            "y_km": 597.4
+          },
+          {
+            "t_s": 191,
+            "x_km": 212.6,
+            "y_km": 705.3
+          },
+          {
+            "t_s": 227,
+            "x_km": 217.7,
+            "y_km": 813.2
+          },
+          {
+            "t_s": 263,
+            "x_km": 222.8,
+            "y_km": 921.0
+          },
+          {
+            "t_s": 299,
+            "x_km": 227.8,
+            "y_km": 1028.9
+          },
+          {
+            "t_s": 335,
+            "x_km": 232.9,
+            "y_km": 1136.8
+          }
+        ],
+        "notes": "Swarm element 1/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.03,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 155,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h17",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.55,
+        "x_km": 251.0,
+        "y_km": 588.3,
+        "heading_deg": 177.3,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 155,
+            "x_km": 251.0,
+            "y_km": 588.3
+          },
+          {
+            "t_s": 191,
+            "x_km": 256.1,
+            "y_km": 696.2
+          },
+          {
+            "t_s": 227,
+            "x_km": 261.2,
+            "y_km": 804.1
+          },
+          {
+            "t_s": 263,
+            "x_km": 266.3,
+            "y_km": 911.9
+          },
+          {
+            "t_s": 299,
+            "x_km": 271.3,
+            "y_km": 1019.8
+          },
+          {
+            "t_s": 335,
+            "x_km": 276.4,
+            "y_km": 1127.7
+          }
+        ],
+        "notes": "Swarm element 9/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.14,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 155,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h20",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.53,
+        "x_km": 292.90000000000003,
+        "y_km": 580.4,
+        "heading_deg": 182.3,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 155,
+            "x_km": 292.9,
+            "y_km": 580.4
+          },
+          {
+            "t_s": 191,
+            "x_km": 288.6,
+            "y_km": 688.3
+          },
+          {
+            "t_s": 227,
+            "x_km": 284.2,
+            "y_km": 796.2
+          },
+          {
+            "t_s": 263,
+            "x_km": 279.9,
+            "y_km": 904.1
+          },
+          {
+            "t_s": 299,
+            "x_km": 275.6,
+            "y_km": 1012.1
+          },
+          {
+            "t_s": 335,
+            "x_km": 271.2,
+            "y_km": 1120.0
+          }
+        ],
+        "notes": "Swarm element 12/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.09,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 155,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h22",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.73,
+        "x_km": 222.9,
+        "y_km": 594.4,
+        "heading_deg": 188.6,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 155,
+            "x_km": 222.9,
+            "y_km": 594.4
+          },
+          {
+            "t_s": 191,
+            "x_km": 206.8,
+            "y_km": 701.2
+          },
+          {
+            "t_s": 227,
+            "x_km": 190.6,
+            "y_km": 808.0
+          },
+          {
+            "t_s": 263,
+            "x_km": 174.5,
+            "y_km": 914.8
+          },
+          {
+            "t_s": 299,
+            "x_km": 158.3,
+            "y_km": 1021.5
+          },
+          {
+            "t_s": 335,
+            "x_km": 142.2,
+            "y_km": 1128.3
+          }
+        ],
+        "notes": "Swarm element 14/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.01,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 155,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h24",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.57,
+        "x_km": 243.6,
+        "y_km": 590.3,
+        "heading_deg": 192.6,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 155,
+            "x_km": 243.6,
+            "y_km": 590.3
+          },
+          {
+            "t_s": 191,
+            "x_km": 220.0,
+            "y_km": 695.7
+          },
+          {
+            "t_s": 227,
+            "x_km": 196.5,
+            "y_km": 801.1
+          },
+          {
+            "t_s": 263,
+            "x_km": 172.9,
+            "y_km": 906.5
+          },
+          {
+            "t_s": 299,
+            "x_km": 149.4,
+            "y_km": 1011.9
+          },
+          {
+            "t_s": 335,
+            "x_km": 125.8,
+            "y_km": 1117.3
+          }
+        ],
+        "notes": "Swarm element 16/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.03,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 155,
+      "event_type": "GROUP_FORMED",
+      "data": {
+        "group_type": "probable_swarm",
+        "corridor": "corridor-n",
+        "track_count": 21,
+        "recommended_lane": "FAST",
+        "notes": "Probable coordinated sUAS swarm. 21 tracks. Fast lane."
+      }
+    },
+    {
+      "t_s": 156,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h16",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.53,
+        "x_km": 276.8,
+        "y_km": 589.4,
+        "heading_deg": 184.5,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 156,
+            "x_km": 276.8,
+            "y_km": 589.4
+          },
+          {
+            "t_s": 192,
+            "x_km": 268.3,
+            "y_km": 697.1
+          },
+          {
+            "t_s": 228,
+            "x_km": 259.9,
+            "y_km": 804.7
+          },
+          {
+            "t_s": 264,
+            "x_km": 251.4,
+            "y_km": 912.4
+          },
+          {
+            "t_s": 300,
+            "x_km": 242.9,
+            "y_km": 1020.1
+          },
+          {
+            "t_s": 336,
+            "x_km": 234.4,
+            "y_km": 1127.7
+          }
+        ],
+        "notes": "Swarm element 8/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.0,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 156,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h18",
+        "side": "hostile",
+        "class_label": "uav-recon",
+        "confidence": 0.72,
+        "x_km": 311.09999999999997,
+        "y_km": 589.9,
+        "heading_deg": 189.7,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 156,
+            "x_km": 311.1,
+            "y_km": 589.9
+          },
+          {
+            "t_s": 192,
+            "x_km": 292.9,
+            "y_km": 696.4
+          },
+          {
+            "t_s": 228,
+            "x_km": 274.7,
+            "y_km": 802.8
+          },
+          {
+            "t_s": 264,
+            "x_km": 256.5,
+            "y_km": 909.3
+          },
+          {
+            "t_s": 300,
+            "x_km": 238.3,
+            "y_km": 1015.7
+          },
+          {
+            "t_s": 336,
+            "x_km": 220.1,
+            "y_km": 1122.2
+          }
+        ],
+        "notes": "Swarm element 10/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_low_rcs",
+        "decoy_probability": 0.11,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 158,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h12",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.5,
+        "x_km": 299.2,
+        "y_km": 577.4,
+        "heading_deg": 177.1,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 158,
+            "x_km": 299.2,
+            "y_km": 577.4
+          },
+          {
+            "t_s": 194,
+            "x_km": 304.7,
+            "y_km": 685.3
+          },
+          {
+            "t_s": 230,
+            "x_km": 310.1,
+            "y_km": 793.1
+          },
+          {
+            "t_s": 266,
+            "x_km": 315.6,
+            "y_km": 901.0
+          },
+          {
+            "t_s": 302,
+            "x_km": 321.1,
+            "y_km": 1008.8
+          },
+          {
+            "t_s": 338,
+            "x_km": 326.5,
+            "y_km": 1116.7
+          }
+        ],
+        "notes": "Swarm element 4/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.15,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 158,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h14",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.7,
+        "x_km": 220.5,
+        "y_km": 587.7,
+        "heading_deg": 191.6,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 158,
+            "x_km": 220.5,
+            "y_km": 587.7
+          },
+          {
+            "t_s": 194,
+            "x_km": 198.8,
+            "y_km": 693.5
+          },
+          {
+            "t_s": 230,
+            "x_km": 177.1,
+            "y_km": 799.3
+          },
+          {
+            "t_s": 266,
+            "x_km": 155.4,
+            "y_km": 905.1
+          },
+          {
+            "t_s": 302,
+            "x_km": 133.6,
+            "y_km": 1010.9
+          },
+          {
+            "t_s": 338,
+            "x_km": 111.9,
+            "y_km": 1116.7
+          }
+        ],
+        "notes": "Swarm element 6/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.09,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 158,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h23",
+        "side": "hostile",
+        "class_label": "uav-armed",
+        "confidence": 0.5,
+        "x_km": 270.5,
+        "y_km": 587.1,
+        "heading_deg": 185.1,
+        "speed_class": "slow",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 158,
+            "x_km": 270.5,
+            "y_km": 587.1
+          },
+          {
+            "t_s": 194,
+            "x_km": 260.9,
+            "y_km": 694.7
+          },
+          {
+            "t_s": 230,
+            "x_km": 251.3,
+            "y_km": 802.2
+          },
+          {
+            "t_s": 266,
+            "x_km": 241.7,
+            "y_km": 909.8
+          },
+          {
+            "t_s": 302,
+            "x_km": 232.1,
+            "y_km": 1017.4
+          },
+          {
+            "t_s": 338,
+            "x_km": 222.5,
+            "y_km": 1125.0
+          }
+        ],
+        "notes": "Swarm element 15/21. Group seed: swarm-0636de.",
+        "corridor_id": "corridor-n",
+        "signature_hint": "electric_motor_medium_rcs",
+        "decoy_probability": 0.14,
+        "formation_hint": "swarm_mesh",
+        "source_disagreement": false,
+        "group_seed_id": "swarm-0636de",
+        "payload_known": true,
+        "payload_type": "fpv_munition",
+        "rf_emitting": true,
+        "maneuver_pattern": "swarm_coordinated"
+      }
+    },
+    {
+      "t_s": 223,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h30",
+        "side": "hostile",
+        "class_label": "fighter-type",
+        "confidence": 0.75,
+        "x_km": 142.89999999999998,
+        "y_km": 566.1,
+        "heading_deg": 171.9,
+        "speed_class": "fast",
+        "altitude_band": "high",
+        "detected_by": [
+          "sensor-boreal"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 223,
+            "x_km": 142.9,
+            "y_km": 566.1
+          },
+          {
+            "t_s": 259,
+            "x_km": 213.9,
+            "y_km": 1065.1
+          },
+          {
+            "t_s": 295,
+            "x_km": 284.9,
+            "y_km": 1564.0
+          },
+          {
+            "t_s": 331,
+            "x_km": 355.9,
+            "y_km": 2063.0
+          },
+          {
+            "t_s": 367,
+            "x_km": 427.0,
+            "y_km": 2562.0
+          },
+          {
+            "t_s": 403,
+            "x_km": 498.0,
+            "y_km": 3061.0
+          }
+        ],
+        "notes": "Raid lead element. Group: raid-45ad4a.",
+        "corridor_id": "corridor-nw",
+        "signature_hint": "jet_engine_signature",
+        "decoy_probability": null,
+        "formation_hint": "strike_lead",
+        "source_disagreement": false,
+        "group_seed_id": "raid-45ad4a",
+        "payload_known": true,
+        "payload_type": "air_to_ground",
+        "rf_emitting": false,
+        "maneuver_pattern": "direct_ingress"
+      }
+    },
+    {
+      "t_s": 224,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h31",
+        "side": "hostile",
+        "class_label": "fighter-type",
+        "confidence": 0.85,
+        "x_km": 382.5,
+        "y_km": 593.1,
+        "heading_deg": 208.8,
+        "speed_class": "fast",
+        "altitude_band": "high",
+        "detected_by": [
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 224,
+            "x_km": 382.5,
+            "y_km": 593.1
+          },
+          {
+            "t_s": 260,
+            "x_km": 139.7,
+            "y_km": 1034.8
+          },
+          {
+            "t_s": 296,
+            "x_km": -103.1,
+            "y_km": 1476.4
+          },
+          {
+            "t_s": 332,
+            "x_km": -345.9,
+            "y_km": 1918.1
+          },
+          {
+            "t_s": 368,
+            "x_km": -588.7,
+            "y_km": 2359.7
+          },
+          {
+            "t_s": 404,
+            "x_km": -831.5,
+            "y_km": 2801.4
+          }
+        ],
+        "notes": "Raid lead element. Group: raid-45ad4a.",
+        "corridor_id": "corridor-ne",
+        "signature_hint": "jet_engine_signature",
+        "decoy_probability": null,
+        "formation_hint": "strike_lead",
+        "source_disagreement": false,
+        "group_seed_id": "raid-45ad4a",
+        "payload_known": true,
+        "payload_type": "air_to_ground",
+        "rf_emitting": false,
+        "maneuver_pattern": "direct_ingress"
+      }
+    },
+    {
+      "t_s": 225,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h32",
+        "side": "hostile",
+        "class_label": "cruise-type",
+        "confidence": 0.73,
+        "x_km": 49.800000000000004,
+        "y_km": 583.2,
+        "heading_deg": 195.8,
+        "speed_class": "medium",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 225,
+            "x_km": 49.8,
+            "y_km": 583.2
+          },
+          {
+            "t_s": 261,
+            "x_km": -18.8,
+            "y_km": 825.7
+          },
+          {
+            "t_s": 297,
+            "x_km": -87.4,
+            "y_km": 1068.2
+          },
+          {
+            "t_s": 333,
+            "x_km": -156.0,
+            "y_km": 1310.6
+          },
+          {
+            "t_s": 369,
+            "x_km": -224.7,
+            "y_km": 1553.1
+          },
+          {
+            "t_s": 405,
+            "x_km": -293.3,
+            "y_km": 1795.6
+          }
+        ],
+        "notes": "Cruise element 1. Group: raid-45ad4a.",
+        "corridor_id": "corridor-nw",
+        "signature_hint": "small_turbofan_signature",
+        "decoy_probability": 0.09,
+        "formation_hint": "independent_track",
+        "source_disagreement": false,
+        "group_seed_id": "raid-45ad4a",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": false,
+        "maneuver_pattern": "terrain_following"
+      }
+    },
+    {
+      "t_s": 225,
+      "event_type": "GROUP_FORMED",
+      "data": {
+        "group_type": "mixed_raid_with_decoys",
+        "corridors": [
+          "corridor-nw",
+          "corridor-ne"
+        ],
+        "track_count": 7,
+        "recommended_lane": "FAST",
+        "notes": "Mixed raid detected across 2 corridors. Includes probable decoys."
+      }
+    },
+    {
+      "t_s": 226,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h36",
+        "side": "hostile",
+        "class_label": "decoy-suspected",
+        "confidence": 0.3,
+        "x_km": 152.4,
+        "y_km": 595.0,
+        "heading_deg": 188.7,
+        "speed_class": "slow",
+        "altitude_band": "medium",
+        "detected_by": [
+          "sensor-boreal"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 226,
+            "x_km": 152.4,
+            "y_km": 595.0
+          },
+          {
+            "t_s": 262,
+            "x_km": 136.1,
+            "y_km": 701.8
+          },
+          {
+            "t_s": 298,
+            "x_km": 119.7,
+            "y_km": 808.5
+          },
+          {
+            "t_s": 334,
+            "x_km": 103.4,
+            "y_km": 915.3
+          },
+          {
+            "t_s": 370,
+            "x_km": 87.1,
+            "y_km": 1022.0
+          },
+          {
+            "t_s": 406,
+            "x_km": 70.7,
+            "y_km": 1128.8
+          }
+        ],
+        "notes": "Suspected decoy 2. Group: raid-45ad4a.",
+        "corridor_id": "corridor-nw",
+        "signature_hint": "rf_emitter_no_propulsion_match",
+        "decoy_probability": 0.89,
+        "formation_hint": "dispersed",
+        "source_disagreement": true,
+        "group_seed_id": "raid-45ad4a",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "erratic"
+      }
+    },
+    {
+      "t_s": 227,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h35",
+        "side": "hostile",
+        "class_label": "decoy-suspected",
+        "confidence": 0.51,
+        "x_km": 313.1,
+        "y_km": 577.3,
+        "heading_deg": 215.3,
+        "speed_class": "slow",
+        "altitude_band": "medium",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 227,
+            "x_km": 313.1,
+            "y_km": 577.3
+          },
+          {
+            "t_s": 263,
+            "x_km": 250.7,
+            "y_km": 665.4
+          },
+          {
+            "t_s": 299,
+            "x_km": 188.3,
+            "y_km": 753.6
+          },
+          {
+            "t_s": 335,
+            "x_km": 125.9,
+            "y_km": 841.7
+          },
+          {
+            "t_s": 371,
+            "x_km": 63.5,
+            "y_km": 929.9
+          },
+          {
+            "t_s": 407,
+            "x_km": 1.1,
+            "y_km": 1018.0
+          }
+        ],
+        "notes": "Suspected decoy 1. Group: raid-45ad4a.",
+        "corridor_id": "corridor-ne",
+        "signature_hint": "rf_emitter_no_propulsion_match",
+        "decoy_probability": 0.66,
+        "formation_hint": "dispersed",
+        "source_disagreement": false,
+        "group_seed_id": "raid-45ad4a",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": true,
+        "maneuver_pattern": "erratic"
+      }
+    },
+    {
+      "t_s": 231,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h34",
+        "side": "hostile",
+        "class_label": "cruise-type",
+        "confidence": 0.64,
+        "x_km": 122.60000000000001,
+        "y_km": 595.9,
+        "heading_deg": 202.1,
+        "speed_class": "medium",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 231,
+            "x_km": 122.6,
+            "y_km": 595.9
+          },
+          {
+            "t_s": 267,
+            "x_km": 27.8,
+            "y_km": 829.4
+          },
+          {
+            "t_s": 303,
+            "x_km": -67.0,
+            "y_km": 1062.9
+          },
+          {
+            "t_s": 339,
+            "x_km": -161.8,
+            "y_km": 1296.4
+          },
+          {
+            "t_s": 375,
+            "x_km": -256.6,
+            "y_km": 1529.8
+          },
+          {
+            "t_s": 411,
+            "x_km": -351.4,
+            "y_km": 1763.3
+          }
+        ],
+        "notes": "Cruise element 3. Group: raid-45ad4a.",
+        "corridor_id": "corridor-nw",
+        "signature_hint": "small_turbofan_signature",
+        "decoy_probability": 0.1,
+        "formation_hint": "independent_track",
+        "source_disagreement": false,
+        "group_seed_id": "raid-45ad4a",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": false,
+        "maneuver_pattern": "terrain_following"
+      }
+    },
+    {
+      "t_s": 234,
+      "event_type": "TRACK_CREATED",
+      "data": {
+        "track_id": "trk-h33",
+        "side": "hostile",
+        "class_label": "cruise-type",
+        "confidence": 0.71,
+        "x_km": 333.0,
+        "y_km": 575.6999999999999,
+        "heading_deg": 223.0,
+        "speed_class": "medium",
+        "altitude_band": "very_low",
+        "detected_by": [
+          "sensor-boreal",
+          "sensor-highridge"
+        ],
+        "predicted_path": [
+          {
+            "t_s": 234,
+            "x_km": 333.0,
+            "y_km": 575.7
+          },
+          {
+            "t_s": 270,
+            "x_km": 161.1,
+            "y_km": 760.0
+          },
+          {
+            "t_s": 306,
+            "x_km": -10.7,
+            "y_km": 944.3
+          },
+          {
+            "t_s": 342,
+            "x_km": -182.6,
+            "y_km": 1128.6
+          },
+          {
+            "t_s": 378,
+            "x_km": -354.5,
+            "y_km": 1312.9
+          },
+          {
+            "t_s": 414,
+            "x_km": -526.3,
+            "y_km": 1497.2
+          }
+        ],
+        "notes": "Cruise element 2. Group: raid-45ad4a.",
+        "corridor_id": "corridor-ne",
+        "signature_hint": "small_turbofan_signature",
+        "decoy_probability": 0.04,
+        "formation_hint": "independent_track",
+        "source_disagreement": false,
+        "group_seed_id": "raid-45ad4a",
+        "payload_known": false,
+        "payload_type": null,
+        "rf_emitting": false,
+        "maneuver_pattern": "terrain_following"
+      }
+    },
+    {
+      "t_s": 280,
+      "event_type": "CONSTRAINT_CHANGED",
+      "data": {
+        "constraint_type": "base_status_changed",
+        "base_id": "base-highridge",
+        "new_status": "degraded",
+        "reason": "comms_fault",
+        "notes": "Base base-highridge status changed to degraded: comms_fault."
+      }
+    },
+    {
+      "t_s": 360,
+      "event_type": "SCENARIO_END",
+      "data": {
+        "message": "Scenario complete. Seed: 1966980968.",
+        "scoring_notes": "Evaluate: threats grouped, discrimination accuracy, response cost-effectiveness, decision speed, reserve preservation."
+      }
+    }
+  ]
+}
