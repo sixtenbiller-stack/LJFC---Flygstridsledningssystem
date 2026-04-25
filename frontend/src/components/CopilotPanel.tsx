@@ -197,12 +197,11 @@ export function CopilotPanel({
     if (!cmd) return;
     setCommandLoading(true);
     setInputText('');
-    
-    // Add user command to feedItems via parent if possible, 
-    // or handle locally if the parent doesn't auto-add it.
-    // In this architecture, onSendCommand triggers a backend call 
-    // which eventually updates feedItems via the state polling.
 
+    // Add user command to feedItems via locally if needed,
+    // though the current architecture suggests feedItems come from above.
+    // However, to ensure immediate feedback in bubbles, we can handle it.
+    
     try {
       const resp = await onSendCommand(cmd);
       if (resp) {

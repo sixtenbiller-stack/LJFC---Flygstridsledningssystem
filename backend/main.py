@@ -987,6 +987,15 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
 
     response = router.route(cmd.input, state_summary=state_dict, tools=tools)
 
+    # Log the command and response to the feed
+    chief.add_event_item(
+        category="operator_command",
+        severity="info",
+        title="",
+        body=f"{cmd.input}",
+        source_state_id=state.source_state_id,
+    )
+
     if response.type == "coas" and response.data.get("coas"):
         pass  # COAs already set by tool
 

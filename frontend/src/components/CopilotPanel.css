@@ -120,26 +120,30 @@
 .feed-item {
   background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 8px 10px;
-  border-left: 3px solid var(--border);
-  transition: border-color 0.2s;
-  max-width: 90%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+  max-width: 85%;
   align-self: flex-start;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 .feed-item.role-user {
   align-self: flex-end;
-  max-width: 70%;
-  background: rgba(57, 255, 20, 0.05);
-  border: 1px solid rgba(57, 255, 20, 0.1);
-  border-left: none;
-  border-right: 3px solid var(--neon-green);
+  background: rgba(57, 255, 20, 0.08);
+  border: 1px solid rgba(57, 255, 20, 0.2);
+  border-radius: 18px 18px 2px 18px;
+  color: var(--text-bright);
+}
+.feed-item.role-copilot, 
+.feed-item.role-system {
+  background: var(--surface-hover);
+  border: 1px solid var(--border-bright);
+  border-radius: 18px 18px 18px 2px;
 }
 .feed-item.role-copilot {
-  align-self: flex-start;
   max-width: 80%;
-  background: transparent;
-  border: none;
-  padding-left: 0;
+  background: rgba(255, 255, 255, 0.03);
 }
 .feed-item.role-copilot .feed-body {
   color: var(--text-bright);
@@ -147,13 +151,13 @@
   text-align: left;
 }
 .feed-item.severity-critical {
-  border-left-color: var(--hostile-critical);
+  border-left: 3px solid var(--hostile-critical);
 }
 .feed-item.severity-warning {
-  border-left-color: var(--warning);
+  border-left: 3px solid var(--warning);
 }
 .feed-item.severity-info {
-  border-left-color: var(--green-dim);
+  border-left: 3px solid var(--green-dim);
 }
 
 .feed-item-header {
