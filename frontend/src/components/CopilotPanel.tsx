@@ -90,7 +90,6 @@ export function CopilotPanel({
   const [selectedCoa, setSelectedCoa] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [commandLoading, setCommandLoading] = useState(false);
-  const [commandResponse, setCommandResponse] = useState<CopilotResponse | null>(null);
   const [quickActions, setQuickActions] = useState<string[]>([]);
   const [slashHighlight, setSlashHighlight] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
@@ -163,61 +162,75 @@ export function CopilotPanel({
     }
   }, [feedItems]);
 
-  const handleGenerate = () => {
-    onGenerateCoas();
-    setView('plans');
-    setSelectedCoa(null);
-    setCommandResponse(null);
-  };
-
-  const handleCompare = () => {
-    if (coas.length >= 2) {
-      setCompareIds([coas[0].coa_id, coas[1].coa_id]);
-      setView('compare');
-    }
-  };
-
-  const handleExplain = (coaId: string) => {
-    onExplain(coaId);
-    setView('explain');
-  };
-
-  const handleSimulate = (coaId: string) => {
-    onSimulate(coaId);
-    setView('simulate');
-  };
-
-  const handleApprove = (coaId: string) => {
-    onApprove(coaId);
-    setView('audit');
-  };
-
-  const [localUserMessages, setLocalUserMessages] = useState<FeedItem[]>([]);
+  const [localMessages, setLocalMessages] = useState<FeedItem[]>([]);
 
   const handleSendCommand = async (text?: string) => {
     const cmd = text || inputText.trim();
     if (!cmd) return;
-    setCommandLoading(true);
-    setInputText('');
-    
-    // Optimistically add user command to local feed for immediate feedback
+
+    // 1. Log the user's command
     const userMsg: FeedItem = {
-      id: `local-${Date.now()}`,
+      id: `local-user-${Date.now()}`,
       timestamp: new Date().toISOString(),
       category: 'operator_command',
       severity: 'info',
       title: '',
       body: cmd,
-      related_ids: [] as string[],
-      suggested_actions: [] as string[],
+      related_ids: [],
+      suggested_actions: [],
       source_state_id: state.source_state_id || 'local'
     };
-    setLocalUserMessages(prev => [...prev, userMsg]);
+    setLocalMessages(prev => [...prev, userMsg]);
+    setInputText('');
 
+    if (cmd === '/commands') {
+      const helpMsg: FeedItem = {
+        id: `local-help-${Date.now()}`,
+        timestamp: new Date(Date.now() + 50).toISOString(),
+        category: 'help',
+        severity: 'info',
+        title: 'COMMANDS (SLASH + ENTER)',
+        body: `• Situation: /brief /summary /what-changed /top-threats /show-readiness
+• Scenario: /scenario /mode /live-status /mutations
+• Navigation: /jump first-contact | first-group | first-decision | second-wave
+• Groups: /groups /group top /most-dangerous-group /assess top /why-group top /uncertainty top
+• Responses: /responses top /why-response top /compare-responses top
+• Planning: /generate-coas /generate-detailed-coas top /recommend /replan
+• Explain/Compare: /why top | /compare (top2)
+• Simulation: /simulate top | /simulate-response top
+• Authority: /authority top
+• Policy: /policy <name> /reserve <n>
+• Decision: /approve top /defer top /override top
+• Audit: /decision-log /after-action /state-id
+• Focus: /focus <id>
+
+Map: use on-map toolbar for Fit / Focus / Follow.`,
+        related_ids: [],
+        suggested_actions: [],
+        source_state_id: state.source_state_id || 'local'
+      };
+      setLocalMessages(prev => [...prev, helpMsg]);
+      return;
+    }
+
+    setCommandLoading(true);
     try {
       const resp = await onSendCommand(cmd);
       if (resp) {
-        setCommandResponse(resp);
+        // Conver CopilotResponse to a FeedItem and add to localMessages for proper stacking
+        const respItem: FeedItem = {
+          id: `local-resp-${Date.now()}`,
+          timestamp: new Date(Date.now() + 50).toISOString(),
+          category: 'copilot_response',
+          severity: 'info',
+          title: '',
+          body: resp.message,
+          related_ids: [],
+          suggested_actions: resp.suggested_actions || [],
+          source_state_id: state.source_state_id || 'local'
+        };
+        setLocalMessages(prev => [...prev, respItem]);
+        
         if (resp.suggested_actions?.length) {
           setQuickActions(resp.suggested_actions);
         }
@@ -285,7 +298,6 @@ export function CopilotPanel({
 
   return (
     <div className="copilot-panel">
-
       <div className="copilot-sticky" aria-label="Situation summary">
         <div className="copilot-sticky-row">
           <div className="copilot-sticky-cell">
@@ -306,17 +318,11 @@ export function CopilotPanel({
       <div className="copilot-content">
         <FeedView
           items={feedItems}
-          localItems={localUserMessages}
-          commandResponse={commandResponse}
+          localItems={localMessages}
           feedEndRef={feedEndRef}
         />
-        
-        {/* We keep the visibility of other views if needed by internal state, 
-            but the user requested to remove everything below except the send message window.
-            However, usually we want to see the feed by default now. */}
       </div>
 
-      {/* Feed / backend suggested quick actions */}
       {quickActions.length > 0 && (
         <div className="quick-actions">
           {quickActions.map((action, i) => (
@@ -351,7 +357,6 @@ export function CopilotPanel({
         </div>
       </div>
 
-      {/* Command input + slash autocomplete */}
       <div className="copilot-input-wrap">
         <div className="copilot-input-area">
           <input
@@ -415,29 +420,26 @@ export function CopilotPanel({
 }
 
 function FeedView({
-  items, localItems, commandResponse, feedEndRef,
+  items, localItems, feedEndRef,
 }: {
   items: FeedItem[];
   localItems: FeedItem[];
-  commandResponse: CopilotResponse | null;
   feedEndRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  // Merge and sort items by timestamp
   const allItems = useMemo(() => {
     const combined = [...items, ...localItems];
-    // Deduplicate if a local message was eventually received via polling
-    const seenBodies = new Set<string>();
+    // Deduplicate operator commands between polled items and local state
+    const seen = new Set<string>();
     const filtered = combined.filter(it => {
-      if (it.category !== 'operator_command') return true;
-      const key = `${it.body}-${new Date(it.timestamp).setSeconds(0,0)}`;
-      if (seenBodies.has(key)) return false;
-      seenBodies.add(key);
+      const key = `${it.category}-${it.body}-${new Date(it.timestamp).setSeconds(0,0)}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
     return filtered.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [items, localItems]);
 
-  if (allItems.length === 0 && !commandResponse) {
+  if (allItems.length === 0) {
     return (
       <div className="copilot-hint">
         Chief of Staff is monitoring the scenario. Updates will appear here when something material changes.
@@ -450,17 +452,14 @@ function FeedView({
 
   return (
     <div className="feed-view">
-      {commandResponse && (
-        <div className="feed-item command-response role-copilot">
-          <div className="feed-body">{commandResponse.message}</div>
-        </div>
-      )}
-
       {allItems.map(item => {
         const isUser = item.category === 'operator_command';
+        const isCopilot = item.category === 'copilot_response' || item.category === 'help';
+        const roleClass = isUser ? 'role-user' : (isCopilot ? 'role-copilot' : 'role-system');
+        
         return (
-          <div key={item.id} className={`feed-item severity-${item.severity} role-${isUser ? 'user' : 'system'}`}>
-            {!isUser && (
+          <div key={item.id} className={`feed-item severity-${item.severity} ${roleClass}`}>
+            {!isUser && item.category !== 'help' && item.category !== 'copilot_response' && (
               <div className="feed-item-header">
                 <span className={`feed-severity ${item.severity}`}>{item.severity === 'critical' ? '●' : item.severity === 'warning' ? '▲' : '◆'}</span>
                 <span className="feed-category">{item.category.replace(/_/g, ' ')}</span>
@@ -479,7 +478,6 @@ function FeedView({
           </div>
         );
       })}
-
       <div ref={feedEndRef} />
     </div>
   );
