@@ -126,6 +126,7 @@ class CommandRouter:
         *,
         state_summary: dict[str, Any],
         tools: dict[str, Callable[..., Any]],
+        history: list[dict[str, str]] | None = None,
     ) -> CopilotResponse:
         """Parse input, determine intent, call appropriate tool, return response."""
         self._session_commands += 1
@@ -222,7 +223,7 @@ class CommandRouter:
         elif intent == "jump_to":
             return self._handle_jump(args, tools, source_state_id)
         elif intent == "freeform":
-            return self._handle_freeform(text, state_summary, source_state_id)
+            return self._handle_freeform(text, state_summary, source_state_id, history=history)
         else:
             return CopilotResponse(
                 type="error",
@@ -572,15 +573,23 @@ class CommandRouter:
             suggested_actions=["Generate COAs"],
         )
 
-    def _handle_freeform(self, text: str, state: dict, sid: str) -> CopilotResponse:
+    def _handle_freeform(self, text: str, state: dict, sid: str, history: list[dict[str, str]] | None = None) -> CopilotResponse:
         summary = self._build_basic_summary(state)
         prompt = (
             f"Operator question: \"{text}\"\n\n"
             f"Current state:\n{_fmt(summary)}\n\n"
-            "Answer the operator's question based on the current tactical situation. "
+        )
+        if history:
+            history_str = "\n".join([f"{h['role'].upper()}: {h['content']}" for h in history])
+            prompt = f"Recent chat history:\n{history_str}\n\n{prompt}"
+            
+        prompt += (
+            "Answer the operator's question based on the current tactical situation and chat history. "
             "Be concise and direct."
         )
-        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        
+        # Increased tokens from 400 to 1500 to prevent cutoff
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=1500)
         if not msg:
             msg = (
                 "I can help with tactical questions. Try commands like /summary, /top-threats, "

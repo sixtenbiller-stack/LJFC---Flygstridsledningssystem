@@ -124,7 +124,7 @@ class CopilotService:
         data = ai_provider.generate_json(
             prompt=prompt,
             system_instruction=COA_SYSTEM_INSTRUCTION,
-            max_tokens=3000,
+            max_tokens=4000,
             temperature=0.3,
         )
 

@@ -1,0 +1,98 @@
+{
+  "aircraft": {
+    "fighters": [
+      {
+        "id": "jas-39-e",
+        "name": "JAS 39 Gripen E",
+        "type": "Multirole Fighter",
+        "capabilities": ["Air-to-Air", "Air-to-Surface", "Reconnaissance"],
+        "max_speed": "Mach 2",
+        "munitions_loadout": ["Meteor", "IRIS-T", "30mm Cannon"]
+      },
+      {
+        "id": "ftr-generic",
+        "name": "Generic Fighter",
+        "type": "Multirole",
+        "capabilities": ["Air Intercept", "Escort"],
+        "max_speed": "Fast",
+        "munitions_loadout": ["air_to_air", "decoy"]
+      }
+    ],
+    "drones": [
+      {
+        "id": "uav-recon-1",
+        "name": "Generic Recon UAV",
+        "type": "UAV",
+        "capabilities": ["Surveillance", "Reconnaissance"],
+        "endurance_min": 180,
+        "munitions_loadout": ["light_munition"]
+      },
+      {
+        "id": "uav-swarm-m",
+        "name": "Swarm Drone",
+        "type": "Drone Swarm",
+        "capabilities": ["Saturation", "Distraction"],
+        "endurance_min": 60,
+        "munitions_loadout": []
+      }
+    ],
+    "bombers": [
+      {
+        "id": "b-2-spirit",
+        "name": "B-2 Spirit",
+        "type": "Stealth Bomber",
+        "capabilities": ["Deep Strike", "Strategic Bombing"],
+        "payload_capacity": "High",
+        "munitions_loadout": ["Cruise Missiles", "Precision Bombs"]
+      }
+    ]
+  },
+  "weapons": {
+    "missiles": [
+      {
+        "id": "aim-120",
+        "name": "AIM-120 AMRAAM",
+        "type": "Air-to-Air Missile",
+        "range_class": "Long Range",
+        "guidance": "Active Radar"
+      },
+      {
+        "id": "meteor",
+        "name": "Meteor",
+        "type": "Air-to-Air Missile",
+        "range_class": "Beyond Visual Range",
+        "guidance": "Active Radar / Ramjet"
+      },
+      {
+        "id": "sam-missile-std",
+        "name": "Standard SAM Missile",
+        "type": "Surface-to-Air Missile",
+        "range_class": "Medium Range",
+        "guidance": "Radar Guided"
+      },
+      {
+        "id": "cruise-msl-1",
+        "name": "Tomahawk-class Cruise Missile",
+        "type": "Cruise Missile",
+        "range_class": "Strategic",
+        "guidance": "GPS/INS/TERCOM"
+      }
+    ],
+    "bullets": [
+      {
+        "id": "30mm-he",
+        "name": "30mm High Explosive",
+        "type": "Cannon Ammunition",
+        "usage": "Air-to-Air / Ground Attack",
+        "platform": "Fighter Cannon"
+      },
+      {
+        "id": "27mm-mauser",
+        "name": "27mm Mauser BK-27",
+        "type": "Cannon Ammunition",
+        "usage": "Precision Strafe",
+        "platform": "JAS 39"
+      }
+    ]
+  }
+}

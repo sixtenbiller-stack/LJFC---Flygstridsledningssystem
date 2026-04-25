@@ -169,7 +169,8 @@ def _generate_lmstudio(
         payload["response_format"] = {"type": "json_object"}
 
     try:
-        resp = httpx.post(f"{_lmstudio_base_url}/chat/completions", json=payload, timeout=60.0)
+        # Increased timeout to 120.0s for long prompts/local models
+        resp = httpx.post(f"{_lmstudio_base_url}/chat/completions", json=payload, timeout=120.0)
         resp.raise_for_status()
         data = resp.json()
         content = data["choices"][0]["message"]["content"]

@@ -29,7 +29,7 @@ from chief_of_staff_service import ChiefOfStaffService
 from command_router import CommandRouter
 from threat_group_engine import ThreatGroupEngine
 from response_ranking_engine import ResponseRankingEngine
-from data_loader import load_planning_guardrails
+from data_loader import load_planning_guardrails, load_resource_catalogue
 from scenario_registry import discover as discover_scenarios, load_scenario_raw
 from scenario_runtime import generate_scenario, LiveSession, AVAILABLE_TEMPLATES
 
@@ -108,6 +108,11 @@ app.add_middleware(
 
 
 # ── State endpoints ──
+
+
+@app.get("/resources")
+def get_resources_endpoint() -> dict[str, Any]:
+    return load_resource_catalogue()
 
 @app.get("/state")
 def get_state(include_geo: bool = False) -> dict[str, Any]:
@@ -967,6 +972,16 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
     def _tool_get_after_action() -> list[dict[str, Any]]:
         return [r.model_dump() for r in _after_action]
 
+    # Log the command to the feed
+    chief.add_event_item(
+        category="operator_command",
+        severity="info",
+        title="",
+        body=f"{cmd.input}",
+        source_state_id=state.source_state_id,
+    )
+
+    # Prepare tools
     tools = {
         "get_state_summary": _tool_get_state_summary,
         "get_top_threats": _tool_get_top_threats,
@@ -985,16 +1000,8 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
         "jump_to": lambda target: jump_to_event({"target": target}),
     }
 
-    response = router.route(cmd.input, state_summary=state_dict, tools=tools)
-
-    # Log the command and response to the feed
-    chief.add_event_item(
-        category="operator_command",
-        severity="info",
-        title="",
-        body=f"{cmd.input}",
-        source_state_id=state.source_state_id,
-    )
+    # Each prompt is treated as a new context (history=None)
+    response = router.route(cmd.input, state_summary=state_dict, tools=tools, history=None)
 
     if response.type == "coas" and response.data.get("coas"):
         pass  # COAs already set by tool

@@ -66,3 +66,12 @@ def load_planning_guardrails() -> dict[str, Any]:
             "allow_existential_override": True,
             "explanation_style": "direct_factual",
         }
+
+
+def load_resource_catalogue() -> dict[str, Any]:
+    path = Path(__file__).resolve().parent.parent / "resources.json"
+    if not path.exists():
+        return {"aircraft": {"fighters": [], "drones": [], "bombers": []}, "weapons": {"missiles": [], "bullets": []}}
+    with open(path) as f:
+        return json.load(f)
+
