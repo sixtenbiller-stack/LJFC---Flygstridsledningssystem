@@ -139,7 +139,7 @@ def _generate_gemini(
             contents=prompt,
             config=config,
         )
-        return response.text
+        return _clean_reasoning(response.text)
     except Exception:
         logger.exception("Gemini generation failed")
         return None
@@ -195,7 +195,10 @@ def _clean_reasoning(text: str | None) -> str | None:
     
     # Remove tags that might not be closed
     text = re.sub(r"<(thought|thinking)>", "", text, flags=re.IGNORECASE)
-    
+
+    # Handle Gemini-style thoughts if they appear in text (sometimes they start with "Thought:")
+    text = re.sub(r"^Thought:.*?\n", "", text, flags=re.IGNORECASE | re.MULTILINE)
+
     return text.strip()
 
 
