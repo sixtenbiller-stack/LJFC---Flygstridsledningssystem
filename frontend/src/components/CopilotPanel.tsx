@@ -192,16 +192,28 @@ export function CopilotPanel({
     setView('audit');
   };
 
+  const [localUserMessages, setLocalUserMessages] = useState<FeedItem[]>([]);
+
   const handleSendCommand = async (text?: string) => {
     const cmd = text || inputText.trim();
     if (!cmd) return;
     setCommandLoading(true);
     setInputText('');
 
-    // Add user command to feedItems via locally if needed,
-    // though the current architecture suggests feedItems come from above.
-    // However, to ensure immediate feedback in bubbles, we can handle it.
-    
+    // Optimistically add user command to local feed for immediate feedback
+    const userMsg: FeedItem = {
+      id: `local-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      category: 'operator_command',
+      severity: 'info',
+      title: '',
+      body: cmd,
+      related_ids: [] as string[],
+      suggested_actions: [] as string[],
+      source_state_id: state.source_state_id || 'local'
+    };
+    setLocalUserMessages(prev => [...prev, userMsg]);
+
     try {
       const resp = await onSendCommand(cmd);
       if (resp) {
@@ -294,6 +306,7 @@ export function CopilotPanel({
       <div className="copilot-content">
         <FeedView
           items={feedItems}
+          localItems={localUserMessages}
           commandResponse={commandResponse}
           feedEndRef={feedEndRef}
         />
@@ -402,13 +415,29 @@ export function CopilotPanel({
 }
 
 function FeedView({
-  items, commandResponse, feedEndRef,
+  items, localItems, commandResponse, feedEndRef,
 }: {
   items: FeedItem[];
+  localItems: FeedItem[];
   commandResponse: CopilotResponse | null;
   feedEndRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  if (items.length === 0 && !commandResponse) {
+  // Merge and sort items by timestamp
+  const allItems = useMemo(() => {
+    const combined = [...items, ...localItems];
+    // Deduplicate if a local message was eventually received via polling
+    const seenBodies = new Set<string>();
+    const filtered = combined.filter(it => {
+      if (it.category !== 'operator_command') return true;
+      const key = `${it.body}-${new Date(it.timestamp).setSeconds(0,0)}`;
+      if (seenBodies.has(key)) return false;
+      seenBodies.add(key);
+      return true;
+    });
+    return filtered.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [items, localItems]);
+
+  if (allItems.length === 0 && !commandResponse) {
     return (
       <div className="copilot-hint">
         Chief of Staff is monitoring the scenario. Updates will appear here when something material changes.
@@ -421,30 +450,35 @@ function FeedView({
 
   return (
     <div className="feed-view">
-      {items.map(item => (
-        <div key={item.id} className={`feed-item severity-${item.severity} role-${item.category === 'operator_command' ? 'user' : 'system'}`}>
-          <div className="feed-item-header">
-            <span className={`feed-severity ${item.severity}`}>{item.severity === 'critical' ? '●' : item.severity === 'warning' ? '▲' : '◆'}</span>
-            <span className="feed-category">{item.category.replace(/_/g, ' ')}</span>
-            <span className="feed-time">{new Date(item.timestamp).toLocaleTimeString()}</span>
-          </div>
-          {item.title && <div className="feed-title">{item.title}</div>}
-          <div className="feed-body">{item.body}</div>
-          {item.related_ids.length > 0 && (
-            <div className="feed-related">
-              {item.related_ids.map(id => (
-                <span key={id} className="feed-tag">{id}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-
       {commandResponse && (
         <div className="feed-item command-response role-copilot">
           <div className="feed-body">{commandResponse.message}</div>
         </div>
       )}
+
+      {allItems.map(item => {
+        const isUser = item.category === 'operator_command';
+        return (
+          <div key={item.id} className={`feed-item severity-${item.severity} role-${isUser ? 'user' : 'system'}`}>
+            {!isUser && (
+              <div className="feed-item-header">
+                <span className={`feed-severity ${item.severity}`}>{item.severity === 'critical' ? '●' : item.severity === 'warning' ? '▲' : '◆'}</span>
+                <span className="feed-category">{item.category.replace(/_/g, ' ')}</span>
+                <span className="feed-time">{new Date(item.timestamp).toLocaleTimeString()}</span>
+              </div>
+            )}
+            {!isUser && item.title && <div className="feed-title">{item.title}</div>}
+            <div className="feed-body">{item.body}</div>
+            {!isUser && item.related_ids.length > 0 && (
+              <div className="feed-related">
+                {item.related_ids.map(id => (
+                  <span key={id} className="feed-tag">{id}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       <div ref={feedEndRef} />
     </div>
