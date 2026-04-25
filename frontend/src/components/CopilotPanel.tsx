@@ -90,7 +90,6 @@ export function CopilotPanel({
   const [selectedCoa, setSelectedCoa] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [commandLoading, setCommandLoading] = useState(false);
-  const [commandResponse, setCommandResponse] = useState<CopilotResponse | null>(null);
   const [quickActions, setQuickActions] = useState<string[]>([]);
   const [slashHighlight, setSlashHighlight] = useState(0);
   const [inputFocused, setInputFocused] = useState(false);
@@ -167,7 +166,6 @@ export function CopilotPanel({
     onGenerateCoas();
     setView('plans');
     setSelectedCoa(null);
-    setCommandResponse(null);
   };
 
   const handleCompare = () => {
@@ -192,7 +190,7 @@ export function CopilotPanel({
     setView('audit');
   };
 
-  const [localUserMessages, setLocalUserMessages] = useState<FeedItem[]>([]);
+  const [localMessages, setLocalMessages] = useState<FeedItem[]>([]);
 
   const handleSendCommand = async (text?: string) => {
     const cmd = text || inputText.trim();
@@ -200,9 +198,9 @@ export function CopilotPanel({
     setCommandLoading(true);
     setInputText('');
 
-    // Optimistically add user command to local feed for immediate feedback
+    // Optimistically add user command
     const userMsg: FeedItem = {
-      id: `local-${Date.now()}`,
+      id: `user-${Date.now()}`,
       timestamp: new Date().toISOString(),
       category: 'operator_command',
       severity: 'info',
@@ -212,12 +210,25 @@ export function CopilotPanel({
       suggested_actions: [] as string[],
       source_state_id: state.source_state_id || 'local'
     };
-    setLocalUserMessages(prev => [...prev, userMsg]);
+    setLocalMessages(prev => [...prev, userMsg]);
 
     try {
       const resp = await onSendCommand(cmd);
       if (resp) {
-        setCommandResponse(resp);
+        // Add AI response as a FeedItem so it stacks correctly
+        const aiMsg: FeedItem = {
+          id: `ai-${Date.now()}`,
+          timestamp: new Date(Date.now() + 10).toISOString(), // Ensure slightly after user
+          category: 'copilot_response',
+          severity: 'info',
+          title: '',
+          body: resp.message,
+          related_ids: [] as string[],
+          suggested_actions: resp.suggested_actions || [],
+          source_state_id: state.source_state_id || 'local'
+        };
+        setLocalMessages(prev => [...prev, aiMsg]);
+
         if (resp.suggested_actions?.length) {
           setQuickActions(resp.suggested_actions);
         }
@@ -227,6 +238,8 @@ export function CopilotPanel({
       }
     } finally {
       setCommandLoading(false);
+      // Wait a tick for render and scroll
+      setTimeout(() => feedEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
   };
 
@@ -306,14 +319,9 @@ export function CopilotPanel({
       <div className="copilot-content">
         <FeedView
           items={feedItems}
-          localItems={localUserMessages}
-          commandResponse={commandResponse}
+          localItems={localMessages}
           feedEndRef={feedEndRef}
         />
-        
-        {/* We keep the visibility of other views if needed by internal state, 
-            but the user requested to remove everything below except the send message window.
-            However, usually we want to see the feed by default now. */}
       </div>
 
       {/* Feed / backend suggested quick actions */}
@@ -415,17 +423,16 @@ export function CopilotPanel({
 }
 
 function FeedView({
-  items, localItems, commandResponse, feedEndRef,
+  items, localItems, feedEndRef,
 }: {
   items: FeedItem[];
   localItems: FeedItem[];
-  commandResponse: CopilotResponse | null;
   feedEndRef: React.RefObject<HTMLDivElement | null>;
 }) {
   // Merge and sort items by timestamp
   const allItems = useMemo(() => {
     const combined = [...items, ...localItems];
-    // Deduplicate if a local message was eventually received via polling
+    // Deduplicate operator commands if polled
     const seenBodies = new Set<string>();
     const filtered = combined.filter(it => {
       if (it.category !== 'operator_command') return true;
@@ -437,7 +444,7 @@ function FeedView({
     return filtered.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }, [items, localItems]);
 
-  if (allItems.length === 0 && !commandResponse) {
+  if (allItems.length === 0) {
     return (
       <div className="copilot-hint">
         Chief of Staff is monitoring the scenario. Updates will appear here when something material changes.
@@ -450,26 +457,25 @@ function FeedView({
 
   return (
     <div className="feed-view">
-      {commandResponse && (
-        <div className="feed-item command-response role-copilot">
-          <div className="feed-body">{commandResponse.message}</div>
-        </div>
-      )}
-
       {allItems.map(item => {
         const isUser = item.category === 'operator_command';
+        const isAiResponse = item.category === 'copilot_response';
+        
         return (
-          <div key={item.id} className={`feed-item severity-${item.severity} role-${isUser ? 'user' : 'system'}`}>
-            {!isUser && (
+          <div 
+            key={item.id} 
+            className={`feed-item severity-${item.severity} role-${isUser ? 'user' : isAiResponse ? 'copilot' : 'system'}`}
+          >
+            {(!isUser && !isAiResponse) && (
               <div className="feed-item-header">
                 <span className={`feed-severity ${item.severity}`}>{item.severity === 'critical' ? '●' : item.severity === 'warning' ? '▲' : '◆'}</span>
                 <span className="feed-category">{item.category.replace(/_/g, ' ')}</span>
                 <span className="feed-time">{new Date(item.timestamp).toLocaleTimeString()}</span>
               </div>
             )}
-            {!isUser && item.title && <div className="feed-title">{item.title}</div>}
+            {!isUser && !isAiResponse && item.title && <div className="feed-title">{item.title}</div>}
             <div className="feed-body">{item.body}</div>
-            {!isUser && item.related_ids.length > 0 && (
+            {!isUser && !isAiResponse && item.related_ids.length > 0 && (
               <div className="feed-related">
                 {item.related_ids.map(id => (
                   <span key={id} className="feed-tag">{id}</span>
@@ -479,12 +485,6 @@ function FeedView({
           </div>
         );
       })}
-
-      {commandResponse && (
-        <div className="feed-item command-response role-copilot">
-          <div className="feed-body">{commandResponse.message}</div>
-        </div>
-      )}
 
       <div ref={feedEndRef} />
     </div>
