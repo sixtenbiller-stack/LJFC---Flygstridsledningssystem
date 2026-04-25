@@ -124,12 +124,6 @@ export function ScenarioLab({ currentScenarioId, currentMode, currentOrigin, isP
 
   return (
     <div className="scenario-lab">
-      <div className="app-title-space">
-        <div className="header-left">
-          <span className="header-logo">◆</span>
-          <span className="header-title">LJFC COMMAND</span>
-        </div>
-      </div>
       <div className="slab-header">
         <span className="slab-title">⚗ SCENARIO LAB</span>
         <span className={`slab-badge slab-badge-mode mode-${currentMode}`}>{currentMode.toUpperCase()}</span>

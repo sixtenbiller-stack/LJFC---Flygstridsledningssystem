@@ -6,6 +6,7 @@
     "version": "1.0",
     "duration_s": 240,
     "difficulty": "medium",
+    "ato_ref": "ato_minimal_alpha",
     "demo_notes": "Primary demo scenario. Designed to show COA generation, explanation, simulation, and re-planning in a single 6-minute flow."
   },
   "initial_state": {

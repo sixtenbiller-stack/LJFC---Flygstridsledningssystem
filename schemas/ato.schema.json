@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neon.command/schemas/ato.schema.json",
+  "title": "NEON ATO-lite",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "ato_id",
+    "name",
+    "valid_from_s",
+    "valid_to_s",
+    "planning_intent",
+    "missions",
+    "authority"
+  ],
+  "properties": {
+    "schema_version": { "const": "neon.ato.v1" },
+    "ato_id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "valid_from_s": { "type": "number" },
+    "valid_to_s": { "type": "number" },
+    "planning_intent": { "type": "object" },
+    "missions": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "authority": {
+      "type": "object",
+      "required": ["approval_required", "approval_role", "auto_execution_allowed"],
+      "properties": {
+        "approval_required": { "type": "boolean" },
+        "approval_role": { "type": "string" },
+        "auto_execution_allowed": { "const": false }
+      },
+      "additionalProperties": true
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

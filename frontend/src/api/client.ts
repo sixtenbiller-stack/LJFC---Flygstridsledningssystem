@@ -13,6 +13,8 @@ export const api = {
   getState: (includeGeo = false) =>
     request<any>(`/state?include_geo=${includeGeo}`),
 
+  getAtoCurrent: () => request<any>('/ato/current'),
+
   getAlerts: () => request<any[]>('/alerts'),
 
   getCoas: () => request<any>('/coas'),

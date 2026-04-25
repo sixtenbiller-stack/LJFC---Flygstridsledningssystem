@@ -49,6 +49,10 @@ export const ALL_COMMANDS: CommandDef[] = [
   { cmd: '/generate-detailed-coas top', label: 'Detailed COAs for group', category: 'Planning' },
   { cmd: '/recommend', label: 'Recommend', category: 'Planning' },
   { cmd: '/replan', label: 'Re-plan', category: 'Planning' },
+  { cmd: '/ato', label: 'Synthetic ATO / mission', category: 'Planning' },
+  { cmd: '/mission', label: 'Mission constraints', category: 'Planning' },
+  { cmd: '/constraints', label: 'Constraints', category: 'Planning' },
+  { cmd: '/intent', label: 'Commander intent', category: 'Planning' },
 
   // Compare / Explain
   { cmd: '/compare top2', label: 'Compare top 2 COAs', category: 'Compare / Explain' },
@@ -62,6 +66,7 @@ export const ALL_COMMANDS: CommandDef[] = [
   { cmd: '/authority top', label: 'Authority check', category: 'Authority / Policy' },
   { cmd: '/policy protect_capital_first', label: 'Policy', category: 'Authority / Policy' },
   { cmd: '/reserve 2', label: 'Reserve pairs', category: 'Authority / Policy' },
+  { cmd: '/approval', label: 'Approval authority (ATO)', category: 'Authority / Policy' },
 
   // Scenario / Mode
   { cmd: '/scenario', label: 'Active scenario info', category: 'Situation' },

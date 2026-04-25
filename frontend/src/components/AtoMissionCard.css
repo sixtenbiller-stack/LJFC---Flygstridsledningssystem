@@ -1,0 +1,140 @@
+/* ATO / mission (left rail, synthetic planning context) */
+
+.ato-mission-collapsed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  background: var(--panel-bg, #0d1117);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 0.55vw + 0.3rem, 12px);
+  color: var(--text-dim, #6e7681);
+  flex-shrink: 0;
+}
+.ato-mission-collapsed:hover {
+  background: #151b23;
+  color: var(--text, #c9d1d9);
+}
+.ato-mission-collapsed-icon {
+  font-size: 13px;
+  color: var(--neon-green, #38d39f);
+}
+.ato-mission-collapsed-label {
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--neon-green, #38d39f);
+  font-size: 10px;
+}
+.ato-mission-collapsed-id {
+  font-size: 10px;
+  color: var(--text-dim);
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ato-mission-collapsed-pri {
+  font-size: 9px;
+  opacity: 0.85;
+  margin-left: auto;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ato-mission-card {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 24, 12, 0.35);
+  font-size: clamp(10px, 0.55vw + 0.3rem, 12px);
+  line-height: 1.35;
+}
+.ato-mission-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ato-mission-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--neon-green, #38d39f);
+  font-weight: 600;
+}
+.ato-mission-collapse-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim, #6e7681);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ato-mission-collapse-btn:hover {
+  color: var(--text, #c9d1d9);
+}
+.ato-mission-grid {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.32fr) 1fr;
+  gap: 2px 10px;
+  margin: 0;
+}
+.ato-mission-grid dt {
+  margin: 0;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.ato-mission-grid dd {
+  margin: 0;
+  color: var(--text);
+  word-break: break-word;
+}
+.ato-mission-intent {
+  font-size: 0.95em;
+  opacity: 0.95;
+}
+.ato-mission-placeholder {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.95em;
+}
+.ato-mission-details {
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.ato-mission-toggle {
+  background: transparent;
+  border: none;
+  color: var(--green-dim, #2ea043);
+  font-size: 10px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-mono);
+}
+.ato-mission-missions {
+  margin: 6px 0 0;
+  padding-left: 1rem;
+  color: var(--text-dim);
+  font-size: 0.95em;
+}
+.ato-mission-missions li {
+  margin-bottom: 2px;
+}
+.ato-mm-type {
+  font-family: var(--font-mono);
+  color: var(--neon-green, #38d39f);
+  margin-right: 6px;
+  font-size: 0.92em;
+}

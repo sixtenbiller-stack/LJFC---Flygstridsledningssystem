@@ -1,0 +1,76 @@
+{
+  "schema_version": "neon.ato.v1",
+  "ato_id": "ato_minimal_alpha",
+  "name": "Minimal Alpha Air Tasking Order",
+  "description": "Synthetic ATO-lite for NEON COMMAND. Defines mission intent, defended priority, reserve posture, and approval authority.",
+  "valid_from_s": 0,
+  "valid_to_s": 240,
+  "planning_intent": {
+    "commander_intent": "Protect Arktholm while preserving at least one fighter for follow-on uncertainty.",
+    "primary_defended_object_ids": ["city-arktholm"],
+    "secondary_defended_object_ids": [],
+    "risk_posture": "balanced",
+    "reserve_policy": {
+      "min_fighter_reserve": 1,
+      "min_gbad_reserve": 0,
+      "reserve_rationale": "Maintain a fighter reserve in case the initial contact is a probe or precursor to a follow-on group."
+    }
+  },
+  "missions": [
+    {
+      "mission_id": "msn-cap-north-01",
+      "mission_type": "CAP",
+      "title": "Northern defensive patrol",
+      "assigned_asset_ids": ["ftr-n1"],
+      "status": "available",
+      "start_s": 0,
+      "end_s": 180,
+      "area_ref": "arktholm-south",
+      "protected_object_ids": ["city-arktholm"],
+      "tasking": "Maintain defensive posture and remain available for intercept tasking.",
+      "constraints": [
+        "Avoid committing all fighters unless threat pressure becomes critical."
+      ]
+    },
+    {
+      "mission_id": "msn-qra-reserve-01",
+      "mission_type": "QRA",
+      "title": "Quick reaction reserve",
+      "assigned_asset_ids": ["ftr-n2"],
+      "status": "reserve",
+      "start_s": 0,
+      "end_s": 240,
+      "area_ref": "base-north",
+      "protected_object_ids": ["city-arktholm"],
+      "tasking": "Hold as reserve unless first-line response is insufficient.",
+      "constraints": [
+        "Preserve if possible for follow-on uncertainty."
+      ]
+    },
+    {
+      "mission_id": "msn-gbad-fw-01",
+      "mission_type": "GBAD_COVERAGE",
+      "title": "Firewatch point defence",
+      "assigned_asset_ids": ["sam-fw"],
+      "status": "available",
+      "start_s": 0,
+      "end_s": 240,
+      "area_ref": "sam-firewatch",
+      "protected_object_ids": ["city-arktholm"],
+      "tasking": "Provide area coverage for the Arktholm southern approach.",
+      "constraints": [
+        "Prefer GBAD coverage when it preserves fighter reserve and still protects Arktholm."
+      ]
+    }
+  ],
+  "authority": {
+    "approval_required": true,
+    "approval_role": "air_defence_battle_manager",
+    "auto_execution_allowed": false
+  },
+  "notes": [
+    "Synthetic ATO-lite for hackathon demonstration.",
+    "Used only as planning context and mission constraints.",
+    "Not a real operational air tasking order."
+  ]
+}

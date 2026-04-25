@@ -147,6 +147,7 @@ class ResponseRankingEngine:
         guardrails: dict[str, Any] | None = None,
         policy: dict[str, Any] | None = None,
         existing_coas: list[Any] | None = None,
+        ato_context: dict[str, Any] | None = None,
     ) -> list[ResponseOption]:
         guardrails = guardrails or {}
         policy = policy or {}
@@ -156,6 +157,7 @@ class ResponseRankingEngine:
         total_count = len(assets)
 
         candidates = self._generate_candidates(group, avg_readiness, ready_count, total_count)
+        candidates = self._apply_ato_mission_rules(candidates, group, ato_context or {})
         scored = self._score_candidates(candidates, group, avg_readiness, guardrails)
 
         scored.sort(key=lambda c: c[1], reverse=True)
@@ -174,6 +176,52 @@ class ResponseRankingEngine:
             group.top_response_ids = [o.response_id for o in options[:3]]
 
         return options
+
+    def _apply_ato_mission_rules(
+        self,
+        candidates: list[ResponseOption],
+        group: ThreatGroup,
+        ato: dict[str, Any],
+    ) -> list[ResponseOption]:
+        if not ato or ato.get("ato_error"):
+            return candidates
+        primary = list(ato.get("primary_defended_object_ids") or [])
+        at_risk = group.most_at_risk_object_id
+        mission_relevant = bool(at_risk and primary and at_risk in primary)
+        rp = ato.get("reserve_policy") or {}
+        min_f = int(rp.get("min_fighter_reserve") or 0)
+        avail = list(ato.get("available_asset_ids") or [])
+
+        for opt in candidates:
+            if mission_relevant and opt.response_family in (
+                "active_defense_synthetic",
+                "mixed_response_synthetic",
+            ):
+                opt.expected_effectiveness = min(1.0, float(opt.expected_effectiveness) + 0.05)
+                opt.rationale.append(
+                    "ATO: response is mission-relevant to a primary defended object under threat (synthetic planning context)."
+                )
+            if min_f >= 1 and opt.response_family in (
+                "active_defense_synthetic",
+                "mixed_response_synthetic",
+            ):
+                if float(opt.readiness_cost_pct) > 20.0:
+                    opt.expected_effectiveness = max(0.12, float(opt.expected_effectiveness) * 0.88)
+                    opt.policy_gates.append(
+                        "ATO constraint: preserve at least one fighter for follow-on uncertainty — human review required."
+                    )
+                    opt.rationale.append(
+                        "ATO: downgraded—high readiness cost may conflict with fighter reserve policy (synthetic)."
+                    )
+            if "sam-fw" in avail and min_f >= 1 and opt.response_family in (
+                "protect_posture",
+                "non_kinetic_disrupt_synthetic",
+            ):
+                opt.expected_effectiveness = min(1.0, float(opt.expected_effectiveness) + 0.04)
+                opt.rationale.append(
+                    "ATO: GBAD / posture options may protect the defended object while preserving fighter reserve when appropriate."
+                )
+        return candidates
 
     def _generate_candidates(
         self, group: ThreatGroup, avg_readiness: float, ready_count: int, total_count: int,

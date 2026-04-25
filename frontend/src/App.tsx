@@ -14,6 +14,7 @@ import { CopilotPanel } from './components/CopilotPanel';
 import { DecisionCard } from './components/DecisionCard';
 import { TacticalInfoCard } from './components/TacticalInfoCard';
 import { ScenarioLab } from './components/ScenarioLab';
+import { AtoMissionCard } from './components/AtoMissionCard';
 import { Timeline } from './components/Timeline';
 import {
   loadLayout,
@@ -462,6 +463,13 @@ export default function App() {
         }}
       >
         <aside className="left-rail panel-rail">
+          <div className="app-title-space">
+            <div className="header-left">
+              <span className="header-logo">◆</span>
+              <span className="header-title">LJFC COMMAND</span>
+            </div>
+          </div>
+          <AtoMissionCard state={state} />
           <ScenarioLab
             currentScenarioId={state.scenario_id}
             currentMode={runtimeMode}

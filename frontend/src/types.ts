@@ -193,6 +193,31 @@ export interface EventLog {
   summary: string;
 }
 
+export interface AtoMissionsPreviewItem {
+  mission_type: string;
+  title: string;
+}
+
+/** Slim synthetic ATO from GET /state; full shape from GET /ato/current. */
+export interface AtoContext {
+  ato_id: string;
+  name?: string;
+  commander_intent: string;
+  primary_defended_object_ids: string[];
+  secondary_defended_object_ids?: string[];
+  risk_posture?: string;
+  reserve_policy: Record<string, number | string | boolean>;
+  mission_count?: number;
+  missions_preview?: AtoMissionsPreviewItem[];
+  available_asset_ids?: string[];
+  reserve_asset_ids?: string[];
+  approval_required: boolean;
+  approval_role: string;
+  auto_execution_allowed?: boolean;
+  status?: string;
+  ato_error?: string;
+}
+
 export interface ScenarioState {
   scenario_id: string;
   scenario_name: string;
@@ -212,6 +237,8 @@ export interface ScenarioState {
   scenario_origin?: string;
   scenario_meta?: Record<string, unknown>;
   sensor_states?: Record<string, unknown>;
+  ato_context?: AtoContext;
+  active_ato_id?: string;
 }
 
 export interface ScenarioEntry {

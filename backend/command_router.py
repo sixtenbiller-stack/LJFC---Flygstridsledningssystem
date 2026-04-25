@@ -55,6 +55,9 @@ class ContextSpec:
     include_feed: bool = False
     feed_limit: int = 5
     max_chars: int = 16000
+    # ATO-lite (synthetic planning guidance; lazy-load when included)
+    include_ato: bool = False
+    ato_detail: str = "none"  # none | slim | full
 
 
 def _slice_coas(state: dict, spec: ContextSpec) -> list[Any]:
@@ -100,6 +103,74 @@ def _get_resource_for_context(state: dict) -> Any:
     return _trim_nested_lists(load_resource_catalogue(), 40)
 
 
+def _get_ato_for_context(state: dict, spec: ContextSpec) -> Any:
+    from ato_context_loader import ato_for_llm, load_ato_context
+
+    if not spec.include_ato or spec.ato_detail == "none":
+        return None
+    aid = (state.get("active_ato_id") or "ato_minimal_alpha").replace(".json", "")
+    ctx: dict | None = state.get("ato_context") if isinstance(state.get("ato_context"), dict) else None
+    if ctx and ctx.get("ato_error"):
+        return {"ato_error": ctx.get("ato_error"), "ato_id": ctx.get("ato_id", aid)}
+    # /state exposes slim UI shape; full LLM slice needs normalized missions + asset buckets
+    if spec.ato_detail == "full" and ctx and "active_missions" not in ctx:
+        ctx = None
+    if ctx is None:
+        ctx = load_ato_context(aid)
+        if ctx.get("ato_error"):
+            return {"ato_error": ctx.get("ato_error"), "ato_id": aid}
+    return ato_for_llm(ctx, spec.ato_detail)
+
+
+def _events_suggest_ato(recent: list[dict[str, Any]]) -> bool:
+    for e in recent:
+        try:
+            blob = json.dumps(e, default=str).lower()
+        except Exception:
+            blob = str(e).lower()
+        if any(
+            k in blob
+            for k in (
+                "ato",
+                "constraint",
+                "reserve policy",
+                "approval",
+                "air tasking",
+            )
+        ):
+            return True
+    return False
+
+
+def _format_ato_answer_plain(ctx: dict[str, Any]) -> str:
+    if ctx.get("ato_error"):
+        return f"ATO data could not be loaded: {ctx.get('ato_error')}"
+    aid = str(ctx.get("ato_id", "ato"))
+    name = str(ctx.get("name", "")).strip()
+    primary = ", ".join(ctx.get("primary_defended_object_ids") or []) or "—"
+    rp = ctx.get("reserve_policy") or {}
+    lines = [
+        f"Active synthetic ATO: {aid}" + (f" ({name})" if name else "") + ".",
+        f"Commander intent: {ctx.get('commander_intent', '—')}",
+        f"Primary defended: {primary}.",
+        f"Reserve policy: keep ≥{rp.get('min_fighter_reserve', 0)} fighter(s); "
+        f"GBAD reserve ≥{rp.get('min_gbad_reserve', 0)}. "
+        f"{(str(rp.get('reserve_rationale', ''))[:200])}",
+        f"Human approval: {'required' if ctx.get('approval_required') else 'per policy'} — role {ctx.get('approval_role', '—')}. "
+        f"Not an execution order; no autonomous engagement.",
+    ]
+    for m in (ctx.get("active_missions") or [])[:5]:
+        lines.append(
+            f"  • {m.get('mission_id')}: {m.get('title', '')} ({m.get('mission_type', '')}) — "
+            f"assets {', '.join(m.get('asset_ids') or [])} — {m.get('status', '')}"
+        )
+    lines.append(
+        "ATO constraint: preserve at least one fighter for follow-on uncertainty unless threat pressure is critical. "
+        "COA options that would commit all fighters should be treated as high risk. Operator approval remains mandatory."
+    )
+    return "\n".join(lines)
+
+
 # Presets for LLM tool handlers (tuned max_chars to stay under model budgets)
 SPEC_SUMMARY = ContextSpec(
     max_chars=14000,
@@ -109,6 +180,8 @@ SPEC_SUMMARY = ContextSpec(
     include_feed=False,
     include_recent_decisions=False,
     include_resource_catalog=False,
+    include_ato=True,
+    ato_detail="slim",
 )
 SPEC_TOP_THREATS = ContextSpec(
     tracks_mode="slim",
@@ -118,6 +191,8 @@ SPEC_TOP_THREATS = ContextSpec(
     include_current_coas=False,
     include_events=False,
     max_chars=8000,
+    include_ato=True,
+    ato_detail="slim",
 )
 SPEC_WHAT_CHANGED = ContextSpec(
     tracks_mode="slim",
@@ -129,6 +204,8 @@ SPEC_WHAT_CHANGED = ContextSpec(
     include_feed=False,
     include_recent_decisions=False,
     max_chars=10000,
+    include_ato=False,
+    ato_detail="none",
 )
 SPEC_RECOMMEND = ContextSpec(
     tracks_mode="slim",
@@ -141,6 +218,8 @@ SPEC_RECOMMEND = ContextSpec(
     include_feed=False,
     include_recent_decisions=False,
     max_chars=10000,
+    include_ato=True,
+    ato_detail="full",
 )
 SPEC_BRIEF = ContextSpec(
     tracks_mode="full",
@@ -152,8 +231,10 @@ SPEC_BRIEF = ContextSpec(
     feed_limit=4,
     include_recent_decisions=True,
     decisions_limit=6,
-    include_resource_catalog=True,
+    include_resource_catalog=False,
     max_chars=18000,
+    include_ato=True,
+    ato_detail="full",
 )
 
 
@@ -163,9 +244,13 @@ SYSTEM_INSTRUCTION = """You are the Unified Copilot for LJFC COMMAND. You help o
 You receive a size-limited JSON `operator_context`. It is intentionally partial: only the keys relevant to this question are included. Never assume a missing key means "none" — it may be omitted to save context. If you need a field that is not present, state that the snapshot did not include it.
 
 When present, keys may include:
-- scenario, tracks, threat_scores, threat_groups, assets, alerts, zones, current_coas
-- resource_catalog (only for logistics / inventory questions)
+- scenario, ato (synthetic ATO-lite: intent, defended priorities, reserve, missions, authority — not an execution order)
+- tracks, threat_scores, threat_groups, assets, alerts, zones, current_coas
+- resource_catalog (only for logistics / inventory questions; may be omitted to save size)
 - events_log_recent, recent_decisions, copilot_feed_preview
+
+[ATO]
+Synthetic mission planning guidance only. Use it for defended priorities, reserve policy, and approval role. If `ato` is absent from operator_context, do not invent ATO details. Never suggest autonomous engagement; human approves all.
 
 [OUTPUT]
 - Write plain, readable operational English only.
@@ -221,9 +306,16 @@ SLASH_COMMANDS = {
     "/defer": "defer_group",
     "/override": "override_group",
     "/after-action": "after_action",
+    "/ato": "ato",
+    "/mission": "ato",
+    "/constraints": "ato",
+    "/intent": "ato",
+    "/approval": "ato",
 }
 
 NL_INTENTS = [
+    (r"what(?:'s| is)?\s+the\s+(?:ato|air\s+tasking|mission|constraint|intent|approval)", "ato"),
+    (r"(?:mission|air\s*tasking|ato)\s+constraint", "ato"),
     (r"(?:what|which)\s+(?:changed|happened|is new)", "what_changed"),
     (r"(?:which|what)\s+(?:is\s+the\s+)?most\s+dangerous\s+(?:coordinated\s+)?(?:group|threat)", "show_group"),
     (r"(?:which|what)\s+threat.*(?:most|greatest|biggest|worst)", "top_threats"),
@@ -311,6 +403,8 @@ class CommandRouter:
                 message="Toggle “Follow top threat” on the map toolbar, or click a track in the threat queue to focus.",
                 source_state_id=source_state_id,
             )
+        elif intent == "ato":
+            return self._handle_ato(state_summary, source_state_id)
         elif intent == "summary":
             return self._handle_summary(state_summary, tools, source_state_id)
         elif intent == "top_threats":
@@ -396,6 +490,18 @@ class CommandRouter:
 
         return "freeform", []
 
+    def _handle_ato(self, state: dict, sid: str) -> CopilotResponse:
+        from ato_context_loader import load_ato_context
+
+        ato_id = (state.get("active_ato_id") or "ato_minimal_alpha").replace(".json", "")
+        ctx = load_ato_context(ato_id)
+        return CopilotResponse(
+            type="text",
+            message=_format_ato_answer_plain(ctx),
+            source_state_id=sid,
+            suggested_actions=["/brief", "/recommend", "/summary", "/top-threats"],
+        )
+
     @staticmethod
     def _freeform_context_spec(user_text: str) -> ContextSpec:
         """Heuristic bundles for natural-language questions: add resources, audit, feed, timeline, full tracks when likely."""
@@ -434,6 +540,16 @@ class CommandRouter:
             spec = replace(spec, include_events=True, events_limit=max(spec.events_limit, 12))
         if re.search(r"track[-_a-z0-9]{4,}|\bgrp-|\bgroup-[-a-z0-9]+|for\s+track|track\s+id", t):
             spec = replace(spec, tracks_mode="full", max_tracks=45)
+        if re.search(
+            r"\b(ato|air\s+tasking|tasking|mission|commander\s+intent|reserve|authority|approval|constraint|cap|qra|gbad|defended|priority|who\s+can\s+approve|what\s+are\s+we\s+protecting)\b",
+            t,
+        ) or "air defence" in t or "air defense" in t:
+            spec = replace(
+                spec,
+                include_ato=True,
+                ato_detail="full",
+                max_chars=min(18000, spec.max_chars + 4000),
+            )
         return spec
 
     def _build_operator_context(self, state: dict, spec: ContextSpec) -> dict[str, Any]:
@@ -450,6 +566,9 @@ class CommandRouter:
                 "speed_multiplier": state.get("speed_multiplier"),
                 "mode": state.get("mode"),
             }
+        aslice = _get_ato_for_context(state, spec)
+        if aslice is not None:
+            out["ato"] = aslice
         raw_tracks = list(state.get("tracks") or [])
         if spec.max_tracks is not None:
             raw_tracks = raw_tracks[: spec.max_tracks]
@@ -475,8 +594,6 @@ class CommandRouter:
             out["zones"] = state.get("zones", [])
         if spec.include_current_coas:
             out["current_coas"] = _slice_coas(state, spec)
-        if spec.include_resource_catalog:
-            out["resource_catalog"] = _get_resource_for_context(state)
         if spec.include_events:
             el = list(state.get("events_log") or [])
             n = spec.events_limit
@@ -489,6 +606,8 @@ class CommandRouter:
             fp = list(state.get("copilot_feed_preview") or [])
             n = spec.feed_limit
             out["copilot_feed_preview"] = fp[-n:] if n else fp
+        if spec.include_resource_catalog:
+            out["resource_catalog"] = _get_resource_for_context(state)
         return out
 
     def _build_tactical_context_str(self, state: dict, spec: ContextSpec) -> str:
@@ -585,6 +704,7 @@ class CommandRouter:
         msg = (
             "Commands (slash + Enter):\n"
             "• Situation: /brief /summary /what-changed /top-threats /show-readiness\n"
+            "• ATO / mission (synthetic): /ato /mission /intent /approval /constraints\n"
             "• Scenario: /scenario /mode /live-status /mutations\n"
             "• Navigation: /jump first-contact | first-group | first-decision | second-wave\n"
             "• Groups: /groups /group top /most-dangerous-group /assess top /why-group top /uncertainty top\n"
@@ -682,7 +802,16 @@ class CommandRouter:
     def _handle_what_changed(self, state: dict, sid: str) -> CopilotResponse:
         events = state.get("events_log", [])
         recent = events[-5:] if events else []
-        ctx = self._build_tactical_context_str(state, SPEC_WHAT_CHANGED)
+        if _events_suggest_ato(recent):
+            wc = replace(
+                SPEC_WHAT_CHANGED,
+                include_ato=True,
+                ato_detail="slim",
+                max_chars=min(11000, SPEC_WHAT_CHANGED.max_chars + 1000),
+            )
+        else:
+            wc = SPEC_WHAT_CHANGED
+        ctx = self._build_tactical_context_str(state, wc)
 
         prompt = (
             f"operator_context (JSON, partial):\n{ctx}\n\n"

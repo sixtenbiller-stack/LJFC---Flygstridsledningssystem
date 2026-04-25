@@ -30,7 +30,7 @@ from chief_of_staff_service import ChiefOfStaffService
 from command_router import CommandRouter
 from threat_group_engine import ThreatGroupEngine
 from response_ranking_engine import ResponseRankingEngine
-from data_loader import load_planning_guardrails, load_resource_catalogue
+from data_loader import ato_slim_for_ui, load_ato_context, load_planning_guardrails, load_resource_catalogue
 from scenario_registry import discover as discover_scenarios, load_scenario_raw
 from scenario_runtime import generate_scenario, LiveSession, AVAILABLE_TEMPLATES
 from tactical_ai_narratives import enrich_threat_group_ai, track_tactical_brief
@@ -68,6 +68,10 @@ _group_ai_cache: dict[str, tuple[float, ThreatGroup]] = {}
 _GROUP_AI_TTL_S = 18.0
 _track_brief_cache: dict[str, tuple[float, str]] = {}
 _TB_TTL_S = 12.0
+
+
+def _get_active_ato_id() -> str:
+    return str(engine.scenario_meta.get("ato_ref") or "ato_minimal_alpha")
 
 
 @asynccontextmanager
@@ -150,6 +154,7 @@ def get_resources_endpoint() -> dict[str, Any]:
 def get_state(include_geo: bool = False) -> dict[str, Any]:
     global _current_scores, _current_groups, _current_responses
     state = engine.get_state(include_geo=include_geo)
+    ato_ctx = load_ato_context(_get_active_ato_id())
 
     if engine.geography and engine.tracks:
         zones = engine.geography.defended_zones
@@ -177,14 +182,23 @@ def get_state(include_geo: bool = False) -> dict[str, Any]:
         assets = list(engine.assets.values())
         _current_responses = {}
         for g in _current_groups:
-            responses = ranker.rank(g, assets, guardrails=guardrails)
-            _current_responses[g.group_id] = responses
+            _current_responses[g.group_id] = ranker.rank(
+                g, assets, guardrails=guardrails, ato_context=ato_ctx,
+            )
 
     result = state.model_dump()
     result["mode"] = _runtime_mode
     result["runtime_mode"] = _runtime_mode
     result["scenario_origin"] = _scenario_origin
+    result["ato_context"] = ato_slim_for_ui(ato_ctx)
+    result["active_ato_id"] = _get_active_ato_id()
     return result
+
+
+@app.get("/ato/current")
+def get_ato_current() -> dict[str, Any]:
+    """Full normalized synthetic ATOContext (not raw file JSON)."""
+    return load_ato_context(_get_active_ato_id())
 
 
 @app.get("/alerts")
@@ -851,6 +865,15 @@ def get_decision_card(group_id: str) -> dict[str, Any]:
     avg_r = sum(a.readiness for a in assets) / max(len(assets), 1)
     ready = sum(1 for a in assets if a.status in ("ready", "standby", "alert"))
 
+    ato = load_ato_context(_get_active_ato_id())
+    approval_note = ""
+    if not ato.get("ato_error"):
+        ar = "required" if ato.get("approval_required") else "per policy"
+        approval_note = (
+            f" Human approval {ar} ({ato.get('approval_role', '—')}). "
+            f"Synthetic ATO — planning guidance only, not an execution order."
+        )
+
     card = DecisionCardSnapshot(
         card_id=f"card-{group_id}",
         group_id=group_id,
@@ -858,7 +881,10 @@ def get_decision_card(group_id: str) -> dict[str, Any]:
         recommended_response=responses[0],
         alternatives=responses[1:3],
         authority_status=responses[0].authority_required,
-        reserve_impact_summary=f"Readiness {avg_r:.0%} ({ready}/{len(assets)} available). Top option costs {responses[0].readiness_cost_pct:.0f}%.",
+        reserve_impact_summary=(
+            f"Readiness {avg_r:.0%} ({ready}/{len(assets)} available). "
+            f"Top option costs {responses[0].readiness_cost_pct:.0f}%.{approval_note}"
+        ),
         data_trust_level="high" if group.confidence >= 0.7 else ("medium" if group.confidence >= 0.5 else "low"),
         source_state_id=engine.source_state_id,
         timestamp=datetime.datetime.utcnow().isoformat() + "Z",
@@ -946,7 +972,8 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
     state_dict["current_coas"] = [c.model_dump() for c in _current_coas]
     state_dict["recent_decisions"] = [r.model_dump() for r in audit.get_all()[-8:]]
     state_dict["copilot_feed_preview"] = [f.model_dump() for f in chief.feed[-5:]]
-    
+    state_dict["active_ato_id"] = _get_active_ato_id()
+
     def _tool_get_state_summary() -> dict[str, Any]:
         return {
             "wave": state.wave,
