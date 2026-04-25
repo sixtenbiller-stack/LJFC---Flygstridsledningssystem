@@ -386,6 +386,15 @@ class AfterActionRecord(BaseModel):
 
 # ── Scenario Events ──
 
+
+class PlannedAttack(BaseModel):
+    t_s: float
+    enemy_count: int
+    corridor_id: str = "corridor-n"
+    type: str = "fighter-type"
+    notes: str | None = None
+
+
 class ScenarioEvent(BaseModel):
     t_s: float
     event_type: str

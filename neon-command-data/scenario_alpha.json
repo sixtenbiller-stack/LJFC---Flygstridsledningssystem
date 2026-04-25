@@ -13,6 +13,15 @@
     "alert_level": "normal",
     "notes": "All assets at baseline readiness. No active engagements. Sensors operating normally."
   },
+  "planned_attacks": [
+    {
+      "t_s": 150,
+      "enemy_count": 4,
+      "corridor_id": "corridor-ne",
+      "type": "fighter-type",
+      "notes": "Planned reinforcement wave"
+    }
+  ],
   "events": [
     {
       "t_s": 0,

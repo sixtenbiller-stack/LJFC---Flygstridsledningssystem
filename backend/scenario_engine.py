@@ -68,10 +68,56 @@ class ScenarioEngine:
 
     def load(self, scenario_id: str = "scenario-alpha") -> None:
         raw = load_scenario(scenario_id)
-        self._load_from_raw(scenario_id, raw)
+        self.load_from_data(scenario_id, raw)
 
     def load_from_data(self, scenario_id: str, raw: dict) -> None:
         """Load from an already-parsed dict (generated / runtime scenarios)."""
+        # Expand planned attacks into events if they exist
+        if "planned_attacks" in raw:
+            import random
+            from neon_command_engine.scenario_generator import INGRESS_CORRIDORS, SpeedClass, AltitudeBand
+
+            planned = raw.pop("planned_attacks")
+            for attack in planned:
+                t_start = attack["t_s"]
+                count = attack["enemy_count"]
+                corridor_id = attack.get("corridor_id", "corridor-n")
+                class_label = attack.get("type", "fighter-type")
+                
+                corridor = INGRESS_CORRIDORS.get(corridor_id, INGRESS_CORRIDORS["corridor-n"])
+                
+                for i in range(count):
+                    track_id = f"trk-planned-{t_start}-{i}"
+                    # Simple track generation logic simplified from TrackFactory
+                    x = random.uniform(corridor["entry_box"]["x_min"], corridor["entry_box"]["x_max"])
+                    y = random.uniform(corridor["entry_box"]["y_min"], corridor["entry_box"]["y_max"])
+                    heading = random.uniform(*corridor["heading_range"])
+                    
+                    # Create TRACK_CREATED event
+                    event = {
+                        "t_s": t_start + random.uniform(0, 10),
+                        "event_type": "TRACK_CREATED",
+                        "data": {
+                            "track_id": track_id,
+                            "side": "hostile",
+                            "class_label": class_label,
+                            "confidence": 0.8,
+                            "x_km": round(x, 1),
+                            "y_km": round(y, 1),
+                            "heading_deg": round(heading, 1),
+                            "speed_class": "fast",
+                            "altitude_band": "high",
+                            "detected_by": ["sensor-boreal"],
+                            "notes": f"Planned attack element {i+1}/{count}. {attack.get('notes', '')}",
+                            "predicted_path": [
+                                {"t_s": t_start, "x_km": round(x, 1), "y_km": round(y, 1)}
+                            ]
+                        }
+                    }
+                    raw["events"].append(event)
+            # Sort events by time
+            raw["events"].sort(key=lambda e: e["t_s"])
+
         self._load_from_raw(scenario_id, raw)
 
     def _load_from_raw(self, scenario_id: str, raw: dict) -> None:
