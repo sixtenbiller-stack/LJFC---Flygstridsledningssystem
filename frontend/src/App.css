@@ -304,28 +304,6 @@
   min-height: 0;
   position: relative;
 }
-.bottom-bar.collapsed .tl-demo-strip {
-  display: none;
-}
-
-.timeline-size-controls {
-  position: absolute;
-  right: 8px;
-  top: 4px;
-  z-index: 6;
-  display: flex;
-  gap: 2px;
-}
-.timeline-size-controls button {
-  padding: 2px 6px;
-  font-size: 10px;
-  min-width: 22px;
-  opacity: 0.85;
-}
-.timeline-size-controls button.active {
-  border-color: var(--neon-green);
-  color: var(--neon-green);
-}
 
 /* Sidebar typography scale */
 .panel-rail {

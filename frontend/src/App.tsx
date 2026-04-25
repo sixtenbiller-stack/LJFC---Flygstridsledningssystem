@@ -595,13 +595,7 @@ export default function App() {
         </aside>
       </div>
 
-      <footer className={`bottom-bar ${timelineCollapsed ? 'collapsed' : ''}`}>
-        <div className="timeline-size-controls">
-          <button type="button" className={bottomMode === 'compact' ? 'active' : ''} onClick={() => { setBottomMode('compact'); setTimelineCollapsed(false); }}>S</button>
-          <button type="button" className={bottomMode === 'normal' ? 'active' : ''} onClick={() => { setBottomMode('normal'); setTimelineCollapsed(false); }}>M</button>
-          <button type="button" className={bottomMode === 'expanded' ? 'active' : ''} onClick={() => { setBottomMode('expanded'); setTimelineCollapsed(false); }}>L</button>
-          <button type="button" title="Collapse timeline" onClick={() => setTimelineCollapsed(c => !c)}>▾</button>
-        </div>
+      <footer className="bottom-bar">
         <Timeline
           currentTime={state.current_time_s}
           duration={session?.duration_s ?? 240}
