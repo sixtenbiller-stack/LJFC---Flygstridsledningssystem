@@ -1,12 +1,10 @@
-# NEON COMMAND
+# LJFC COMMAND
 
 **AI-First Air Battle Planning and Decision Support**
 
 *Repository: **LJFC — Flygstridsledningssystem** — [GitHub](https://github.com/sixtenbiller-stack/LJFC---Flygstridsledningssystem)*
 
-*Smart Stridsledning Hackathon — Saab × 2Hero × KTH*
-
-NEON COMMAND is a surveillance-led, map-centric, AI-first planning and decision-support prototype for air battle planning and air defence. A proactive **Unified Copilot** (Chief of Staff) continuously monitors the scenario and provides concise updates, while the operator retains full decision authority.
+LJFC COMMAND is a surveillance-led, map-centric, AI-first planning and decision-support prototype for air battle planning and air defence. A proactive **Unified Copilot** (Chief of Staff) continuously monitors the scenario and provides concise updates, while the operator retains full decision authority.
 
 ## Quick Start
 
@@ -103,7 +101,7 @@ The demo works fully offline in mock mode. All COA generation, explanation, simu
 
 The default scenario is **Boreal Passage — Two-Wave Pressure Test** (`scenario_alpha`):
 
-1. Open NEON COMMAND and view the tactical map
+1. Open LJFC COMMAND and view the tactical map
 2. Start scenario playback — hostile tracks appear
 3. **Chief of Staff** posts proactive threat assessments
 4. Threat alerts populate automatically

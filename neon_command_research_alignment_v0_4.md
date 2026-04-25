@@ -1,5 +1,5 @@
-# NEON COMMAND v0.4 — Research Alignment Memo
-## Review of Claude/Gemini research input vs current NEON COMMAND direction
+# LJFC COMMAND v0.4 — Research Alignment Memo
+## Review of Claude/Gemini research input vs current LJFC COMMAND direction
 
 Version: 0.4  
 Date: 2026-04-14

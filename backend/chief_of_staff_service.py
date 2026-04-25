@@ -14,7 +14,7 @@ COOLDOWN_S = 4.0
 THREAT_SCORE_THRESHOLD = 0.6
 READINESS_DROP_THRESHOLD = 0.15
 
-SYSTEM_INSTRUCTION = """You are the Chief of Staff AI for NEON COMMAND, a tactical air-defence planning system.
+SYSTEM_INSTRUCTION = """You are the Chief of Staff AI for LJFC COMMAND, a tactical air-defence planning system.
 You provide concise, direct operational updates to the human operator.
 Rules:
 - 1-3 short paragraphs maximum per update

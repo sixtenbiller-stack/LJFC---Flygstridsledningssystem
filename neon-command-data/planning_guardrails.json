@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "description": "Planning guardrails for NEON COMMAND COA generation"
+    "description": "Planning guardrails for LJFC COMMAND COA generation"
   },
   "default_max_commit_pct": 75,
   "reserve_policy_default": "preserve_qra_reserve",

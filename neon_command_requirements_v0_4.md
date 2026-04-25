@@ -1,5 +1,5 @@
-# NEON COMMAND v0.4 — Consolidated Requirement Specification
-## Smart Stridsledning Hackathon — Saab × 2Hero × KTH
+# LJFC COMMAND v0.4 — Consolidated Requirement Specification
+##  Hackathon — Saab × 2Hero × KTH
 ### AI-Assisted Air Battle Planning and Air Defence Decision Support
 Version: 0.4  
 Date: 2026-04-14  
@@ -9,7 +9,7 @@ Audience: hackathon team, Cursor/Codex/Claude Code/Gemini/other AI development t
 
 ## 1. Executive summary
 
-NEON COMMAND is a surveillance-led, map-centric, AI-assisted planning and decision-support prototype for air battle planning and air defence.
+LJFC COMMAND is a surveillance-led, map-centric, AI-assisted planning and decision-support prototype for air battle planning and air defence.
 
 The system helps an operator:
 - understand the current air picture,
@@ -31,7 +31,7 @@ It does not perform live fire-control, autonomous engagement, or combat executio
 
 The new research input is useful, but it does **not** change the core product direction.
 
-It mostly confirms that the current NEON COMMAND direction is the right one:
+It mostly confirms that the current LJFC COMMAND direction is the right one:
 - ontology-first state,
 - one visible Unified Copilot,
 - deterministic simulation adjacent to planning,
@@ -694,4 +694,4 @@ Any future sensor or effector interface should remain a placeholder contract or 
 
 ## 12. Final positioning line
 
-**NEON COMMAND turns uncertain surveillance data into ranked, simulation-backed, explainable air-defence plans — through one Unified Copilot, explicit reserve-aware planning logic, and a command-grade neon tactical interface built to impress Saab and the jury.**
+**LJFC COMMAND turns uncertain surveillance data into ranked, simulation-backed, explainable air-defence plans — through one Unified Copilot, explicit reserve-aware planning logic, and a command-grade neon tactical interface built to impress Saab and the jury.**

@@ -1,4 +1,4 @@
-# NEON COMMAND v0.4 — Execution Backlog
+# LJFC COMMAND v0.4 — Execution Backlog
 ## Cursor / Codex / Claude Code / Gemini / AI-Tool Build Plan
 Version: 0.4  
 Status: updated after review of the research memo and kick-off guidance
@@ -82,7 +82,7 @@ Create a clean repo that starts locally and supports parallel work.
 - `.env.example`
 
 ### AI task card
-> Objective: scaffold the NEON COMMAND repo for a local-first jury demo.  
+> Objective: scaffold the LJFC COMMAND repo for a local-first jury demo.  
 > Allowed files: workspace config, package manifests, starter folders, README, env example.  
 > Forbidden: business logic, UI feature implementation, simulation logic.  
 > Requirements: one command startup, mock mode documented, modular app/package layout.  

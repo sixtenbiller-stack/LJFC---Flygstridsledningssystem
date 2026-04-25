@@ -3,7 +3,7 @@
 VENV := backend/venv/bin
 
 dev: install
-	@echo "Starting NEON COMMAND..."
+	@echo "Starting LJFC COMMAND..."
 	@echo "  Backend:  http://192.168.68.59:8000"
 	@echo "  Frontend: http://192.168.68.59:3900"
 	@trap 'kill 0' EXIT; \

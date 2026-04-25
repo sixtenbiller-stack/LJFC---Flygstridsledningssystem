@@ -29,7 +29,7 @@ status() {
 }
 
 start() {
-    echo "Starting NEON COMMAND..."
+    echo "Starting LJFC COMMAND..."
 
     if [ -f "$BACKEND_PID_FILE" ] && kill -0 "$(cat "$BACKEND_PID_FILE")" 2>/dev/null; then
         echo "  Backend already running (pid $(cat "$BACKEND_PID_FILE"))"
@@ -52,7 +52,7 @@ start() {
 
     sleep 1
     echo ""
-    echo "NEON COMMAND is running:"
+    echo "LJFC COMMAND is running:"
     echo "  Backend:  http://192.168.68.59:8000"
     echo "  Frontend: http://192.168.68.59:3900"
     echo "  External: https://peace-keeper.app"
@@ -61,7 +61,7 @@ start() {
 }
 
 stop() {
-    echo "Stopping NEON COMMAND..."
+    echo "Stopping LJFC COMMAND..."
 
     if [ -f "$BACKEND_PID_FILE" ]; then
         local pid
@@ -119,7 +119,7 @@ case "${1:-}" in
     status)  status ;;
     logs)    logs "${2:-all}" ;;
     *)
-        echo "NEON COMMAND service manager"
+        echo "LJFC COMMAND service manager"
         echo ""
         echo "Usage: $0 {start|stop|restart|status|logs [backend|frontend|all]}"
         echo ""

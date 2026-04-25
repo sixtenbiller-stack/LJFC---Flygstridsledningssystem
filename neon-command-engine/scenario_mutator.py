@@ -1,5 +1,5 @@
 """
-NEON COMMAND — Runtime Scenario Mutator
+LJFC COMMAND — Runtime Scenario Mutator
 ========================================
 Provides dynamic mutation of scenario JSON files during system operation.
 
@@ -361,7 +361,7 @@ class ScenarioMutator:
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="NEON COMMAND Scenario Mutator")
+    parser = argparse.ArgumentParser(description="LJFC COMMAND Scenario Mutator")
     parser.add_argument("scenario", help="Path to scenario JSON file")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--inject-swarm", action="store_true",

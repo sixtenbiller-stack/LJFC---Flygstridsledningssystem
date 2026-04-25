@@ -1,5 +1,5 @@
 """
-Scenario Runtime — bridges generator/mutator into the NEON COMMAND backend.
+Scenario Runtime — bridges generator/mutator into the LJFC COMMAND backend.
 
 Provides:
   - generate_scenario(): create scenario from template + seed, save to generated/

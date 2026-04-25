@@ -1,4 +1,4 @@
-"""Scenario discovery and metadata for NEON COMMAND."""
+"""Scenario discovery and metadata for LJFC COMMAND."""
 from __future__ import annotations
 
 import json

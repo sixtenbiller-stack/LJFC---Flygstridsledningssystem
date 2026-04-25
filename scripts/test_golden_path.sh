@@ -2,7 +2,7 @@
 set -e
 
 BASE=${1:-http://localhost:8001}
-echo "=== NEON COMMAND — Golden Path Test ==="
+echo "=== LJFC COMMAND — Golden Path Test ==="
 echo "Backend: $BASE"
 echo ""
 

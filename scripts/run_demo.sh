@@ -2,7 +2,7 @@
 set -e
 cd "$(dirname "$0")/.."
 
-echo "=== NEON COMMAND — Starting Demo ==="
+echo "=== LJFC COMMAND — Starting Demo ==="
 
 echo "[1/2] Installing dependencies..."
 test -d backend/venv || python3 -m venv backend/venv

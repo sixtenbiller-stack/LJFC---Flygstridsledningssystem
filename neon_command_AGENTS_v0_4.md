@@ -1,7 +1,7 @@
-# AGENTS.md — NEON COMMAND v0.4
+# AGENTS.md — LJFC COMMAND v0.4
 
 ## Mission
-Build NEON COMMAND, a surveillance-led, AI-assisted air-defence planning and decision-support prototype for the Saab Smart Stridsledning hackathon.
+Build LJFC COMMAND, a surveillance-led, AI-assisted air-defence planning and decision-support prototype for the Saab  hackathon.
 
 ## Product boundary
 1. This is a planning, rehearsal, and simulation product.

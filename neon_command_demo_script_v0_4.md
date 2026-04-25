@@ -1,4 +1,4 @@
-# NEON COMMAND v0.4 — Demo Script
+# LJFC COMMAND v0.4 — Demo Script
 ## Target length: 5.5–6.5 minutes
 ## Canonical scenario: `scenario_alpha` / Two-Wave Pressure Test
 
@@ -6,7 +6,7 @@
 
 ## 1. Opening thesis (25–30s)
 
-“NEON COMMAND is a surveillance-led air-defence planning and decision-support system.  
+“LJFC COMMAND is a surveillance-led air-defence planning and decision-support system.  
 It helps an operator move from uncertain air picture to ranked, simulation-backed response options while preserving future readiness.  
 The operator stays in control. Unified Copilot helps them decide faster and better.”
 
@@ -168,7 +168,7 @@ Narration:
 ## 11. Close (20–30s)
 
 “This improves a mission-critical workflow: understanding the air picture, comparing options, validating them through simulation, and re-planning as the situation evolves.  
-That is why NEON COMMAND would help operators succeed much better, not just marginally better.”
+That is why LJFC COMMAND would help operators succeed much better, not just marginally better.”
 
 ---
 

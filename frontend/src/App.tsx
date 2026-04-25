@@ -50,6 +50,7 @@ export default function App() {
   const [scenarioOrigin, setScenarioOrigin] = useState<string>('builtin');
   const [session, setSession] = useState<ScenarioSession | null>(null);
   const [markers, setMarkers] = useState<TimelineMarker[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [layoutPreset, setLayoutPreset] = useState<LayoutPresetId>('balanced');
   const [leftPx, setLeftPx] = useState(320);
   const [rightPx, setRightPx] = useState(420);
@@ -438,7 +439,7 @@ export default function App() {
   if (!loaded || !state) {
     return (
       <div className="loading-screen">
-        <div className="loading-title">NEON COMMAND</div>
+        <div className="loading-title">LJFC COMMAND</div>
         <div className="loading-sub">Initializing tactical systems...</div>
       </div>
     );
@@ -448,45 +449,9 @@ export default function App() {
     <div
       className="app-layout"
       style={{
-        gridTemplateRows: `48px 1fr ${bottomH}px`,
+        gridTemplateRows: `1fr ${bottomH}px`,
       }}
     >
-      <header className="app-header">
-        <div className="header-left">
-          <span className="header-logo">◆</span>
-          <span className="header-title">NEON COMMAND</span>
-          <span className="header-sub">Smart Stridsledning</span>
-        </div>
-        <div className="header-center">
-          <span className="header-scenario">{state.scenario_name || 'No Scenario'}</span>
-          <span className={`header-mode-badge mode-${runtimeMode}`}>{runtimeMode.toUpperCase()}</span>
-          <span className={`header-origin-badge origin-${scenarioOrigin}`}>{scenarioOrigin.toUpperCase().replace('_', ' ')}</span>
-          {state.wave > 0 && (
-            <span className={`header-wave ${state.wave >= 2 ? 'wave-critical' : ''}`}>
-              WAVE {state.wave}
-            </span>
-          )}
-        </div>
-        <div className="header-right">
-          <div className="layout-presets" title="Layout presets">
-            {(Object.keys(LAYOUT_PRESETS) as LayoutPresetId[]).map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={`layout-preset-btn ${layoutPreset === id ? 'active' : ''}`}
-                onClick={() => applyPreset(id)}
-              >
-                {LAYOUT_PRESETS[id].label}
-              </button>
-            ))}
-            <button type="button" className="layout-reset-btn" onClick={() => applyPreset('balanced')}>
-              Reset layout
-            </button>
-          </div>
-          <span className="header-state-id">{state.source_state_id}</span>
-        </div>
-      </header>
-
       <div
         className="app-body"
         ref={bodyRef}
@@ -544,6 +509,70 @@ export default function App() {
         />
 
         <main className="center-map">
+          <div className="hamburger-menu">
+            <button
+              type="button"
+              className="hamburger-btn"
+              onClick={() => setMenuOpen(!menuOpen)}
+              title="Menu"
+            >
+              ☰
+            </button>
+            {menuOpen && (
+              <div className="hamburger-dropdown">
+                <div className="dropdown-section">
+                  <span className="dropdown-label">Tactical Info</span>
+                  <div className="dropdown-scenario-info">
+                    <span className="dropdown-scenario-name">{state.scenario_name || 'No Scenario'}</span>
+                    <div className="dropdown-badges">
+                      <span className={`header-mode-badge mode-${runtimeMode}`}>{runtimeMode.toUpperCase()}</span>
+                      <span className={`header-origin-badge origin-${scenarioOrigin}`}>{scenarioOrigin.toUpperCase().replace('_', ' ')}</span>
+                      {state.wave > 0 && (
+                        <span className={`header-wave ${state.wave >= 2 ? 'wave-critical' : ''}`}>
+                          WAVE {state.wave}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dropdown-section">
+                  <span className="dropdown-label">Layout Presets</span>
+                  <div className="layout-presets">
+                    {(Object.keys(LAYOUT_PRESETS) as LayoutPresetId[]).map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`layout-preset-btn ${layoutPreset === id ? 'active' : ''}`}
+                        onClick={() => {
+                          applyPreset(id);
+                          setMenuOpen(false);
+                        }}
+                      >
+                        {LAYOUT_PRESETS[id].label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="layout-reset-btn"
+                      onClick={() => {
+                        applyPreset('balanced');
+                        setMenuOpen(false);
+                      }}
+                    >
+                      Reset layout
+                    </button>
+                  </div>
+                </div>
+
+                <div className="dropdown-section">
+                  <span className="dropdown-label">System</span>
+                  <span className="header-state-id">{state.source_state_id}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <TacticalMap
             geography={geo}
             tracks={state.tracks}

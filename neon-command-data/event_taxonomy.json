@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "description": "Event type taxonomy for NEON COMMAND scenario engine"
+    "description": "Event type taxonomy for LJFC COMMAND scenario engine"
   },
   "event_types": [
     { "type": "SCENARIO_START", "category": "lifecycle", "description": "Scenario begins" },

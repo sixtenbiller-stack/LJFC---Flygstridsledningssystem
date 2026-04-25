@@ -5,7 +5,7 @@
 # Prerequisites:
 #   - DNS A records for @ and www point to this server's public IP
 #   - Ports 80 and 443 reachable (ufw: allow 'Nginx Full' or 80/tcp + 443/tcp)
-#   - NEON COMMAND frontend listening on 127.0.0.1:3900 (make start / make dev)
+#   - LJFC COMMAND frontend listening on 127.0.0.1:3900 (make start / make dev)
 
 set -euo pipefail
 

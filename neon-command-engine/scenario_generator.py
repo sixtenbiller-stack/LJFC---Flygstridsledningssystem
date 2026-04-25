@@ -1,5 +1,5 @@
 """
-NEON COMMAND — Scenario Generator Module
+LJFC COMMAND — Scenario Generator Module
 =========================================
 Produces randomized but tactically coherent air defence scenarios.
 
@@ -17,7 +17,7 @@ Usage:
     scenario = gen.generate(template="swarm_pressure")
     scenario.to_json("scenario_output.json")
 
-The output is a JSON file compatible with the NEON COMMAND scenario engine,
+The output is a JSON file compatible with the LJFC COMMAND scenario engine,
 extended with group-aware fields for the Threat Assessment Engine.
 """
 
@@ -915,7 +915,7 @@ class ScenarioGenerator:
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="NEON COMMAND Scenario Generator")
+    parser = argparse.ArgumentParser(description="LJFC COMMAND Scenario Generator")
     parser.add_argument("--template", default="swarm_pressure",
                         choices=list(SCENARIO_TEMPLATES.keys()) + ["random"],
                         help="Scenario template to use")

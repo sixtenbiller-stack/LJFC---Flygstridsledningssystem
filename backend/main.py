@@ -1,4 +1,4 @@
-"""NEON COMMAND — FastAPI backend with Gemini-first AI copilot."""
+"""LJFC COMMAND — FastAPI backend with Gemini-first AI copilot."""
 from __future__ import annotations
 
 import asyncio
@@ -97,7 +97,7 @@ async def _chief_evaluator_loop():
             logger.exception("Chief evaluator error")
 
 
-app = FastAPI(title="NEON COMMAND", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="LJFC COMMAND", version="0.5.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

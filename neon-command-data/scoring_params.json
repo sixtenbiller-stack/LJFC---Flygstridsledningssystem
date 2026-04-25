@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "description": "Threat scoring weights and parameters for NEON COMMAND"
+    "description": "Threat scoring weights and parameters for LJFC COMMAND"
   },
   "scoring_weights": {
     "heading_toward_defended_zone": 0.30,

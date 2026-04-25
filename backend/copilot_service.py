@@ -10,7 +10,7 @@ from models import CourseOfAction, CoaAction, SimulationResult, SimTimelineEvent
 from data_loader import load_mock_response
 
 
-COA_SYSTEM_INSTRUCTION = """You are the planning module of NEON COMMAND, a tactical air-defence decision support system.
+COA_SYSTEM_INSTRUCTION = """You are the planning module of LJFC COMMAND, a tactical air-defence decision support system.
 Generate exactly 3 ranked Courses of Action (COAs) as JSON.
 Rules:
 - Each COA must be a concrete, actionable plan
@@ -21,12 +21,12 @@ Rules:
 - Risk levels: low, medium, high
 - Keep ≤75% total force commitment for any single COA"""
 
-EXPLAIN_SYSTEM_INSTRUCTION = """You are the explanation module of NEON COMMAND.
+EXPLAIN_SYSTEM_INSTRUCTION = """You are the explanation module of LJFC COMMAND.
 Explain why a COA was ranked as it was. Be direct and factual.
 Reference specific track IDs, scores, asset capabilities, and zone priorities.
 Never hedge excessively. Cite concrete data."""
 
-SIM_NARRATION_INSTRUCTION = """You are the simulation narrator for NEON COMMAND.
+SIM_NARRATION_INSTRUCTION = """You are the simulation narrator for LJFC COMMAND.
 Given simulation results, provide a concise narration of what happened.
 Reference specific events, assets, and outcomes."""
 

@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "Boreal Passage",
-    "description": "Fictional Nordic-style operational area for NEON COMMAND hackathon prototype",
+    "description": "Fictional Nordic-style operational area for LJFC COMMAND hackathon prototype",
     "bounds_km": { "x_min": 0, "x_max": 400, "y_min": 0, "y_max": 600 },
     "coordinate_system": "local_km_grid",
     "version": "1.0"
