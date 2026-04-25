@@ -13,7 +13,7 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import gemini_provider
+import ai_provider
 from models import (
     ScenarioLoadRequest, ScenarioControlRequest, CoaRequest, ExplainRequest,
     SimulateRequest, ApproveRequest, ThreatScoreBreakdown,
@@ -64,8 +64,8 @@ _source_parent_scenario: str = ""
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    mode = gemini_provider.init_provider()
-    logger.info("AI provider mode: %s (model: %s)", mode, gemini_provider.get_model())
+    mode = ai_provider.init_provider()
+    logger.info("AI provider mode: %s (model: %s)", mode, ai_provider.get_model())
 
     ticker = asyncio.create_task(engine.start_ticker(interval=0.1))
     evaluator = asyncio.create_task(_chief_evaluator_loop())
@@ -994,8 +994,8 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
 @app.get("/copilot/status")
 def copilot_status() -> dict[str, Any]:
     return CopilotStatus(
-        provider=gemini_provider.get_mode(),
-        model=gemini_provider.get_model(),
+        provider=ai_provider.get_mode(),
+        model=ai_provider.get_model(),
         scenario_id=engine._scenario_id,
         feed_count=len(chief.feed),
         session_commands=router.session_commands,

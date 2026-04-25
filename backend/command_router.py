@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Any, Callable
 
-import gemini_provider
+import ai_provider
 from models import CopilotResponse
 
 
@@ -247,7 +247,7 @@ class CommandRouter:
             f"Current state data:\n{_fmt(data)}\n\n"
             "Provide a concise situation summary for the operator."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = self._format_summary_fallback(data)
 
@@ -270,7 +270,7 @@ class CommandRouter:
             f"Current threat assessment:\n{_fmt(threats)}\n\n"
             "Summarize the top threats for the operator. Reference track IDs, scores, zones, and ETAs."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             lines = []
             for t in threats[:5]:
@@ -401,7 +401,7 @@ class CommandRouter:
             f"Recent events:\n{_fmt(recent)}\n\n"
             "Summarize what changed recently for the operator."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
         if not msg:
             if recent:
                 lines = [f"• T+{e.get('t_s', 0):.0f}s: {e.get('summary', e.get('type', '?'))}" for e in recent]
@@ -430,7 +430,7 @@ class CommandRouter:
             f"Current COAs:\n{_fmt(coas[:3])}\n\n"
             "Recommend the best option and explain why in 2-3 sentences."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
         if not msg:
             title = top.get("title", "Option A") if isinstance(top, dict) else "Option A"
             msg = f"Recommended: {title}. It offers the best balance of protection and readiness preservation."
@@ -466,7 +466,7 @@ class CommandRouter:
             "Cover: situation, threat picture, current plan status, readiness, and recommended next steps. "
             "Keep it to 3-5 paragraphs."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=600)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=600)
         if not msg:
             msg = self._format_summary_fallback(summary)
             if coas:
@@ -506,7 +506,7 @@ class CommandRouter:
             "Answer the operator's question based on the current tactical situation. "
             "Be concise and direct."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = (
                 "I can help with tactical questions. Try commands like /summary, /top-threats, "
@@ -549,7 +549,7 @@ class CommandRouter:
             "Summarize this threat group for the operator: what it is, why the system classified it this way, "
             "what is most at risk, urgency, confidence, and recommended lane."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = g.get("short_narration", "No narration available.")
             if g.get("rationale"):
@@ -572,7 +572,7 @@ class CommandRouter:
             "Answer why this group was classified this way. Reference coordination score, member tracks, "
             "heading alignment, timing, and uncertainty flags."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             ev = g.get("evidence", [])
             lines = [f"• {e.get('factor', '?')}: {e.get('value', 0)} — {e.get('detail', '')}" for e in ev]
@@ -623,7 +623,7 @@ class CommandRouter:
             f"Top response option:\n{_fmt(top)}\n\n"
             "Explain why this is the recommended response. Reference effectiveness, cost, authority, and trade-offs."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             rationale = top.get("rationale", [])
             msg = f"Recommended: {top.get('title', '?')}\n" + "\n".join(f"• {r}" for r in rationale) if rationale else f"Recommended: {top.get('title', '?')}"
@@ -643,7 +643,7 @@ class CommandRouter:
             f"Option A:\n{_fmt(a)}\n\nOption B:\n{_fmt(b)}\n\n"
             "Compare these two response options. Highlight key trade-offs in effectiveness, cost, reversibility, and authority."
         )
-        msg = gemini_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = (f"#{a.get('rank')}: {a.get('title')} — {a.get('expected_effectiveness', 0):.0%} effective, "
                    f"{a.get('readiness_cost_pct', 0):.0f}% cost, {a.get('reversibility', '?')} reversibility\n"

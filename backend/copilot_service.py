@@ -5,7 +5,7 @@ import json
 import os
 from typing import Any
 
-import gemini_provider
+import ai_provider
 from models import CourseOfAction, CoaAction, SimulationResult, SimTimelineEvent
 from data_loader import load_mock_response
 
@@ -41,7 +41,7 @@ class CopilotService:
         source_state_id: str,
         state_context: dict[str, Any] | None = None,
     ) -> list[CourseOfAction]:
-        if gemini_provider.is_available() and state_context:
+        if ai_provider.is_available() and state_context:
             result = self._gemini_generate_coas(wave, source_state_id, state_context)
             if result:
                 return result
@@ -56,7 +56,7 @@ class CopilotService:
         coa_data: dict[str, Any] | None = None,
         state_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        if gemini_provider.is_available() and coa_data:
+        if ai_provider.is_available() and coa_data:
             result = self._gemini_explain(coa_id, question, source_state_id, coa_data, state_context)
             if result:
                 return result
@@ -84,8 +84,8 @@ class CopilotService:
     ) -> SimulationResult:
         result = self._mock_simulate(coa_id, seed, source_state_id, wave)
 
-        if gemini_provider.is_available() and result.narration:
-            enhanced = gemini_provider.generate(
+        if ai_provider.is_available() and result.narration:
+            enhanced = ai_provider.generate(
                 prompt=(
                     f"Simulation results for {coa_id}:\n"
                     f"Outcome score: {result.outcome_score:.0%}\n"
@@ -121,7 +121,7 @@ class CopilotService:
             "risk_level (low/medium/high), assumptions (array of strings), rationale"
         )
 
-        data = gemini_provider.generate_json(
+        data = ai_provider.generate_json(
             prompt=prompt,
             system_instruction=COA_SYSTEM_INSTRUCTION,
             max_tokens=3000,
@@ -184,7 +184,7 @@ class CopilotService:
             "trade_off_summary, uncertainty_notes [strings], recommendation_confidence)"
         )
 
-        data = gemini_provider.generate_json(
+        data = ai_provider.generate_json(
             prompt=prompt,
             system_instruction=EXPLAIN_SYSTEM_INSTRUCTION,
             max_tokens=2000,

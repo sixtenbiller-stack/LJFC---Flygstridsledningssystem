@@ -1,4 +1,4 @@
-"""Gemini AI provider with mock fallback — never logs secrets."""
+"""AI provider — Gemini (internet) and LM Studio (local) support."""
 from __future__ import annotations
 
 import json
@@ -8,14 +8,15 @@ import time
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger("neon.gemini")
+logger = logging.getLogger("neon.ai_provider")
 
 _ACCEPTED_KEY_NAMES = ["GEMINI_API_KEY", "GOOGLE_AI_STUDIO_KEY", "GOOGLE_API_KEY"]
 _ENV_FILES = [".env", ".env.local", ".env.development"]
 
 _gemini_client = None
+_lmstudio_base_url: str | None = None
 _provider_mode: str = "mock"
-_model_name: str = "gemini-2.5-flash"
+_model_name: str = "gemini-2.0-flash"
 
 
 def _find_api_key() -> str | None:
@@ -45,9 +46,19 @@ def _find_api_key() -> str | None:
 
 
 def init_provider() -> str:
-    """Initialize the AI provider. Returns the active mode: 'gemini' or 'mock'."""
-    global _gemini_client, _provider_mode, _model_name
+    """Initialize the AI provider. Supports 'lmstudio', 'gemini' or 'mock'."""
+    global _gemini_client, _provider_mode, _model_name, _lmstudio_base_url
 
+    # Check for LM Studio first
+    lm_url = os.environ.get("LMSTUDIO_BASE_URL")
+    if lm_url:
+        _provider_mode = "lmstudio"
+        _lmstudio_base_url = lm_url.rstrip("/")
+        _model_name = os.environ.get("LMSTUDIO_MODEL", "local-model")
+        logger.info("LM Studio provider initialized at %s with model %s", _lmstudio_base_url, _model_name)
+        return _provider_mode
+
+    # Fallback to Gemini
     model_override = os.environ.get("GEMINI_MODEL")
     if model_override:
         _model_name = model_override
@@ -55,8 +66,7 @@ def init_provider() -> str:
     api_key = _find_api_key()
     if not api_key:
         logger.warning(
-            "No Gemini API key found. Checked env vars: %s and files: %s. Running in mock mode.",
-            _ACCEPTED_KEY_NAMES, _ENV_FILES,
+            "No Gemini API key found and LMSTUDIO_BASE_URL not set. Running in mock mode."
         )
         _provider_mode = "mock"
         return _provider_mode
@@ -88,10 +98,26 @@ def generate(
     max_tokens: int = 1024,
     temperature: float = 0.3,
 ) -> str | None:
-    """Send a prompt to Gemini and return the text response. Returns None on failure."""
-    if _provider_mode != "gemini" or _gemini_client is None:
+    """Send a prompt to the active provider and return the text response."""
+    if _provider_mode == "mock":
         return None
 
+    if _provider_mode == "lmstudio":
+        return _generate_lmstudio(prompt, system_instruction, json_mode, max_tokens, temperature)
+
+    if _provider_mode == "gemini" and _gemini_client:
+        return _generate_gemini(prompt, system_instruction, json_mode, max_tokens, temperature)
+
+    return None
+
+
+def _generate_gemini(
+    prompt: str,
+    system_instruction: str | None = None,
+    json_mode: bool = False,
+    max_tokens: int = 1024,
+    temperature: float = 0.3,
+) -> str | None:
     try:
         from google.genai import types
 
@@ -114,13 +140,46 @@ def generate(
         return None
 
 
+def _generate_lmstudio(
+    prompt: str,
+    system_instruction: str | None = None,
+    json_mode: bool = False,
+    max_tokens: int = 1024,
+    temperature: float = 0.3,
+) -> str | None:
+    import httpx
+    
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "model": _model_name,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+
+    try:
+        resp = httpx.post(f"{_lmstudio_base_url}/chat/completions", json=payload, timeout=60.0)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"]
+    except Exception:
+        logger.exception("LM Studio generation failed")
+        return None
+
+
 def generate_json(
     prompt: str,
     system_instruction: str | None = None,
     max_tokens: int = 2048,
     temperature: float = 0.2,
 ) -> dict[str, Any] | None:
-    """Generate and parse JSON from Gemini. Returns None on failure."""
+    """Generate and parse JSON from the active provider. Returns None on failure."""
     text = generate(
         prompt=prompt,
         system_instruction=system_instruction,
@@ -137,16 +196,21 @@ def generate_json(
         cleaned = text.strip()
         if cleaned.startswith("```"):
             lines = cleaned.split("\n")
-            lines = lines[1:]
+            if lines[0].startswith("```"):
+                lines = lines[1:]
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
             cleaned = "\n".join(lines)
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
-            logger.warning("Failed to parse Gemini JSON response after repair attempt")
+            logger.warning("Failed to parse JSON response after repair attempt")
             return None
 
 
 def is_available() -> bool:
-    return _provider_mode == "gemini" and _gemini_client is not None
+    if _provider_mode == "mock":
+        return False
+    if _provider_mode == "lmstudio":
+        return _lmstudio_base_url is not None
+    return _gemini_client is not None

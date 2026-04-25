@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-import gemini_provider
+import ai_provider
 from models import FeedItem, ThreatScoreBreakdown, ThreatGroup
 
 
@@ -242,7 +242,7 @@ class ChiefOfStaffService:
     def _generate_wave_update(
         self, wave: int, tracks: list[dict], assets: list[dict], scores: list[ThreatScoreBreakdown],
     ) -> str:
-        result = gemini_provider.generate(
+        result = ai_provider.generate(
             prompt=self._build_context_prompt(
                 f"Second wave (wave {wave}) has been detected with new inbound tracks. "
                 f"Total hostile tracks: {sum(1 for t in tracks if t.get('side') == 'hostile')}. "
@@ -278,7 +278,7 @@ class ChiefOfStaffService:
                 lines.append(f"{tid}: scoring pending")
 
         context = "; ".join(lines)
-        result = gemini_provider.generate(
+        result = ai_provider.generate(
             prompt=self._build_context_prompt(
                 f"New tracks detected: {context}. "
                 "Provide a concise assessment of these new contacts."
@@ -293,7 +293,7 @@ class ChiefOfStaffService:
 
     def _generate_threat_escalation(self, score: ThreatScoreBreakdown, tracks: list[dict]) -> str:
         track_data = next((t for t in tracks if t.get("track_id") == score.track_id), {})
-        result = gemini_provider.generate(
+        result = ai_provider.generate(
             prompt=self._build_context_prompt(
                 f"Track {score.track_id} has been assessed as {score.priority_band} priority "
                 f"with threat score {score.total_score:.0%}. "
@@ -321,7 +321,7 @@ class ChiefOfStaffService:
     def _generate_top_threat_change(
         self, new_top: ThreatScoreBreakdown, old_id: str, scores: list[ThreatScoreBreakdown],
     ) -> str:
-        result = gemini_provider.generate(
+        result = ai_provider.generate(
             prompt=self._build_context_prompt(
                 f"The top-priority threat has changed from {old_id} to {new_top.track_id} "
                 f"(score {new_top.total_score:.0%}, band {new_top.priority_band}). "
