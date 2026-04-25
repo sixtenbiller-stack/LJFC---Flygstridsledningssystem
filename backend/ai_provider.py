@@ -194,6 +194,14 @@ def _clean_reasoning(text: str | None) -> str | None:
     elif "<channel|>" in text:
         # User's example has "<channel|>"
         text = text.split("<channel|>")[-1]
+    elif "<|thought|>" in text:
+        text = text.split("<|thought|>")[-1]
+    elif "<|thinking|>" in text:
+        text = text.split("<|thinking|>")[-1]
+    elif "Response:" in text:
+        text = text.split("Response:")[-1]
+    elif "Conclusion:" in text:
+        text = text.split("Conclusion:")[-1]
         
     # Remove <thought>...</thought> or <thinking>...</thinking> blocks
     text = re.sub(r"<(thought|thinking)>.*?</\1>", "", text, flags=re.DOTALL | re.IGNORECASE)
