@@ -74,7 +74,7 @@ export function MapToolbar({
               <div className="dropdown-section">
                 <span className="dropdown-label">Layout Presets</span>
                 <div className="layout-presets">
-                  {['balanced', 'combat', 'intelligence'].map((id) => (
+                  {(['balanced', 'copilot-focus', 'threat-focus', 'map-focus', 'briefing'] as const).map((id) => (
                     <button
                       key={id}
                       type="button"
@@ -84,7 +84,7 @@ export function MapToolbar({
                         setMenuOpen(false);
                       }}
                     >
-                      {id.charAt(0).toUpperCase() + id.slice(1)}
+                      {id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                     </button>
                   ))}
                   <button
