@@ -480,6 +480,12 @@ function FeedView({
         );
       })}
 
+      {commandResponse && (
+        <div className="feed-item command-response role-copilot">
+          <div className="feed-body">{commandResponse.message}</div>
+        </div>
+      )}
+
       <div ref={feedEndRef} />
     </div>
   );
