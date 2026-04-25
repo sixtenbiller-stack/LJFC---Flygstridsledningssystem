@@ -29,7 +29,7 @@ from chief_of_staff_service import ChiefOfStaffService
 from command_router import CommandRouter
 from threat_group_engine import ThreatGroupEngine
 from response_ranking_engine import ResponseRankingEngine
-from data_loader import load_planning_guardrails
+from data_loader import load_planning_guardrails, load_resource_catalogue
 from scenario_registry import discover as discover_scenarios, load_scenario_raw
 from scenario_runtime import generate_scenario, LiveSession, AVAILABLE_TEMPLATES
 
@@ -108,6 +108,11 @@ app.add_middleware(
 
 
 # ── State endpoints ──
+
+
+@app.get("/resources")
+def get_resources_endpoint() -> dict[str, Any]:
+    return load_resource_catalogue()
 
 @app.get("/state")
 def get_state(include_geo: bool = False) -> dict[str, Any]:
