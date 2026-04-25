@@ -172,10 +172,31 @@ def _generate_lmstudio(
         resp = httpx.post(f"{_lmstudio_base_url}/chat/completions", json=payload, timeout=60.0)
         resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        content = data["choices"][0]["message"]["content"]
+        return _clean_reasoning(content)
     except Exception:
         logger.exception("LM Studio generation failed")
         return None
+
+
+def _clean_reasoning(text: str | None) -> str | None:
+    """Remove common chain-of-thought/thinking tags from model output."""
+    if not text:
+        return text
+        
+    import re
+    # Remove <thought>...</thought> or <thinking>...</thinking> blocks
+    text = re.sub(r"<(thought|thinking)>.*?</\1>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Remove markers like <|channel>thought and everything following if it doesn't close (common in truncated logs)
+    # or just remove the line if it's a marker.
+    text = re.sub(r"<\|channel\|?>thought.*?\n", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"Thinking Process:.*?\n", "", text, flags=re.IGNORECASE)
+    
+    # Remove tags that might not be closed
+    text = re.sub(r"<(thought|thinking)>", "", text, flags=re.IGNORECASE)
+    
+    return text.strip()
 
 
 def generate_json(

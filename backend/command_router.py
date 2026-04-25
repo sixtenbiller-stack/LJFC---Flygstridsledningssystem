@@ -25,7 +25,8 @@ Rules:
 - Be concise and direct — 1-3 paragraphs max
 - Reference specific IDs (tracks, assets, zones)
 - Never issue orders — recommend and inform only
-- Ground all answers in the provided state data"""
+- Ground all answers in the provided state data
+- CRITICAL: Do NOT show your thinking process. Output ONLY the response."""
 
 SLASH_COMMANDS = {
     "/summary": "summary",

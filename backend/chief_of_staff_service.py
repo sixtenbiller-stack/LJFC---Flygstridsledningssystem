@@ -249,7 +249,7 @@ class ChiefOfStaffService:
                 f"SITUATION: Second wave (wave {wave}) detected. "
                 "Provide a concise Chief of Staff update and structured tactical decisions if needed."
             ),
-            system_instruction=SYSTEM_INSTRUCTION,
+            system_instruction=SYSTEM_INSTRUCTION + "\n\nCRITICAL: Do NOT show your thinking process. Output ONLY the tactical response.",
             max_tokens=300,
         )
         if result:
@@ -273,7 +273,7 @@ class ChiefOfStaffService:
                 f"SITUATION: New tracks detected: {sorted(new_ids)}. "
                 "Provide a concise assessment of these new contacts and prioritize them."
             ),
-            system_instruction=SYSTEM_INSTRUCTION,
+            system_instruction=SYSTEM_INSTRUCTION + "\n\nCRITICAL: Do NOT show your thinking process. Output ONLY the tactical response.",
             max_tokens=200,
         )
         if result:
@@ -289,7 +289,7 @@ class ChiefOfStaffService:
                 f"SITUATION: Track {score.track_id} priority escalated to {score.priority_band.upper()}. "
                 "Explain why this track is now a priority."
             ),
-            system_instruction=SYSTEM_INSTRUCTION,
+            system_instruction=SYSTEM_INSTRUCTION + "\n\nCRITICAL: Do NOT show your thinking process. Output ONLY the tactical response.",
             max_tokens=200,
         )
         if result:
@@ -312,7 +312,7 @@ class ChiefOfStaffService:
                 f"SITUATION: Top threat changed from {old_id} to {new_top.track_id}. "
                 "Briefly explain the significance of this priority shift."
             ),
-            system_instruction=SYSTEM_INSTRUCTION,
+            system_instruction=SYSTEM_INSTRUCTION + "\n\nCRITICAL: Do NOT show your thinking process. Output ONLY the tactical response.",
             max_tokens=200,
         )
         if result:
