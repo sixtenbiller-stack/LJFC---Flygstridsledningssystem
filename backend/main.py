@@ -868,7 +868,9 @@ def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
     state = engine.get_state()
     state_dict = state.model_dump()
     state_dict["threat_scores"] = [s.model_dump() for s in _current_scores]
-
+    if engine.geography:
+        state_dict["zones"] = [z.model_dump() for z in engine.geography.defended_zones]
+    
     def _tool_get_state_summary() -> dict[str, Any]:
         return {
             "wave": state.wave,

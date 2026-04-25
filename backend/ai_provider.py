@@ -53,7 +53,12 @@ def init_provider() -> str:
     lm_url = os.environ.get("LMSTUDIO_BASE_URL")
     if lm_url:
         _provider_mode = "lmstudio"
-        _lmstudio_base_url = lm_url.rstrip("/")
+        base_url = lm_url.rstrip("/")
+        # Ensure base_url includes /v1 for OpenAI compatibility if not present
+        if not base_url.endswith("/v1"):
+            logger.info("Appending /v1 to LMSTUDIO_BASE_URL for OpenAI compatibility")
+            base_url += "/v1"
+        _lmstudio_base_url = base_url
         _model_name = os.environ.get("LMSTUDIO_MODEL", "local-model")
         logger.info("LM Studio provider initialized at %s with model %s", _lmstudio_base_url, _model_name)
         return _provider_mode

@@ -9,12 +9,23 @@ from models import CopilotResponse
 
 
 SYSTEM_INSTRUCTION = """You are the Unified Copilot for LJFC COMMAND. You answer operator questions about the current tactical situation.
+
+[TACTICAL CONTEXT SCHEMA]
+The provided state contains:
+- tracks: {id, side, class, pos[x,y], speed, alt, threat_score, eta_s}
+- assets: {id, type, status, readiness, pos[x,y], munitions}
+- zones: {id, priority, location}
+
+[DECISION OUTPUT SCHEMA]
+If recommending tactical actions, prioritize concise text but ALWAYS include a structured decision block in the response 'data' field.
+A decision should contain:
+{"action": "INTERCEPT|MONITOR|REDEPLOY", "actor_id": "asset_id", "target_ids": ["track_id"], "priority": "high|medium|low", "rationale": "why"}
+
 Rules:
 - Be concise and direct — 1-3 paragraphs max
-- Reference specific track IDs, asset IDs, zone names, scores, and ETAs
+- Reference specific IDs (tracks, assets, zones)
 - Never issue orders — recommend and inform only
-- Ground all answers in the provided state data
-- If asked about a topic not in the data, say so clearly"""
+- Ground all answers in the provided state data"""
 
 SLASH_COMMANDS = {
     "/summary": "summary",
@@ -236,29 +247,79 @@ class CommandRouter:
 
         return "freeform", []
 
+    def _build_tactical_context_str(self, state: dict) -> str:
+        """Create a compact, stable tactical context for the LLM prompt."""
+        import json
+        tracks = state.get("tracks", [])
+        assets = state.get("assets", [])
+        threat_map = {s.get("track_id"): s for s in state.get("threat_scores", [])}
+        
+        ctx = {
+            "tracks": [],
+            "assets": [],
+            "zones": state.get("zones", [])
+        }
+        
+        for t in tracks:
+            tid = t.get("track_id")
+            sc = threat_map.get(tid, {})
+            ctx["tracks"].append({
+                "id": tid,
+                "side": t.get("side"),
+                "class": t.get("class_label"),
+                "pos": [t.get("x_km"), t.get("y_km")],
+                "speed": t.get("speed_class"),
+                "alt": t.get("altitude_band"),
+                "threat_score": sc.get("total_score", 0),
+                "eta_s": sc.get("eta_s")
+            })
+            
+        for a in assets:
+            ctx["assets"].append({
+                "id": a.get("asset_id"),
+                "type": a.get("asset_type"),
+                "status": a.get("status"),
+                "readiness": a.get("readiness"),
+                "pos": [a.get("current_location", {}).get("x", 0), a.get("current_location", {}).get("y", 0)],
+                "munitions": a.get("munitions")
+            })
+            
+        return json.dumps(ctx, indent=None)
+
     def _handle_summary(self, state: dict, tools: dict, sid: str) -> CopilotResponse:
         summary_fn = tools.get("get_state_summary")
-        if summary_fn:
-            data = summary_fn()
-        else:
-            data = self._build_basic_summary(state)
+        data = summary_fn() if summary_fn else self._build_basic_summary(state)
+        tactical_ctx = self._build_tactical_context_str(state)
 
         prompt = (
-            f"Current state data:\n{_fmt(data)}\n\n"
-            "Provide a concise situation summary for the operator."
+            f"Tactical context: {tactical_ctx}\n"
+            f"Current state data: {json.dumps(data)}\n\n"
+            "Provide a concise situation summary and recommend structured tactical decisions if applicable."
         )
         msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
             msg = self._format_summary_fallback(data)
 
+        extra_data = {"context": data}
+        if msg and "{" in msg and "}" in msg:
+            try:
+                import json
+                start = msg.find("{")
+                end = msg.rfind("}") + 1
+                parsed = json.loads(msg[start:end])
+                if "decisions" in parsed:
+                    extra_data["decisions"] = parsed["decisions"]
+            except: pass
+
         return CopilotResponse(
-            type="text", message=msg, data=data, source_state_id=sid,
+            type="text", message=msg, data=extra_data, source_state_id=sid,
             suggested_actions=self._suggest_from_state(state),
         )
 
     def _handle_top_threats(self, state: dict, tools: dict, sid: str) -> CopilotResponse:
         get_threats = tools.get("get_top_threats")
         threats = get_threats(5) if get_threats else []
+        tactical_ctx = self._build_tactical_context_str(state)
 
         if not threats:
             return CopilotResponse(
@@ -267,8 +328,9 @@ class CommandRouter:
             )
 
         prompt = (
-            f"Current threat assessment:\n{_fmt(threats)}\n\n"
-            "Summarize the top threats for the operator. Reference track IDs, scores, zones, and ETAs."
+            f"Tactical context: {tactical_ctx}\n"
+            f"Current threat assessment: {json.dumps(threats)}\n\n"
+            "Summarize the top threats and recommend structured tactical decisions if applicable."
         )
         msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=400)
         if not msg:
@@ -282,8 +344,19 @@ class CommandRouter:
                     )
             msg = "Top threats:\n" + "\n".join(lines) if lines else "No detailed threat data."
 
+        extra_data = {"threats": threats}
+        if msg and "{" in msg and "}" in msg:
+            try:
+                import json
+                start = msg.find("{")
+                end = msg.rfind("}") + 1
+                parsed = json.loads(msg[start:end])
+                if "decisions" in parsed:
+                    extra_data["decisions"] = parsed["decisions"]
+            except: pass
+
         return CopilotResponse(
-            type="text", message=msg, data={"threats": threats}, source_state_id=sid,
+            type="text", message=msg, data=extra_data, source_state_id=sid,
             suggested_actions=["Generate COAs"],
         )
 

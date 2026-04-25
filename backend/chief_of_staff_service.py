@@ -242,14 +242,12 @@ class ChiefOfStaffService:
     def _generate_wave_update(
         self, wave: int, tracks: list[dict], assets: list[dict], scores: list[ThreatScoreBreakdown],
     ) -> str:
+        ctx = self._build_proactive_context(tracks, assets, scores)
         result = ai_provider.generate(
-            prompt=self._build_context_prompt(
-                f"Second wave (wave {wave}) has been detected with new inbound tracks. "
-                f"Total hostile tracks: {sum(1 for t in tracks if t.get('side') == 'hostile')}. "
-                f"Readiness pressure is increasing because wave-1 assignments may have reduced interceptor availability. "
-                f"Asset readiness average: {sum(a.get('readiness', 1.0) for a in assets) / max(len(assets), 1):.0%}. "
-                f"Recovering assets: {sum(1 for a in assets if a.get('status') == 'recovering')}. "
-                "Provide a concise Chief of Staff update about this wave detection."
+            prompt=(
+                f"Tactical context: {ctx}\n\n"
+                f"SITUATION: Second wave (wave {wave}) detected. "
+                "Provide a concise Chief of Staff update and structured tactical decisions if needed."
             ),
             system_instruction=SYSTEM_INSTRUCTION,
             max_tokens=300,
@@ -268,20 +266,12 @@ class ChiefOfStaffService:
     def _generate_new_track_update(
         self, new_ids: set[str], tracks: list[dict], scores: list[ThreatScoreBreakdown],
     ) -> str:
-        score_map = {s.track_id: s for s in scores}
-        lines = []
-        for tid in sorted(new_ids):
-            s = score_map.get(tid)
-            if s:
-                lines.append(f"{tid}: score {s.total_score:.0%} ({s.priority_band}), nearest zone {s.nearest_zone_id}")
-            else:
-                lines.append(f"{tid}: scoring pending")
-
-        context = "; ".join(lines)
+        ctx = self._build_proactive_context(tracks, [], scores)
         result = ai_provider.generate(
-            prompt=self._build_context_prompt(
-                f"New tracks detected: {context}. "
-                "Provide a concise assessment of these new contacts."
+            prompt=(
+                f"Tactical context: {ctx}\n\n"
+                f"SITUATION: New tracks detected: {sorted(new_ids)}. "
+                "Provide a concise assessment of these new contacts and prioritize them."
             ),
             system_instruction=SYSTEM_INSTRUCTION,
             max_tokens=200,
@@ -289,21 +279,15 @@ class ChiefOfStaffService:
         if result:
             return result
 
-        return f"New contacts: {context}. Assess threat and consider generating response plans."
+        return f"New contacts: {sorted(new_ids)}. Assess threat and consider generating response plans."
 
     def _generate_threat_escalation(self, score: ThreatScoreBreakdown, tracks: list[dict]) -> str:
-        track_data = next((t for t in tracks if t.get("track_id") == score.track_id), {})
+        ctx = self._build_proactive_context(tracks, [], [score])
         result = ai_provider.generate(
-            prompt=self._build_context_prompt(
-                f"Track {score.track_id} has been assessed as {score.priority_band} priority "
-                f"with threat score {score.total_score:.0%}. "
-                f"Class: {track_data.get('class_label', 'unknown')}, "
-                f"heading: {track_data.get('heading_deg', 0):.0f}°, "
-                f"speed: {track_data.get('speed_class', 'unknown')}, "
-                f"nearest zone: {score.nearest_zone_id}, "
-                f"ETA: {score.eta_s:.0f}s. "
-                f"Key factors: {', '.join(f'{k}={v:.2f}' for k, v in score.factors.items() if v > 0.3)}. "
-                "Explain why this track is significant."
+            prompt=(
+                f"Tactical context: {ctx}\n\n"
+                f"SITUATION: Track {score.track_id} priority escalated to {score.priority_band.upper()}. "
+                "Explain why this track is now a priority."
             ),
             system_instruction=SYSTEM_INSTRUCTION,
             max_tokens=200,
@@ -321,12 +305,12 @@ class ChiefOfStaffService:
     def _generate_top_threat_change(
         self, new_top: ThreatScoreBreakdown, old_id: str, scores: list[ThreatScoreBreakdown],
     ) -> str:
+        ctx = self._build_proactive_context([], [], scores)
         result = ai_provider.generate(
-            prompt=self._build_context_prompt(
-                f"The top-priority threat has changed from {old_id} to {new_top.track_id} "
-                f"(score {new_top.total_score:.0%}, band {new_top.priority_band}). "
-                f"Nearest zone: {new_top.nearest_zone_id}, ETA: {new_top.eta_s}s. "
-                "Explain why this is significant for the operator."
+            prompt=(
+                f"Tactical context: {ctx}\n\n"
+                f"SITUATION: Top threat changed from {old_id} to {new_top.track_id}. "
+                "Briefly explain the significance of this priority shift."
             ),
             system_instruction=SYSTEM_INSTRUCTION,
             max_tokens=200,
@@ -346,6 +330,24 @@ class ChiefOfStaffService:
             f"Recovering assets: {', '.join(recovering[:4])}. "
             f"Current planning options may need revision."
         )
+
+    def _build_proactive_context(self, tracks: list[dict], assets: list[dict], scores: list[ThreatScoreBreakdown]) -> str:
+        import json
+        threat_map = {s.track_id: s for s in scores}
+        ctx = {"tracks": [], "assets": []}
+        for t in tracks:
+            tid = t.get("track_id")
+            s = threat_map.get(tid)
+            ctx["tracks"].append({
+                "id": tid, "side": t.get("side"), "class": t.get("class_label"),
+                "pos": [t.get("x_km"), t.get("y_km")], "threat_score": s.total_score if s else 0
+            })
+        for a in assets:
+            ctx["assets"].append({
+                "id": a.get("asset_id"), "status": a.get("status"), "readiness": a.get("readiness"),
+                "pos": [a.get("current_location", {}).get("x", 0), a.get("current_location", {}).get("y", 0)]
+            })
+        return json.dumps(ctx, indent=None)
 
     def _build_context_prompt(self, situation: str) -> str:
         return (
