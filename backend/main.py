@@ -935,11 +935,18 @@ def get_feed(since_id: str | None = None) -> list[dict[str, Any]]:
 
 @app.post("/copilot/command")
 def copilot_command(cmd: CopilotCommand) -> dict[str, Any]:
+    _enrich_groups_with_llm()
     state = engine.get_state()
     state_dict = state.model_dump()
     state_dict["threat_scores"] = [s.model_dump() for s in _current_scores]
     if engine.geography:
         state_dict["zones"] = [z.model_dump() for z in engine.geography.defended_zones]
+    # Full operator picture (mirrors on-screen panels: groups, coas, resources, feed)
+    state_dict["threat_groups"] = [g.model_dump() for g in _current_groups]
+    state_dict["current_coas"] = [c.model_dump() for c in _current_coas]
+    state_dict["resource_catalog"] = load_resource_catalogue()
+    state_dict["recent_decisions"] = [r.model_dump() for r in audit.get_all()[-8:]]
+    state_dict["copilot_feed_preview"] = [f.model_dump() for f in chief.feed[-5:]]
     
     def _tool_get_state_summary() -> dict[str, Any]:
         return {

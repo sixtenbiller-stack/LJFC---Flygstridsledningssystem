@@ -1,6 +1,7 @@
 """Command router — maps slash commands and natural language to tool functions."""
 from __future__ import annotations
 
+import json
 import re
 from typing import Any, Callable
 
@@ -8,25 +9,53 @@ import ai_provider
 from models import CopilotResponse
 
 
-SYSTEM_INSTRUCTION = """You are the Unified Copilot for LJFC COMMAND. You answer operator questions about the current tactical situation.
+def _trim_nested_lists(obj: Any, max_list_len: int = 40) -> Any:
+    """Cap list sizes in nested dict/list structures (e.g. resource catalog)."""
+    if isinstance(obj, dict):
+        return {k: _trim_nested_lists(v, max_list_len) for k, v in obj.items()}
+    if isinstance(obj, list):
+        trimmed = obj[:max_list_len]
+        return [_trim_nested_lists(x, max_list_len) for x in trimmed]
+    return obj
 
-[TACTICAL CONTEXT SCHEMA]
-The provided state contains:
-- tracks: {id, side, class, pos[x,y], speed, alt, threat_score, eta_s}
-- assets: {id, type, status, readiness, pos[x,y], munitions}
-- zones: {id, priority, location}
+
+def _context_json(data: Any, max_chars: int = 20000) -> str:
+    """Serialize context for LLM; truncate to stay within model budget."""
+    try:
+        s = json.dumps(data, indent=None, default=str)
+    except Exception:
+        s = str(data)
+    if len(s) > max_chars:
+        return s[: max_chars - 20] + "\n…[truncated]"
+    return s
+
+
+SYSTEM_INSTRUCTION = """You are the Unified Copilot for LJFC COMMAND. You answer operator questions about the current tactical air-defence picture.
+
+[OPERATOR CONTEXT — you have the same entity data the UI shows]
+The message includes a JSON payload `operator_context` with, when available:
+- scenario: id, name, wave, time_s, source_state_id, is_playing, mode
+- tracks: full track records (id, class, position, heading, side, confidence, status, etc.)
+- threat_scores: per-track scoring, priority band, factors, nearest zone, ETA
+- threat_groups: cluster assessments (type, members, lane, urgency, narration, rationale)
+- assets: blue-force units (readiness, status, position, type, assignments)
+- alerts: system alert list tied to the scenario
+- zones: defended zones and priorities
+- current_coas: generated courses of action (if any)
+- resource_catalog: equipment / inventory reference data (may be partially truncated)
+- events_log_recent: last few scenario timeline events
+- recent_decisions: operator approval audit entries
+- copilot_feed_preview: recent Chief of Staff / system feed lines
 
 [DECISION OUTPUT SCHEMA]
-If recommending tactical actions, prioritize concise text but ALWAYS include a structured decision block in the response 'data' field.
-A decision should contain:
-{"action": "INTERCEPT|MONITOR|REDEPLOY", "actor_id": "asset_id", "target_ids": ["track_id"], "priority": "high|medium|low", "rationale": "why"}
+If recommending tactical actions, you may add a machine-readable block in the response when useful:
+{"action": "INTERCEPT|MONITOR|REDEPLOY|OBSERVE", "actor_id": "asset_id", "target_ids": ["track_id"], "priority": "high|medium|low", "rationale": "short why"}
 
 Rules:
-- Be concise and direct — 1-3 paragraphs max
-- Reference specific IDs (tracks, assets, zones)
-- Never issue orders — recommend and inform only
-- Ground all answers in the provided state data
-- CRITICAL: Do NOT show your thinking process. Output ONLY the response."""
+- Be concise and direct. Reference real IDs and numbers from operator_context.
+- Never issue binding orders — recommend and inform only; the human approves.
+- Ground every claim in operator_context. If data is missing, say so.
+- CRITICAL: Do NOT reveal chain-of-thought. Output the answer only (no "thinking:" steps)."""
 
 SLASH_COMMANDS = {
     "/summary": "summary",
@@ -249,44 +278,36 @@ class CommandRouter:
 
         return "freeform", []
 
-    def _build_tactical_context_str(self, state: dict) -> str:
-        """Create a compact, stable tactical context for the LLM prompt."""
-        import json
-        tracks = state.get("tracks", [])
-        assets = state.get("assets", [])
-        threat_map = {s.get("track_id"): s for s in state.get("threat_scores", [])}
-        
-        ctx = {
-            "tracks": [],
-            "assets": [],
-            "zones": state.get("zones", [])
+    def _build_operator_context(self, state: dict) -> dict[str, Any]:
+        """Full tactical picture: same entities the operator sees in rails and map (bounded lists)."""
+        resource = _trim_nested_lists(state.get("resource_catalog") or {}, 40)
+        return {
+            "scenario": {
+                "scenario_id": state.get("scenario_id"),
+                "scenario_name": state.get("scenario_name"),
+                "wave": state.get("wave"),
+                "time_s": state.get("current_time_s"),
+                "source_state_id": state.get("source_state_id"),
+                "is_playing": state.get("is_playing"),
+                "speed_multiplier": state.get("speed_multiplier"),
+                "mode": state.get("mode"),
+            },
+            "tracks": state.get("tracks", []),
+            "threat_scores": state.get("threat_scores", []),
+            "threat_groups": state.get("threat_groups", []),
+            "assets": state.get("assets", []),
+            "alerts": state.get("alerts", []),
+            "zones": state.get("zones", []),
+            "current_coas": state.get("current_coas", []),
+            "resource_catalog": resource,
+            "events_log_recent": (state.get("events_log") or [])[-8:],
+            "recent_decisions": state.get("recent_decisions", []),
+            "copilot_feed_preview": state.get("copilot_feed_preview", []),
         }
-        
-        for t in tracks:
-            tid = t.get("track_id")
-            sc = threat_map.get(tid, {})
-            ctx["tracks"].append({
-                "id": tid,
-                "side": t.get("side"),
-                "class": t.get("class_label"),
-                "pos": [t.get("x_km"), t.get("y_km")],
-                "speed": t.get("speed_class"),
-                "alt": t.get("altitude_band"),
-                "threat_score": sc.get("total_score", 0),
-                "eta_s": sc.get("eta_s")
-            })
-            
-        for a in assets:
-            ctx["assets"].append({
-                "id": a.get("asset_id"),
-                "type": a.get("asset_type"),
-                "status": a.get("status"),
-                "readiness": a.get("readiness"),
-                "pos": [a.get("current_location", {}).get("x", 0), a.get("current_location", {}).get("y", 0)],
-                "munitions": a.get("munitions")
-            })
-            
-        return json.dumps(ctx, indent=None)
+
+    def _build_tactical_context_str(self, state: dict) -> str:
+        """JSON snapshot for the LLM (size-capped)."""
+        return _context_json(self._build_operator_context(state), max_chars=20000)
 
     def _handle_summary(self, state: dict, tools: dict, sid: str) -> CopilotResponse:
         summary_fn = tools.get("get_state_summary")
@@ -398,7 +419,11 @@ class CommandRouter:
         assets = state.get("assets", [])
         if not assets:
             return CopilotResponse(type="text", message="No asset data.", source_state_id=sid)
-        lines = []
+        groups = state.get("threat_groups") or []
+        head = f"Active threat groups: {len(groups)}.\n" if groups else ""
+        lines: list[str] = []
+        if head:
+            lines.append(head.rstrip())
         for a in assets[:20]:
             aid = a.get("asset_id", "?")
             st = a.get("status", "?")
@@ -471,12 +496,14 @@ class CommandRouter:
     def _handle_what_changed(self, state: dict, sid: str) -> CopilotResponse:
         events = state.get("events_log", [])
         recent = events[-5:] if events else []
+        ctx = self._build_tactical_context_str(state)
 
         prompt = (
-            f"Recent events:\n{_fmt(recent)}\n\n"
-            "Summarize what changed recently for the operator."
+            f"operator_context (current entities):\n{ctx}\n\n"
+            f"Most recent scenario events:\n{_fmt(recent)}\n\n"
+            "Summarize what changed recently and how it affects the picture (tracks, groups, alerts)."
         )
-        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=500)
         if not msg:
             if recent:
                 lines = [f"• T+{e.get('t_s', 0):.0f}s: {e.get('summary', e.get('type', '?'))}" for e in recent]
@@ -501,11 +528,13 @@ class CommandRouter:
             )
 
         top = coas[0] if isinstance(coas, list) and coas else {}
+        ctx = self._build_tactical_context_str(state)
         prompt = (
+            f"operator_context:\n{ctx}\n\n"
             f"Current COAs:\n{_fmt(coas[:3])}\n\n"
-            "Recommend the best option and explain why in 2-3 sentences."
+            "Recommend the best option and explain why in 2-3 sentences, grounded in threat groups and tracks above."
         )
-        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=300)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=500)
         if not msg:
             title = top.get("title", "Option A") if isinstance(top, dict) else "Option A"
             msg = f"Recommended: {title}. It offers the best balance of protection and readiness preservation."
@@ -531,17 +560,19 @@ class CommandRouter:
 
     def _handle_brief(self, state: dict, tools: dict, sid: str) -> CopilotResponse:
         summary = self._build_basic_summary(state)
+        ctx = self._build_tactical_context_str(state)
         get_coas = tools.get("get_current_coas")
         coas = get_coas() if get_coas else []
 
         prompt = (
+            f"operator_context (ground truth, JSON):\n{ctx}\n\n"
             f"State summary:\n{_fmt(summary)}\n"
             f"Current COAs (top 2):\n{_fmt(coas[:2])}\n\n"
             "Generate a commander's brief in plain English. "
-            "Cover: situation, threat picture, current plan status, readiness, and recommended next steps. "
-            "Keep it to 3-5 paragraphs."
+            "Cover: situation, threat picture, groups, alerts, current plan status, readiness, resources if relevant, and recommended next steps. "
+            "Keep it to 3-5 paragraphs. Use specific IDs from operator_context."
         )
-        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=600)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=800)
         if not msg:
             msg = self._format_summary_fallback(summary)
             if coas:
@@ -575,21 +606,18 @@ class CommandRouter:
 
     def _handle_freeform(self, text: str, state: dict, sid: str, history: list[dict[str, str]] | None = None) -> CopilotResponse:
         summary = self._build_basic_summary(state)
-        prompt = (
-            f"Operator question: \"{text}\"\n\n"
-            f"Current state:\n{_fmt(summary)}\n\n"
-        )
+        ctx = self._build_tactical_context_str(state)
+        prompt = f"operator_context (JSON) — full tactical picture, same as the UI:\n{ctx}\n\n"
+        prompt += f"summary_counts:\n{_fmt(summary)}\n\n"
         if history:
             history_str = "\n".join([f"{h['role'].upper()}: {h['content']}" for h in history])
-            prompt = f"Recent chat history:\n{history_str}\n\n{prompt}"
-            
+            prompt += f"Recent chat history:\n{history_str}\n\n"
         prompt += (
-            "Answer the operator's question based on the current tactical situation and chat history. "
-            "Be concise and direct."
+            f"Operator question: \"{text}\"\n\n"
+            "Answer using operator_context. Cite specific track_ids, group_ids, asset_ids, and zones when applicable. "
+            "If the question is about resources, use resource_catalog. Be concise and direct."
         )
-        
-        # Increased tokens from 400 to 1500 to prevent cutoff
-        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=1500)
+        msg = ai_provider.generate(prompt, system_instruction=SYSTEM_INSTRUCTION, max_tokens=2000)
         if not msg:
             msg = (
                 "I can help with tactical questions. Try commands like /summary, /top-threats, "
@@ -873,11 +901,16 @@ class CommandRouter:
     def _build_basic_summary(self, state: dict) -> dict[str, Any]:
         tracks = state.get("tracks", [])
         assets = state.get("assets", [])
+        groups = state.get("threat_groups") or []
+        coas = state.get("current_coas") or []
+        al = state.get("alerts") or []
         hostile_count = sum(1 for t in tracks if t.get("side") == "hostile")
         ready_assets = sum(1 for a in assets if a.get("status") in ("ready", "standby", "alert"))
         recovering = sum(1 for a in assets if a.get("status") == "recovering")
         avg_readiness = (sum(a.get("readiness", 1.0) for a in assets) / max(len(assets), 1))
         return {
+            "scenario_id": state.get("scenario_id", ""),
+            "scenario_name": state.get("scenario_name", ""),
             "wave": state.get("wave", 0),
             "time_s": state.get("current_time_s", 0),
             "hostile_tracks": hostile_count,
@@ -886,12 +919,19 @@ class CommandRouter:
             "recovering_assets": recovering,
             "avg_readiness": round(avg_readiness, 2),
             "coa_trigger_pending": state.get("coa_trigger_pending", False),
+            "groups_count": len(groups),
+            "alerts_count": len(al),
+            "coas_count": len(coas),
         }
 
     def _format_summary_fallback(self, data: dict) -> str:
+        scn = data.get("scenario_name") or data.get("scenario_id") or ""
+        head = f"{scn} — " if scn else ""
         return (
-            f"Wave {data.get('wave', 0)} | T+{data.get('time_s', 0):.0f}s\n"
-            f"Hostile tracks: {data.get('hostile_tracks', 0)}\n"
+            f"{head}Wave {data.get('wave', 0)} | T+{data.get('time_s', 0):.0f}s\n"
+            f"Hostile tracks: {data.get('hostile_tracks', 0)} | "
+            f"Groups: {data.get('groups_count', 0)} | Alerts: {data.get('alerts_count', 0)} | "
+            f"COAs: {data.get('coas_count', 0)}\n"
             f"Assets: {data.get('ready_assets', 0)} ready, {data.get('recovering_assets', 0)} recovering "
             f"(avg readiness {data.get('avg_readiness', 1.0):.0%})\n"
             f"{'COA generation recommended.' if data.get('coa_trigger_pending') else ''}"
@@ -903,6 +943,8 @@ class CommandRouter:
             actions.append("Generate COAs")
         if state.get("wave", 0) >= 2:
             actions.append("Re-plan")
+        if len(state.get("threat_groups") or []) > 0 and "/groups" not in str(actions):
+            actions.append("Review groups: /groups")
         return actions
 
 
