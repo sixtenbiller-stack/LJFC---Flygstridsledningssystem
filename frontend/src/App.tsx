@@ -12,6 +12,7 @@ import { AlertQueue } from './components/AlertQueue';
 import { GroupQueue } from './components/GroupQueue';
 import { CopilotPanel } from './components/CopilotPanel';
 import { DecisionCard } from './components/DecisionCard';
+import { TacticalInfoCard } from './components/TacticalInfoCard';
 import { ScenarioLab } from './components/ScenarioLab';
 import { Timeline } from './components/Timeline';
 import {
@@ -508,6 +509,12 @@ export default function App() {
         />
 
         <main className="center-map">
+          {selectedTrack && (
+            <TacticalInfoCard
+              track={state.tracks.find(t => t.track_id === selectedTrack) || null}
+              onClose={() => setSelectedTrack(null)}
+            />
+          )}
           <TacticalMap
             geography={geo}
             tracks={state.tracks}

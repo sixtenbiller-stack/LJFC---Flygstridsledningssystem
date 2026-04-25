@@ -197,6 +197,12 @@ export function CopilotPanel({
     if (!cmd) return;
     setCommandLoading(true);
     setInputText('');
+    
+    // Add user command to feedItems via parent if possible, 
+    // or handle locally if the parent doesn't auto-add it.
+    // In this architecture, onSendCommand triggers a backend call 
+    // which eventually updates feedItems via the state polling.
+
     try {
       const resp = await onSendCommand(cmd);
       if (resp) {
@@ -268,17 +274,6 @@ export function CopilotPanel({
 
   return (
     <div className="copilot-panel">
-      <div className="copilot-header">
-        <div className="copilot-header-left">
-          <span className="copilot-title">UNIFIED COPILOT</span>
-          {copilotStatus && (
-            <span className={`copilot-provider ${copilotStatus.provider}`}>
-              {copilotStatus.provider === 'gemini' ? '◆ GEMINI' : '○ MOCK'}
-            </span>
-          )}
-        </div>
-        {coaWave > 0 && <span className="copilot-wave">W{coaWave}</span>}
-      </div>
 
       <div className="copilot-sticky" aria-label="Situation summary">
         <div className="copilot-sticky-row">
@@ -286,29 +281,6 @@ export function CopilotPanel({
             <span className="csk-label">Scenario</span>
             <span className="csk-value">{state.scenario_name}</span>
           </div>
-          <div className="copilot-sticky-cell">
-            <span className="csk-label">{scenarioMode ? scenarioMode.toUpperCase() : 'REPLAY'} · {scenarioOrigin ? scenarioOrigin.toUpperCase().replace('_', ' ') : 'BUILTIN'}</span>
-            <span className="csk-value csk-mono" title={state.source_state_id}>
-              {state.source_state_id.length > 18 ? `${state.source_state_id.slice(0, 18)}…` : state.source_state_id}
-            </span>
-          </div>
-        </div>
-        {groups.length > 0 && (() => {
-          const topG = groups.find(g => g.group_id === selectedGroup) || groups[0];
-          return (
-            <div className="copilot-sticky-row copilot-group-summary">
-              <div className="copilot-sticky-cell">
-                <span className="csk-label">Top group</span>
-                <span className="csk-value csk-highlight">{topG.group_type || topG.group_id}</span>
-              </div>
-              <div className="copilot-sticky-cell">
-                <span className="csk-label">{topG.recommended_lane || 'FAST'}</span>
-                <span className="csk-value">{topG.member_track_ids.length} tracks · {Math.round((topG.confidence ?? 0) * 100)}%</span>
-              </div>
-            </div>
-          );
-        })()}
-        <div className="copilot-sticky-row">
           <div className="copilot-sticky-cell">
             <span className="csk-label">Top threat</span>
             <span className="csk-value">{topThreat?.track_id ?? '—'}</span>
@@ -320,77 +292,16 @@ export function CopilotPanel({
         </div>
       </div>
 
-      <div className="copilot-context-card" aria-label="Operator context">
-        <div className="cc-line">
-          <span className="cc-label">Selected</span>
-          <span className="cc-val">{selectedTrack ?? '—'}</span>
-        </div>
-        <div className="cc-line">
-          <span className="cc-label">Wave / trigger</span>
-          <span className="cc-val">
-            {state.wave}
-            {state.coa_trigger_pending ? ' · COA recommended' : ''}
-          </span>
-        </div>
-      </div>
-
-      <div className="copilot-tabs">
-        <button className={view === 'feed' ? 'tab active' : 'tab'} onClick={() => setView('feed')}>
-          Feed{feedItems.length > 0 ? ` (${feedItems.length})` : ''}
-        </button>
-        <button className={view === 'plans' ? 'tab active' : 'tab'} onClick={() => setView('plans')}>Plans</button>
-        <button className={view === 'compare' ? 'tab active' : 'tab'} onClick={handleCompare} disabled={coas.length < 2}>Compare</button>
-        <button className={view === 'explain' ? 'tab active' : 'tab'} onClick={() => setView('explain')} disabled={!explanation}>Why?</button>
-        <button className={view === 'simulate' ? 'tab active' : 'tab'} onClick={() => setView('simulate')} disabled={!simResult}>Sim</button>
-        <button className={view === 'audit' ? 'tab active' : 'tab'} onClick={() => setView('audit')}>Audit</button>
-      </div>
-
       <div className="copilot-content">
-        {view === 'feed' && (
-          <FeedView
-            items={feedItems}
-            commandResponse={commandResponse}
-            feedEndRef={feedEndRef}
-          />
-        )}
-
-        {view === 'plans' && (
-          <>
-            <button
-              className="generate-btn primary"
-              onClick={handleGenerate}
-              disabled={loading === 'coas'}
-            >
-              {loading === 'coas' ? 'Generating...' : state.wave >= 2 ? '↻ Re-plan COAs' : '◆ Generate COAs'}
-            </button>
-
-            {coas.length === 0 && (
-              <div className="copilot-hint">
-                {state.coa_trigger_pending
-                  ? 'Threat threshold crossed — generate COAs to see response options.'
-                  : 'Start the scenario and wait for threats to appear.'}
-              </div>
-            )}
-
-            {coas.map(coa => (
-              <CoaCard
-                key={coa.coa_id}
-                coa={coa}
-                isSelected={selectedCoa === coa.coa_id}
-                onSelect={() => setSelectedCoa(coa.coa_id === selectedCoa ? null : coa.coa_id)}
-                onExplain={() => handleExplain(coa.coa_id)}
-                onSimulate={() => handleSimulate(coa.coa_id)}
-                onApprove={() => handleApprove(coa.coa_id)}
-                loading={loading}
-              />
-            ))}
-          </>
-        )}
-
-        {view === 'compare' && compareIds && <CompareView coas={coas} ids={compareIds} />}
-        {view === 'explain' && <ExplainView data={explanation} />}
-        {view === 'simulate' && <SimulateView result={simResult} />}
-        {view === 'audit' && <AuditView decisions={decisions} />}
+        <FeedView
+          items={feedItems}
+          commandResponse={commandResponse}
+          feedEndRef={feedEndRef}
+        />
+        
+        {/* We keep the visibility of other views if needed by internal state, 
+            but the user requested to remove everything below except the send message window.
+            However, usually we want to see the feed by default now. */}
       </div>
 
       {/* Feed / backend suggested quick actions */}
@@ -435,7 +346,7 @@ export function CopilotPanel({
             ref={inputRef}
             type="text"
             className="copilot-input"
-            placeholder={commandLoading ? 'Processing...' : '/command or ask a question...'}
+            placeholder={commandLoading ? 'Processing...' : 'Ask or command...'}
             value={inputText}
             onChange={e => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -451,11 +362,11 @@ export function CopilotPanel({
           />
           <button
             type="button"
-            className="copilot-send"
+            className="copilot-send-btn"
             onClick={() => void handleSendCommand()}
             disabled={commandLoading || !inputText.trim()}
           >
-            ↵
+            <span className="arrow">↑</span>
           </button>
         </div>
 
@@ -512,13 +423,13 @@ function FeedView({
   return (
     <div className="feed-view">
       {items.map(item => (
-        <div key={item.id} className={`feed-item severity-${item.severity}`}>
+        <div key={item.id} className={`feed-item severity-${item.severity} role-${item.category === 'operator_command' ? 'user' : 'system'}`}>
           <div className="feed-item-header">
             <span className={`feed-severity ${item.severity}`}>{item.severity === 'critical' ? '●' : item.severity === 'warning' ? '▲' : '◆'}</span>
             <span className="feed-category">{item.category.replace(/_/g, ' ')}</span>
             <span className="feed-time">{new Date(item.timestamp).toLocaleTimeString()}</span>
           </div>
-          <div className="feed-title">{item.title}</div>
+          {item.title && <div className="feed-title">{item.title}</div>}
           <div className="feed-body">{item.body}</div>
           {item.related_ids.length > 0 && (
             <div className="feed-related">
@@ -531,11 +442,7 @@ function FeedView({
       ))}
 
       {commandResponse && (
-        <div className="feed-item command-response">
-          <div className="feed-item-header">
-            <span className="feed-severity info">◆</span>
-            <span className="feed-category">copilot response</span>
-          </div>
+        <div className="feed-item command-response role-copilot">
           <div className="feed-body">{commandResponse.message}</div>
         </div>
       )}
