@@ -27,9 +27,9 @@ const STORAGE_KEY = 'neon-command-layout-v1';
 export type BottomBarMode = 'compact' | 'normal' | 'expanded';
 
 const BOTTOM_HEIGHTS: Record<BottomBarMode, number> = {
-  compact: 80,
-  normal: 118,
-  expanded: 168,
+  compact: 44,
+  normal: 58,
+  expanded: 82,
 };
 
 export function getBottomHeight(mode: BottomBarMode): number {

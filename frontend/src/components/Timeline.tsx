@@ -30,13 +30,6 @@ const MARKER_COLORS: Record<string, string> = {
   end: '#6e7681',
 };
 
-const DEMO_JUMPS = [
-  { target: 'first_contact', label: 'First Contact' },
-  { target: 'first_group', label: 'First Group' },
-  { target: 'first_decision', label: 'Decision' },
-  { target: 'second_wave', label: '2nd Wave' },
-];
-
 export function Timeline({
   currentTime, duration, isPlaying, speed, eventsLog: _eventsLog, coaTriggerPending,
   onControl, onReset, onJump, onSeek, markers = [], mode: _mode, compact = false,
@@ -62,32 +55,7 @@ export function Timeline({
 
   return (
     <div className={`timeline ${compact ? 'timeline--compact' : ''}`}>
-      <div className="timeline-controls">
-        <button className="tl-btn" onClick={onReset} title="Reset">⟳</button>
-
-        {isPlaying ? (
-          <button className="tl-btn tl-pause" onClick={() => onControl('pause')} title="Pause">❚❚</button>
-        ) : (
-          <button className="tl-btn tl-play" onClick={() => onControl('play')} title="Play">▶</button>
-        )}
-
-        <div className="speed-group">
-          {SPEEDS.map(s => (
-            <button
-              key={s}
-              className={`speed-btn ${speed === s ? 'active' : ''}`}
-              onClick={() => onControl('speed', s)}
-            >
-              ×{s}
-            </button>
-          ))}
-        </div>
-
-        <div className="tl-time">
-          <span className="tl-time-value">{formatTime(currentTime)}</span>
-          <span className="tl-time-label">/ {formatTime(dur)}</span>
-        </div>
-
+      <div className="tl-row-top">
         <div className="tl-progress-bar" ref={progressBarRef} onClick={handleProgressClick}
              style={{ cursor: onSeek ? 'pointer' : 'default' }}>
           <div className="tl-progress-fill" style={{ width: `${progress}%` }} />
@@ -114,26 +82,41 @@ export function Timeline({
             );
           })}
         </div>
+      </div>
+
+      <div className="timeline-controls">
+        <div className="tl-main-ctrls">
+          <button className="tl-btn" onClick={onReset} title="Reset">⟳</button>
+
+          {isPlaying ? (
+            <button className="tl-btn tl-pause" onClick={() => onControl('pause')} title="Pause">❚❚</button>
+          ) : (
+            <button className="tl-btn tl-play" onClick={() => onControl('play')} title="Play">▶</button>
+          )}
+
+          <div className="speed-group">
+            {SPEEDS.map(s => (
+              <button
+                key={s}
+                className={`speed-btn ${speed === s ? 'active' : ''}`}
+                onClick={() => onControl('speed', s)}
+              >
+                ×{s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="tl-time">
+          <span className="tl-time-value">{formatTime(currentTime)}</span>
+          <span className="tl-time-label">/ {formatTime(dur)}</span>
+        </div>
 
         {coaTriggerPending && (
           <div className="tl-coa-alert">COA RECOMMENDED</div>
         )}
-      </div>
 
-      {!compact && onJump && (
-        <div className="tl-demo-strip">
-          {DEMO_JUMPS.map(d => (
-            <button
-              key={d.target}
-              className="tl-demo-btn"
-              onClick={() => onJump(d.target)}
-              title={`Jump to ${d.label}`}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
-      )}
+      </div>
 
       {/* Event text log removed — scenario markers stay on the progress bar above */}
     </div>
